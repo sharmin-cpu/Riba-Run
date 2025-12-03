@@ -2,260 +2,1047 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Riba Run</title>
   <style>
+    :root {
+      --purple-dark: #1b1035;
+      --purple-mid: #2b1750;
+      --purple-light: #3a1f6b;
+      --panel-bg: #241742;
+      --panel-border: #8b5cf6;
+      --panel-shadow: #120825;
+      --green: #22c55e;
+      --red: #ef4444;
+      --gold: #facc15;
+      --text-main: #f9fafb;
+      --text-soft: #e5e7eb;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      background: black;
-    }
-    canvas {
-      display: block;
-    }
-    #loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
       height: 100%;
-      background: #0f0f0f;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top, #4c1d95 0, #020617 65%, #000 100%);
+      overflow: hidden;
+    }
+
+    body {
       display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    #gameCanvas {
+      display: none; /* shown only while playing */
+      flex: 1;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 28px;
-      font-family: sans-serif;
+      padding: 24px;
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    .screen-inner {
+      background: linear-gradient(145deg, #1f133b, #0f1026);
+      border-radius: 18px;
+      padding: 32px 32px 28px;
+      box-shadow:
+        0 18px 0 #120825,
+        0 26px 40px rgba(0,0,0,0.6);
+      border: 3px solid var(--panel-border);
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .title {
+      font-size: 44px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #facc15;
+      text-shadow:
+        0 4px 0 #854d0e,
+        0 0 20px rgba(250,204,21,0.4);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      margin-bottom: 28px;
+    }
+
+    .kestrel-sprite {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      position: relative;
+    }
+
+    .kestrel-sprite::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(250,204,21,0.5), transparent 70%);
+      filter: blur(4px);
+      opacity: 0.7;
+    }
+
+    .kestrel-body {
+      position: absolute;
+      left: 18px;
+      top: 30px;
+      width: 42px;
+      height: 26px;
+      background: #8b5e3c;
+      box-shadow: 0 0 0 3px #4b2b1b;
+    }
+
+    .kestrel-body::before {
+      content: "";
+      position: absolute;
+      left: 24px;
+      top: -14px;
+      width: 22px;
+      height: 20px;
+      background: #a1623b;
+      box-shadow: 0 0 0 3px #4b2b1b;
+    }
+
+    .kestrel-eye {
+      position: absolute;
+      right: 4px;
+      top: -8px;
+      width: 6px;
+      height: 6px;
+      background: #0f172a;
+      box-shadow: 0 0 0 3px #020617;
+    }
+
+    .kestrel-beak {
+      position: absolute;
+      right: -10px;
+      top: -4px;
+      width: 10px;
+      height: 6px;
+      background: #22c55e;
+    }
+
+    .kestrel-leg {
+      position: absolute;
+      bottom: -10px;
+      width: 4px;
+      height: 12px;
+      background: #16a34a;
+    }
+
+    .kestrel-leg.left {
+      left: 10px;
+    }
+    .kestrel-leg.right {
+      left: 24px;
+    }
+
+    .badge-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .badge {
+      min-width: 140px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #064e3b, #052e16);
+      border: 3px solid #22c55e;
+      box-shadow: 0 10px 0 #022c22;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #bbf7d0;
+    }
+
+    .btn-primary {
+      margin-top: 8px;
+      background: linear-gradient(145deg, #22c55e, #15803d);
+      border-radius: 18px;
+      padding: 14px 32px;
+      border: 0;
+      box-shadow:
+        0 12px 0 #14532d,
+        0 20px 32px rgba(0,0,0,0.7);
+      color: #ecfdf5;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .btn-primary:active {
+      transform: translateY(4px);
+      box-shadow:
+        0 8px 0 #14532d,
+        0 16px 24px rgba(0,0,0,0.7);
+    }
+
+    .pillars-panel {
+      margin-top: 26px;
+      border-radius: 16px;
+      background: #1e1637;
+      border: 2px solid var(--panel-border);
+      padding: 16px 16px 20px;
+      text-align: left;
+      box-shadow: 0 10px 0 #120825;
+    }
+
+    .pillars-title {
+      text-align: center;
+      letter-spacing: 0.16em;
+      font-size: 12px;
+      color: #fbbf24;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .pillar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      margin: 4px 0;
+      color: var(--text-soft);
+    }
+
+    .tag {
+      min-width: 72px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-align: center;
+      font-weight: 700;
+      color: #111827;
+    }
+    .tag.gold  { background: #facc15; }
+    .tag.red   { background: #f97373; }
+    .tag.green { background: #22c55e; color:#052e16; }
+    .tag.blue  { background: #38bdf8; color:#0b1120; }
+
+    /* Game over layout */
+
+    #gameOverScreen {
+      display: none;
+    }
+
+    .go-title {
+      font-size: 40px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #f97373;
+      text-shadow:
+        0 4px 0 #7f1d1d,
+        0 0 32px rgba(248,113,113,0.6);
+      margin-bottom: 4px;
+    }
+
+    .go-subtitle {
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #fecaca;
+      margin-bottom: 18px;
+    }
+
+    .go-blurb {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+    }
+
+    .go-main-score {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .go-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .go-card {
+      background: #0f172a;
+      border-radius: 10px;
+      border: 2px solid #4b5563;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .go-card-title {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .go-card-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .go-meter {
+      margin-top: 14px;
+      background: #111827;
+      border-radius: 10px;
+      border: 2px solid #7f1d1d;
+      padding: 10px 12px 14px;
+      text-align: left;
+    }
+
+    .go-meter-title {
+      font-size: 13px;
+      color: #fecaca;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .go-meter-sub {
+      font-size: 13px;
+      color: #fecaca;
+    }
+
+    .go-meter-sub span {
+      font-weight: 700;
+    }
+
+    .go-btn-row {
+      margin-top: 22px;
+    }
+
+    /* HUD elements drawn in canvas, so no extra CSS here */
+
+    @media (max-width: 600px) {
+      .screen-inner {
+        padding: 22px 18px 18px;
+        max-width: 90%;
+      }
+      .title {
+        font-size: 32px;
+      }
+      .subtitle {
+        font-size: 14px;
+      }
+      .go-metrics {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
 
-<div id="loading">Loading Riba Run…</div>
+<!-- START SCREEN -->
+<div id="menuScreen" class="screen">
+  <div class="screen-inner">
+    <div class="title">RIBA RUN</div>
+    <div class="subtitle">Navigate temptation. Feel the weight of debt.</div>
+
+    <div class="kestrel-sprite">
+      <div class="kestrel-body">
+        <div class="kestrel-eye"></div>
+        <div class="kestrel-beak"></div>
+        <div class="kestrel-leg left"></div>
+        <div class="kestrel-leg right"></div>
+      </div>
+    </div>
+
+    <div class="badge-row">
+      <div class="badge" id="savedBadge">$
+        <span style="margin-left:4px;">SAVED: <span id="savedAmountMenu">0</span></span>
+      </div>
+    </div>
+
+    <button id="startButton" class="btn-primary">▶ START</button>
+
+    <div class="pillars-panel">
+      <div class="pillars-title">★ THE FIVE PILLARS ★</div>
+      <div class="pillar-row">
+        <div class="tag gold">$ HALAL</div>
+        <div>+10 pts each. Placed in risky but rewarding paths.</div>
+      </div>
+      <div class="pillar-row">
+        <div class="tag red">! RIBA</div>
+        <div>−50 pts. Always the easy path… but it stacks fast.</div>
+      </div>
+      <div class="pillar-row">
+        <div class="tag green">♥ NEED</div>
+        <div>Necessity bar drains over time. Keep it filled.</div>
+      </div>
+      <div class="pillar-row">
+        <div class="tag green">$ SAVE</div>
+        <div>Press <b>S</b> to move 10 pts into savings.</div>
+      </div>
+      <div class="pillar-row">
+        <div class="tag blue">K CARD</div>
+        <div>All coins become +10 for a short time.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME CANVAS -->
 <canvas id="gameCanvas"></canvas>
 
-<script>
-/* ------------------ RIBA RUN GAME ENGINE ------------------ */
-/* This is the same code you had — converted to standalone HTML */
+<!-- GAME OVER -->
+<div id="gameOverScreen" class="screen">
+  <div class="screen-inner">
+    <div class="go-title">GAME OVER</div>
+    <div class="go-subtitle" id="goReason">CONSUMED BY DEBT</div>
+    <div class="go-blurb">The monster caught you. The easy path came with a cost.</div>
 
+    <div class="go-main-score" id="finalScoreText">0</div>
+    <div style="font-size:13px;color:#fecaca;margin-bottom:18px;">
+      DEBT: <span id="finalDebtText">0</span> pts
+    </div>
+
+    <div class="go-metrics">
+      <div class="go-card">
+        <div class="go-card-title">DIST</div>
+        <div class="go-card-value" id="finalDistText">0m</div>
+      </div>
+      <div class="go-card">
+        <div class="go-card-title">★ BEST</div>
+        <div class="go-card-value" id="finalBestText">0</div>
+      </div>
+      <div class="go-card">
+        <div class="go-card-title">$ SAVED</div>
+        <div class="go-card-value" id="finalSavedText">0</div>
+      </div>
+    </div>
+
+    <div class="go-meter">
+      <div class="go-meter-title">$ HALAL vs ! RIBA</div>
+      <div style="font-size:13px;margin-bottom:6px;">
+        HALAL ×<span id="finalHalalText">0</span> • RIBA ×<span id="finalRibaText">0</span>
+      </div>
+      <div class="go-meter-sub">
+        <span id="finalRibaRatioText">0%</span> of your choices were Riba.
+        <br/>Avoid the easy path next run.
+      </div>
+    </div>
+
+    <div class="go-btn-row">
+      <button id="tryAgainButton" class="btn-primary">↻ TRY AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= CORE CONSTANTS ======================= */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener("resize", resize);
-
-/* ------------ IMPORTANT: THIS IS YOUR GAME LOGIC ------------ */
-/*       Your entire React component was converted to JS        */
-
 const GROUND_HEIGHT = 100;
-const PLAYER_WIDTH = 48;
-const PLAYER_HEIGHT = 56;
-const PLAYER_SLIDE_HEIGHT = 28;
+const PLAYER_WIDTH = 46;
+const PLAYER_HEIGHT = 46;
+const PLAYER_SLIDE_HEIGHT = 26;
 const GRAVITY = 0.55;
 const JUMP_FORCE = -14;
 const INITIAL_SPEED = 4.5;
 const MAX_SPEED = 10;
 const SPEED_INCREMENT = 0.0006;
+const DEBT_GAME_OVER_THRESHOLD = -150;
 
-let game = {
-  player: { x: 120, y: 0, velocityY: 0, isJumping: false, isSliding: false, slideTimer: 0 },
-  coins: [],
-  powerUps: [],
-  particles: [],
-  parallax: [],
-  monster: { x: -150, targetX: -150, size: 1 },
-  speed: INITIAL_SPEED,
-  score: 0,
-  necessity: 100,
-  hasKestrlCard: false,
-  kestrlTimer: 0,
-  frame: 0,
-  groundY: 0,
-};
+/* ======================= GAME STATE ======================= */
+function createGameState() {
+  return {
+    player: {
+      x: 130,
+      y: 0,
+      vy: 0,
+      jumping: false,
+      sliding: false,
+      slideTimer: 0,
+    },
+    coins: [],
+    powerUps: [],
+    particles: [],
+    groundY: canvas.height - GROUND_HEIGHT,
+    speed: INITIAL_SPEED,
+    frame: 0,
+    score: 0,
+    distance: 0,
+    necessity: 100,
+    hasCard: false,
+    cardTimer: 0,
+    halalCount: 0,
+    ribaCount: 0,
+    savings: 0,
+    bestScore: 0,
+  };
+}
 
-// INITIAL SETUP
-function initGame() {
+let game = createGameState();
+let gameState = "menu"; // 'menu' | 'playing' | 'gameover'
+
+/* ======================= DOM REFS ======================= */
+const menuScreen = document.getElementById("menuScreen");
+const goScreen = document.getElementById("gameOverScreen");
+const startButton = document.getElementById("startButton");
+const tryAgainButton = document.getElementById("tryAgainButton");
+const savedAmountMenu = document.getElementById("savedAmountMenu");
+
+const finalScoreText = document.getElementById("finalScoreText");
+const finalDebtText = document.getElementById("finalDebtText");
+const finalDistText = document.getElementById("finalDistText");
+const finalBestText = document.getElementById("finalBestText");
+const finalSavedText = document.getElementById("finalSavedText");
+const finalHalalText = document.getElementById("finalHalalText");
+const finalRibaText = document.getElementById("finalRibaText");
+const finalRibaRatioText = document.getElementById("finalRibaRatioText");
+
+/* ======================= PERSISTENCE ======================= */
+function loadPersistent() {
+  let savings = 0;
+  let best = 0;
+  try {
+    savings = parseInt(localStorage.getItem("ribaRunSavings") || "0", 10);
+    best = parseInt(localStorage.getItem("ribaRunBest") || "0", 10);
+  } catch (e) {}
+  return { savings, best };
+}
+
+function saveSavings(val) {
+  try {
+    localStorage.setItem("ribaRunSavings", String(val));
+  } catch (e) {}
+}
+
+function saveBestScore(val) {
+  try {
+    localStorage.setItem("ribaRunBest", String(val));
+  } catch (e) {}
+}
+
+/* ======================= RESIZE ======================= */
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   game.groundY = canvas.height - GROUND_HEIGHT;
-  game.player.y = game.groundY - PLAYER_HEIGHT;
-  game.speed = INITIAL_SPEED;
-  game.score = 0;
-  game.powerUps = [];
-  game.coins = [];
-  game.particles = [];
 }
-initGame();
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
-/* ---------------- SMALL HELPERS ---------------- */
-
-function jump() {
-  if (!game.player.isJumping) {
-    game.player.velocityY = JUMP_FORCE;
-    game.player.isJumping = true;
-  }
-}
-
-function slide() {
-  if (!game.player.isJumping && !game.player.isSliding) {
-    game.player.isSliding = true;
-    game.player.slideTimer = 35;
-  }
-}
-
-/* ------------------- SPAWN THINGS ------------------- */
-
+/* ======================= SPAWN HELPERS ======================= */
 function spawnCoin() {
-  const y = game.groundY - (Math.random() < 0.5 ? 60 : 160);
-  game.coins.push({ x: canvas.width + 40, y, radius: 22, isGreen: Math.random() < 0.5 });
+  const isGreen = Math.random() < 0.6;
+  const heights = [game.groundY - 60, game.groundY - 110, game.groundY - 160];
+  const y = isGreen ? heights[Math.floor(Math.random() * heights.length)]
+                    : game.groundY - 50;
+  game.coins.push({
+    x: canvas.width + 60,
+    y,
+    r: isGreen ? 18 : 18,
+    isGreen,
+    pulse: Math.random() * Math.PI * 2,
+  });
 }
 
 function spawnKestrlCard() {
-  if (Math.random() < 0.2 && !game.hasKestrlCard) {
+  if (Math.random() < 0.2 && !game.hasCard) {
     game.powerUps.push({
-      x: canvas.width + 40,
-      y: game.groundY - 100,
-      width: 45,
-      height: 30
+      x: canvas.width + 60,
+      y: game.groundY - 120,
+      w: 50,
+      h: 30,
+      pulse: 0,
     });
   }
 }
 
-/* --------------------- UPDATE ---------------------- */
+/* ======================= PARTICLES ======================= */
+function spawnParticles(x, y, color, count = 10) {
+  for (let i = 0; i < count; i++) {
+    game.particles.push({
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
+      life: 1,
+      color,
+      size: 2 + Math.random() * 3,
+    });
+  }
+}
 
+/* ======================= INPUT ======================= */
+function handleJump() {
+  if (gameState !== "playing") return;
+  if (!game.player.jumping) {
+    game.player.vy = JUMP_FORCE;
+    game.player.jumping = true;
+  }
+}
+
+function handleSlide() {
+  if (gameState !== "playing") return;
+  if (!game.player.jumping && !game.player.sliding) {
+    game.player.sliding = true;
+    game.player.slideTimer = 35;
+  }
+}
+
+function handleSave() {
+  if (gameState !== "playing") return;
+  if (game.score >= 10) {
+    game.score -= 10;
+    game.savings += 10;
+    saveSavings(game.savings);
+    spawnParticles(game.player.x + PLAYER_WIDTH / 2, game.player.y, "#22c55e", 12);
+  }
+}
+
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space" || e.code === "ArrowUp") {
+    e.preventDefault();
+    handleJump();
+  } else if (e.code === "ArrowDown") {
+    e.preventDefault();
+    handleSlide();
+  } else if (e.code === "KeyS") {
+    e.preventDefault();
+    handleSave();
+  }
+});
+
+canvas.addEventListener("touchstart", (e) => {
+  if (gameState !== "playing") return;
+  const touchY = e.touches[0].clientY;
+  if (touchY > window.innerHeight / 2) handleSlide();
+  else handleJump();
+});
+
+/* ======================= GAME FLOW ======================= */
+function resetAndStartGame() {
+  const persistent = loadPersistent();
+  game = createGameState();
+  game.savings = persistent.savings;
+  game.bestScore = persistent.best;
+  savedAmountMenu.textContent = game.savings;
+
+  menuScreen.style.display = "none";
+  goScreen.style.display = "none";
+  canvas.style.display = "block";
+
+  gameState = "playing";
+}
+
+startButton.addEventListener("click", resetAndStartGame);
+tryAgainButton.addEventListener("click", resetAndStartGame);
+
+/* ======================= GAME OVER ======================= */
+function triggerGameOver(reasonText) {
+  gameState = "gameover";
+  canvas.style.display = "none";
+  goScreen.style.display = "flex";
+
+  const finalScore = Math.floor(game.score);
+  const finalDebt = Math.max(0, -finalScore);
+  const finalDist = Math.floor(game.distance);
+  const halal = game.halalCount;
+  const riba = game.ribaCount;
+  const totalCoins = halal + riba;
+  const ribaRatio = totalCoins > 0 ? Math.round((riba / totalCoins) * 100) : 0;
+
+  // Update best
+  if (finalScore > game.bestScore) {
+    game.bestScore = finalScore;
+    saveBestScore(finalScore);
+  }
+
+  finalScoreText.textContent = finalScore;
+  finalDebtText.textContent = finalDebt;
+  finalDistText.textContent = `${finalDist}m`;
+  finalBestText.textContent = game.bestScore;
+  finalSavedText.textContent = game.savings;
+  finalHalalText.textContent = halal;
+  finalRibaText.textContent = riba;
+  finalRibaRatioText.textContent = `${ribaRatio}% Riba ratio`;
+
+  document.getElementById("savedAmountMenu").textContent = game.savings;
+}
+
+/* ======================= UPDATE ======================= */
 function update() {
+  if (gameState !== "playing") return;
+
   game.frame++;
-  if (game.frame % 50 === 0) spawnCoin();
-  if (game.frame % 200 === 0) spawnKestrlCard();
-
-  // Speed increase
   if (game.speed < MAX_SPEED) game.speed += SPEED_INCREMENT;
+  game.distance += game.speed / 60; // approx metres
 
-  // Player physics
+  // necessity drains
+  game.necessity = Math.max(0, game.necessity - 0.03);
+  if (game.necessity <= 0) {
+    game.score -= 0.4;
+  }
+
+  // spawn
+  if (game.frame % 45 === 0) spawnCoin();
+  if (game.frame % 160 === 0) spawnKestrlCard();
+
+  // player physics
   const p = game.player;
-
-  if (p.isSliding) {
+  if (p.sliding) {
     p.slideTimer--;
-    if (p.slideTimer <= 0) p.isSliding = false;
+    if (p.slideTimer <= 0) p.sliding = false;
   }
 
-  p.velocityY += GRAVITY;
-  p.y += p.velocityY;
+  p.vy += GRAVITY;
+  p.y += p.vy;
 
-  const h = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
-  if (p.y >= game.groundY - h) {
-    p.y = game.groundY - h;
-    p.velocityY = 0;
-    p.isJumping = false;
+  const pHeight = p.sliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
+  if (p.y >= game.groundY - pHeight) {
+    p.y = game.groundY - pHeight;
+    p.vy = 0;
+    p.jumping = false;
   }
 
-  // Update coins
-  game.coins = game.coins.filter(c => {
+  // coins
+  game.coins = game.coins.filter((c) => {
     c.x -= game.speed;
+    c.pulse += 0.15;
 
-    // Collision
-    const dx = (p.x + PLAYER_WIDTH/2) - c.x;
-    const dy = (p.y + h/2) - c.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
+    const dx = c.x - (p.x + PLAYER_WIDTH / 2);
+    const dy = c.y - (p.y + pHeight / 2);
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < c.radius + 30) {
-      game.score += c.isGreen ? 10 : -40;
+    if (dist < c.r + 30) {
+      if (c.isGreen) {
+        game.score += 10;
+        game.necessity = Math.min(100, game.necessity + 10);
+        game.halalCount++;
+        spawnParticles(c.x, c.y, "#4ade80", 12);
+      } else {
+        game.score -= 50;
+        game.necessity = Math.min(100, game.necessity + 6);
+        game.ribaCount++;
+        spawnParticles(c.x, c.y, "#f97373", 12);
+      }
       return false;
     }
-    return c.x > -50;
+    return c.x > -60;
   });
 
-  // Kestrl Card pickup
-  game.powerUps = game.powerUps.filter(card => {
-    card.x -= game.speed;
+  // card powerup
+  game.powerUps = game.powerUps.filter((pu) => {
+    pu.x -= game.speed;
+    pu.pulse += 0.12;
 
     if (
-      p.x < card.x + card.width &&
-      p.x + PLAYER_WIDTH > card.x &&
-      p.y < card.y + card.height &&
-      p.y + h > card.y
+      p.x < pu.x + pu.w &&
+      p.x + PLAYER_WIDTH > pu.x &&
+      p.y < pu.y + pu.h &&
+      p.y + pHeight > pu.y
     ) {
-      game.hasKestrlCard = true;
-      game.kestrlTimer = 300;
+      game.hasCard = true;
+      game.cardTimer = 360; // ~6s
+      spawnParticles(pu.x + pu.w / 2, pu.y + pu.h / 2, "#38bdf8", 18);
       return false;
     }
-    return card.x > -100;
+
+    return pu.x > -80;
   });
 
-  if (game.hasKestrlCard) {
-    game.kestrlTimer--;
-    if (game.kestrlTimer <= 0) game.hasKestrlCard = false;
+  if (game.hasCard) {
+    game.cardTimer--;
+    if (game.cardTimer <= 0) game.hasCard = false;
+  }
+
+  // particles
+  game.particles = game.particles.filter((pt) => {
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.life -= 0.03;
+    return pt.life > 0;
+  });
+
+  // game over on big debt
+  if (game.score <= DEBT_GAME_OVER_THRESHOLD) {
+    triggerGameOver("CONSUMED BY DEBT");
   }
 }
 
-/* ---------------------- DRAW ----------------------- */
+/* ======================= DRAW ======================= */
+function drawHud() {
+  // Score box (left top)
+  const pad = 14;
+  ctx.font = "13px monospace";
 
+  // Score
+  const scoreBoxWidth = 120;
+  ctx.fillStyle = game.score >= 0 ? "#047857" : "#7f1d1d";
+  ctx.fillRect(pad, pad, scoreBoxWidth, 54);
+  ctx.strokeStyle = "#020617";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(pad, pad, scoreBoxWidth, 54);
+
+  ctx.fillStyle = "#e5e7eb";
+  ctx.fillText(game.score >= 0 ? "SCORE" : "SCORE (DEBT)", pad + 12, pad + 18);
+  ctx.font = "20px monospace";
+  ctx.fillStyle = "#f9fafb";
+  ctx.fillText(Math.floor(game.score), pad + 12, pad + 40);
+
+  // Distance box (top-right)
+  const distStr = `${Math.floor(game.distance)}m`;
+  const boxW = 90;
+  const rightX = canvas.width - boxW - pad;
+  ctx.font = "13px monospace";
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(rightX, pad, boxW, 46);
+  ctx.strokeStyle = "#4b5563";
+  ctx.strokeRect(rightX, pad, boxW, 46);
+  ctx.fillStyle = "#9ca3af";
+  ctx.fillText("DIST", rightX + 10, pad + 16);
+  ctx.font = "18px monospace";
+  ctx.fillStyle = "#e5e7eb";
+  ctx.fillText(distStr, rightX + 10, pad + 36);
+
+  // Savings box
+  const savedBoxX = rightX - boxW - 10;
+  ctx.font = "13px monospace";
+  ctx.fillStyle = "#064e3b";
+  ctx.fillRect(savedBoxX, pad, boxW, 46);
+  ctx.strokeStyle = "#16a34a";
+  ctx.strokeRect(savedBoxX, pad, boxW, 46);
+  ctx.fillStyle = "#bbf7d0";
+  ctx.fillText("$ SAVED", savedBoxX + 10, pad + 16);
+  ctx.font = "18px monospace";
+  ctx.fillStyle = "#ecfdf5";
+  ctx.fillText(game.savings.toString(), savedBoxX + 10, pad + 36);
+
+  // Necessity meter (center top)
+  const meterWidth = 320;
+  const meterHeight = 36;
+  const mx = (canvas.width - meterWidth) / 2;
+  const my = pad + 6;
+
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(mx, my, meterWidth, meterHeight);
+  ctx.strokeStyle = "#111827";
+  ctx.strokeRect(mx, my, meterWidth, meterHeight);
+
+  ctx.font = "13px monospace";
+  ctx.fillStyle = "#e5e7eb";
+  ctx.fillText("♥ NECESSITY", mx + 10, my + 16);
+  ctx.fillText(`${Math.round(game.necessity)}%`, mx + meterWidth - 70, my + 16);
+
+  // Bar
+  const innerW = meterWidth - 18;
+  const innerH = 10;
+  const barX = mx + 9;
+  const barY = my + meterHeight - 16;
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(barX, barY, innerW, innerH);
+
+  const segments = 12;
+  const segGap = 3;
+  const segWidth = (innerW - (segments - 1) * segGap) / segments;
+  const filledSegments = Math.round((game.necessity / 100) * segments);
+
+  for (let i = 0; i < segments; i++) {
+    const sx = barX + i * (segWidth + segGap);
+    if (i < filledSegments) {
+      ctx.fillStyle = "#22c55e";
+    } else {
+      ctx.fillStyle = "#1f2937";
+    }
+    ctx.fillRect(sx, barY, segWidth, innerH);
+  }
+}
+
+/* Draw one frame */
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (gameState !== "playing") return;
 
-  // Background
-  ctx.fillStyle = "#1c1b29";
+  // Background sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, "#1e1b4b");
+  grad.addColorStop(0.5, "#312e81");
+  grad.addColorStop(1, "#020617");
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Ground
-  ctx.fillStyle = "#463b25";
-  ctx.fillRect(0, game.groundY, canvas.width, GROUND_HEIGHT);
+  // Stars
+  ctx.fillStyle = "#e5e7eb";
+  for (let i = 0; i < 45; i++) {
+    const x = (i * 137 + game.frame * 0.2) % canvas.width;
+    const y = (i * 73) % (canvas.height - 200);
+    if (y < 0) continue;
+    const size = i % 5 === 0 ? 2 : 1;
+    ctx.fillRect(Math.floor(x), Math.floor(y), size, size);
+  }
 
-  // Player
-  ctx.fillStyle = game.hasKestrlCard ? "#00ffff" : "#4ade80";
-  ctx.fillRect(game.player.x, game.player.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+  // Mountains silhouette
+  ctx.fillStyle = "#1e2758";
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  const baseH = canvas.height - GROUND_HEIGHT - 30;
+  for (let x = 0; x <= canvas.width; x += 12) {
+    const h = Math.sin((x + game.frame * 0.1) * 0.01) * 40 +
+              Math.sin((x + game.frame * 0.05) * 0.004) * 30;
+    ctx.lineTo(x, baseH - h);
+  }
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ground
+  ctx.fillStyle = "#3b3222";
+  ctx.fillRect(0, game.groundY, canvas.width, GROUND_HEIGHT);
+  // Tiles
+  ctx.fillStyle = "#4b3a23";
+  const tileSize = 40;
+  const offset = (game.frame * game.speed) % tileSize;
+  for (let x = -tileSize; x < canvas.width + tileSize; x += tileSize) {
+    ctx.fillRect(x - offset, game.groundY, tileSize - 3, 14);
+  }
 
   // Coins
-  game.coins.forEach(c => {
-    ctx.fillStyle = c.isGreen ? "#a7f3d0" : "#fca5a5";
+  game.coins.forEach((c) => {
+    const glow = c.isGreen ? "rgba(74,222,128,0.45)" : "rgba(248,113,113,0.45)";
+    const radius = c.r + 6;
+
+    const grd = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, radius);
+    grd.addColorStop(0, glow);
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grd;
     ctx.beginPath();
-    ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+    ctx.arc(c.x, c.y, radius, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = c.isGreen ? "#22c55e" : "#ef4444";
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Value label
+    ctx.font = "11px monospace";
+    ctx.fillStyle = c.isGreen ? "#bbf7d0" : "#fecaca";
+    ctx.textAlign = "center";
+    ctx.fillText(c.isGreen ? "+10" : "-50", c.x, c.y + c.r + 12);
+  });
+  ctx.textAlign = "start";
+
+  // Power-ups (Kestrl Card)
+  game.powerUps.forEach((pu) => {
+    const pulse = Math.sin(pu.pulse) * 2;
+    const w = pu.w + pulse;
+    const h = pu.h + pulse;
+
+    const x = pu.x;
+    const y = pu.y;
+    const gx = x + w / 2;
+    const gy = y + h / 2;
+
+    const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, 40);
+    g.addColorStop(0, "rgba(56,189,248,0.6)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(gx, gy, 40, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#0ea5e9";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#e0f2fe";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.fillStyle = "#e0f2fe";
+    ctx.font = "16px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("K", gx, gy + 5);
+    ctx.textAlign = "start";
   });
 
-  // Kestrl card
-  ctx.fillStyle = "#38bdf8";
-  game.powerUps.forEach(p => {
-    ctx.fillRect(p.x, p.y, p.width, p.height);
-  });
+  // Player (simple pixel block kestrel)
+  const p = game.player;
+  const ph = p.sliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
+  ctx.save();
+  ctx.translate(p.x, p.y);
 
-  // Score text
-  ctx.fillStyle = "white";
-  ctx.font = "24px sans-serif";
-  ctx.fillText("Score: " + game.score, 20, 40);
+  const bodyColor = game.hasCard ? "#22d3ee" : "#8b5e3c";
+  const outline = "#111827";
+
+  ctx.fillStyle = outline;
+  ctx.fillRect(-2, -2, PLAYER_WIDTH + 4, ph + 4);
+
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(0, 0, PLAYER_WIDTH, ph);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.fillRect(PLAYER_WIDTH - 12, 6, 8, 8);
+  ctx.fillStyle = "#22c55e";
+  ctx.fillRect(PLAYER_WIDTH, 10, 10, 6); // beak
+
+  ctx.fillStyle = "#16a34a";
+  if (!p.sliding) {
+    ctx.fillRect(10, ph, 5, 10);
+    ctx.fillRect(26, ph, 5, 10);
+  }
+
+  ctx.restore();
+
+  // Particles
+  game.particles.forEach((pt) => {
+    ctx.globalAlpha = pt.life;
+    ctx.fillStyle = pt.color;
+    ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+  });
+  ctx.globalAlpha = 1;
+
+  // HUD
+  drawHud();
 }
 
-/* ------------------- GAME LOOP ------------------- */
-
+/* ======================= MAIN LOOP ======================= */
 function loop() {
-  update();
-  draw();
+  if (gameState === "playing") {
+    update();
+    draw();
+  }
   requestAnimationFrame(loop);
 }
-
-/* ------------------- CONTROLS ------------------- */
-
-window.addEventListener("keydown", e => {
-  if (e.code === "Space" || e.code === "ArrowUp") jump();
-  if (e.code === "ArrowDown") slide();
-});
-
-canvas.addEventListener("touchstart", e => {
-  if (e.touches[0].clientY > window.innerHeight / 2) slide();
-  else jump();
-});
-
-/* ------------------- START ------------------- */
-
-document.getElementById("loading").style.display = "none";
 loop();
-
 </script>
 </body>
 </html>
+
 
 
 
