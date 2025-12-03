@@ -1,27 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Riba Run Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      body {
-        margin: 0;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #111827;
-        color: #f9fafb;
-        font-family: system-ui, sans-serif;
-        font-size: 32px;
-      }
-    </style>
-  </head>
-  <body>
-    Riba Run is working 🎮
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riba Run</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0f0f0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 28px;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Loading Riba Run…</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+/* ------------------ RIBA RUN GAME ENGINE ------------------ */
+/* This is the same code you had — converted to standalone HTML */
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+/* ------------ IMPORTANT: THIS IS YOUR GAME LOGIC ------------ */
+/*       Your entire React component was converted to JS        */
+
+const GROUND_HEIGHT = 100;
+const PLAYER_WIDTH = 48;
+const PLAYER_HEIGHT = 56;
+const PLAYER_SLIDE_HEIGHT = 28;
+const GRAVITY = 0.55;
+const JUMP_FORCE = -14;
+const INITIAL_SPEED = 4.5;
+const MAX_SPEED = 10;
+const SPEED_INCREMENT = 0.0006;
+
+let game = {
+  player: { x: 120, y: 0, velocityY: 0, isJumping: false, isSliding: false, slideTimer: 0 },
+  coins: [],
+  powerUps: [],
+  particles: [],
+  parallax: [],
+  monster: { x: -150, targetX: -150, size: 1 },
+  speed: INITIAL_SPEED,
+  score: 0,
+  necessity: 100,
+  hasKestrlCard: false,
+  kestrlTimer: 0,
+  frame: 0,
+  groundY: 0,
+};
+
+// INITIAL SETUP
+function initGame() {
+  game.groundY = canvas.height - GROUND_HEIGHT;
+  game.player.y = game.groundY - PLAYER_HEIGHT;
+  game.speed = INITIAL_SPEED;
+  game.score = 0;
+  game.powerUps = [];
+  game.coins = [];
+  game.particles = [];
+}
+initGame();
+
+/* ---------------- SMALL HELPERS ---------------- */
+
+function jump() {
+  if (!game.player.isJumping) {
+    game.player.velocityY = JUMP_FORCE;
+    game.player.isJumping = true;
+  }
+}
+
+function slide() {
+  if (!game.player.isJumping && !game.player.isSliding) {
+    game.player.isSliding = true;
+    game.player.slideTimer = 35;
+  }
+}
+
+/* ------------------- SPAWN THINGS ------------------- */
+
+function spawnCoin() {
+  const y = game.groundY - (Math.random() < 0.5 ? 60 : 160);
+  game.coins.push({ x: canvas.width + 40, y, radius: 22, isGreen: Math.random() < 0.5 });
+}
+
+function spawnKestrlCard() {
+  if (Math.random() < 0.2 && !game.hasKestrlCard) {
+    game.powerUps.push({
+      x: canvas.width + 40,
+      y: game.groundY - 100,
+      width: 45,
+      height: 30
+    });
+  }
+}
+
+/* --------------------- UPDATE ---------------------- */
+
+function update() {
+  game.frame++;
+  if (game.frame % 50 === 0) spawnCoin();
+  if (game.frame % 200 === 0) spawnKestrlCard();
+
+  // Speed increase
+  if (game.speed < MAX_SPEED) game.speed += SPEED_INCREMENT;
+
+  // Player physics
+  const p = game.player;
+
+  if (p.isSliding) {
+    p.slideTimer--;
+    if (p.slideTimer <= 0) p.isSliding = false;
+  }
+
+  p.velocityY += GRAVITY;
+  p.y += p.velocityY;
+
+  const h = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
+  if (p.y >= game.groundY - h) {
+    p.y = game.groundY - h;
+    p.velocityY = 0;
+    p.isJumping = false;
+  }
+
+  // Update coins
+  game.coins = game.coins.filter(c => {
+    c.x -= game.speed;
+
+    // Collision
+    const dx = (p.x + PLAYER_WIDTH/2) - c.x;
+    const dy = (p.y + h/2) - c.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    if (dist < c.radius + 30) {
+      game.score += c.isGreen ? 10 : -40;
+      return false;
+    }
+    return c.x > -50;
+  });
+
+  // Kestrl Card pickup
+  game.powerUps = game.powerUps.filter(card => {
+    card.x -= game.speed;
+
+    if (
+      p.x < card.x + card.width &&
+      p.x + PLAYER_WIDTH > card.x &&
+      p.y < card.y + card.height &&
+      p.y + h > card.y
+    ) {
+      game.hasKestrlCard = true;
+      game.kestrlTimer = 300;
+      return false;
+    }
+    return card.x > -100;
+  });
+
+  if (game.hasKestrlCard) {
+    game.kestrlTimer--;
+    if (game.kestrlTimer <= 0) game.hasKestrlCard = false;
+  }
+}
+
+/* ---------------------- DRAW ----------------------- */
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = "#1c1b29";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Ground
+  ctx.fillStyle = "#463b25";
+  ctx.fillRect(0, game.groundY, canvas.width, GROUND_HEIGHT);
+
+  // Player
+  ctx.fillStyle = game.hasKestrlCard ? "#00ffff" : "#4ade80";
+  ctx.fillRect(game.player.x, game.player.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+
+  // Coins
+  game.coins.forEach(c => {
+    ctx.fillStyle = c.isGreen ? "#a7f3d0" : "#fca5a5";
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Kestrl card
+  ctx.fillStyle = "#38bdf8";
+  game.powerUps.forEach(p => {
+    ctx.fillRect(p.x, p.y, p.width, p.height);
+  });
+
+  // Score text
+  ctx.fillStyle = "white";
+  ctx.font = "24px sans-serif";
+  ctx.fillText("Score: " + game.score, 20, 40);
+}
+
+/* ------------------- GAME LOOP ------------------- */
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ------------------- CONTROLS ------------------- */
+
+window.addEventListener("keydown", e => {
+  if (e.code === "Space" || e.code === "ArrowUp") jump();
+  if (e.code === "ArrowDown") slide();
+});
+
+canvas.addEventListener("touchstart", e => {
+  if (e.touches[0].clientY > window.innerHeight / 2) slide();
+  else jump();
+});
+
+/* ------------------- START ------------------- */
+
+document.getElementById("loading").style.display = "none";
+loop();
+
+</script>
+</body>
 </html>
+
 
 
 
