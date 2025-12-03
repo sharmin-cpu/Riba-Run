@@ -1,5 +1,3 @@
-
-<!-- tiny update to trigger GitHub Pages -->
 import React, { useEffect, useRef, useCallback } from 'react';
 
 const GROUND_HEIGHT = 100;
@@ -717,8 +715,206 @@ export default function GameCanvas({ onGameOver, onUpdateStats }) {
         };
 
         // Draw pixel blocks helper
-        const drawPx =
-     
+        const drawPx = (x, y, w, h, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * px, y * px, w * px, h * px);
+        };
+
+        // Outline/shadow layer
+        drawPx(-6, -6, 14, 12, colors.outline);
+
+        // Body
+        drawPx(-5, -5, 12, 10, colors.bodyMid);
+        drawPx(-5, -5, 10, 3, colors.bodyLight); // Top highlight
+        drawPx(-5, 2, 12, 3, colors.bodyDark);   // Bottom shadow
+
+        // Wing (animated)
+        const wingY = [-4, -6, -8, -6][wingFrame];
+        drawPx(-4, wingY, 6, 4, colors.wingDark);
+        drawPx(-3, wingY, 4, 2, colors.wingMid);
+
+        // Head
+        drawPx(4, -7, 6, 6, colors.bodyMid);
+        drawPx(4, -7, 5, 2, colors.bodyLight);
+        drawPx(4, -3, 6, 2, colors.bodyDark);
+
+        // Eye
+        drawPx(7, -6, 2, 2, colors.eye);
+        drawPx(8, -6, 1, 1, colors.eyeShine);
+
+        // Beak
+        drawPx(10, -5, 3, 1, colors.beak);
+        drawPx(11, -4, 2, 1, colors.beakLight);
+
+        // Tail feathers
+        drawPx(-8, -2, 3, 1, colors.wingMid);
+        drawPx(-9, -1, 3, 1, colors.wingDark);
+        drawPx(-10, 0, 3, 1, colors.wingMid);
+
+        // Legs (animated when running)
+        if (!player.isSliding) {
+            const leg1Y = 4 + legOffset;
+            const leg2Y = 4 - legOffset;
+            drawPx(-1, leg1Y, 1, 3, colors.beak);
+            drawPx(2, leg2Y, 1, 3, colors.beak);
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // Running dust particles
+        if (!player.isJumping && !player.isSliding && game.frameCount % 8 === 0) {
+            game.particles.push({
+                x: player.x,
+                y: game.groundY - 5,
+                vx: -2,
+                vy: -1,
+                life: 0.5,
+                color: '#c4a35a',
+                size: 3
+            });
+        }
+
+        // Draw particles (pixel style)
+        game.particles.forEach(p => {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            const size = Math.max(2, Math.floor(p.size * p.life));
+            ctx.fillRect(Math.floor(p.x), Math.floor(p.y), size, size);
+        });
+        ctx.globalAlpha = 1;
+
+        // Vision of Debt glitch effect (retro CRT style)
+        if (game.glitchIntensity > 0) {
+            const intensity = game.glitchIntensity;
+
+            // CRT red tint
+            ctx.fillStyle = `rgba(100, 0, 0, ${intensity * 0.25})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Heavy scanlines (retro CRT)
+            for (let y = 0; y < canvas.height; y += 3) {
+                ctx.fillStyle = `rgba(0, 0, 0, ${0.15 + intensity * 0.15})`;
+                ctx.fillRect(0, y, canvas.width, 1);
+            }
+
+            // Chromatic aberration (RGB split)
+            if (intensity > 0.3) {
+                const shift = Math.floor(intensity * 8);
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = `rgba(255, 0, 0, ${intensity * 0.1})`;
+                ctx.fillRect(shift, 0, canvas.width, canvas.height);
+                ctx.fillStyle = `rgba(0, 255, 255, ${intensity * 0.1})`;
+                ctx.fillRect(-shift, 0, canvas.width, canvas.height);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+
+            // Horizontal glitch bars (screen tearing)
+            if (Math.random() < intensity * 0.4) {
+                const barY = Math.random() * canvas.height;
+                const barHeight = 4 + Math.random() * 16;
+                const offset = (Math.random() - 0.5) * 30 * intensity;
+                ctx.fillStyle = `rgba(255, 0, 0, ${0.2 + intensity * 0.3})`;
+                ctx.fillRect(offset, barY, canvas.width, barHeight);
+            }
+
+            // Screen jitter
+            if (Math.random() < intensity * 0.2) {
+                ctx.translate(
+                    (Math.random() - 0.5) * 6 * intensity,
+                    (Math.random() - 0.5) * 4 * intensity
+                );
+            }
+
+            // Dark vignette
+            const vignetteGrad = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.2,
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.8
+            );
+            vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            vignetteGrad.addColorStop(0.7, `rgba(50, 0, 0, ${intensity * 0.4})`);
+            vignetteGrad.addColorStop(1, `rgba(80, 0, 0, ${intensity * 0.8})`);
+            ctx.fillStyle = vignetteGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Static noise
+            if (intensity > 0.5) {
+                for (let i = 0; i < 50 * intensity; i++) {
+                    const nx = Math.random() * canvas.width;
+                    const ny = Math.random() * canvas.height;
+                    ctx.fillStyle = Math.random() > 0.5 ? '#ff0000' : '#000000';
+                    ctx.fillRect(nx, ny, 2, 2);
+                }
+            }
+        }
+    }, [drawMonster]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
         
-          
-     
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initGame(canvas);
+        };
+        
+        resize();
+        window.addEventListener('resize', resize);
+
+        const handleKeyDown = (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                handleJump();
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                handleSlide();
+            } else if (e.code === 'KeyS') {
+                e.preventDefault();
+                handleSave();
+            }
+        };
+
+        const handleTouch = (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            if (touch.clientY > window.innerHeight / 2) {
+                handleSlide();
+            } else {
+                handleJump();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+
+        let animationId;
+        const gameLoop = () => {
+            update(canvas);
+            draw(ctx, canvas);
+            animationId = requestAnimationFrame(gameLoop);
+        };
+        
+        gameLoop();
+
+        return () => {
+            window.removeEventListener('resize', resize);
+            window.removeEventListener('keydown', handleKeyDown);
+            canvas.removeEventListener('touchstart', handleTouch);
+            cancelAnimationFrame(animationId);
+        };
+    }, [initGame, update, draw, handleJump, handleSlide, handleSave]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full touch-none"
+        />
+    );
+}
+
+    
+
+
