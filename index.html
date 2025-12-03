@@ -1,35 +1,38 @@
 
 <!-- tiny update to trigger GitHub Pages -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riba Runner - Financial Literacy Game</title>
+    <title>Riba Runner - Enhanced 16-bit Edition</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Courier New', monospace;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
         }
         
         #gameContainer {
             position: relative;
-            border: 3px solid #333;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            background: #000;
+            border: 4px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
         
         #gameCanvas {
             display: block;
-            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 100%);
+            background: #87CEEB;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
         }
         
         #ui {
@@ -38,9 +41,37 @@
             left: 10px;
             right: 10px;
             color: white;
+            font-size: 14px;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
             z-index: 100;
+            pointer-events: none;
+        }
+        
+        .ui-panel {
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: inline-block;
+            margin: 4px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+        }
+        
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 4px 0;
+        }
+        
+        .health-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
         }
         
         #gameOver {
@@ -48,13 +79,15 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             color: white;
             padding: 30px;
             border-radius: 15px;
             text-align: center;
             display: none;
             z-index: 200;
+            border: 3px solid #fff;
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.7);
         }
         
         #instructions {
@@ -65,48 +98,36 @@
             color: white;
             font-size: 12px;
             text-align: center;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
+            pointer-events: none;
         }
         
         .button {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            margin: 8px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
         }
         
         .button:hover {
-            background: #45a049;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+        }
+        
+        .button:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
         }
         
         #saveButton {
             background: #2196F3;
-        }
-        
-        #saveButton:hover {
-            background: #0b7dda;
-        }
-        
-        .bar {
-            width: 200px;
-            height: 20px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 5px 0;
-        }
-        
-        .bar-fill {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-        
-        #necessityBar {
-            background: linear-gradient(90deg, #ff6b6b, #ffa500);
         }
         
         #stressOverlay {
@@ -117,75 +138,124 @@
             bottom: 0;
             background: rgba(255,0,0,0);
             pointer-events: none;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
+        }
+        
+        .crt-effect {
+            animation: crtFlicker 0.1s infinite;
+        }
+        
+        @keyframes crtFlicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1; }
+            100% { opacity: 0.99; }
+        }
+        
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.03) 2px,
+                rgba(255,255,255,0.03) 4px
+            );
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas" width="1000" height="600"></canvas>
+        <div class="scanlines"></div>
         
         <div id="ui">
-            <div>Score: <span id="score">0</span></div>
-            <div>Savings: <span id="savings">0</span></div>
-            <div>Debt: <span id="debt">0</span></div>
-            <div class="bar">
-                <div id="necessityBar" class="bar-fill" style="width: 100%"></div>
+            <div class="ui-panel">Score: <span id="score">0</span></div>
+            <div class="ui-panel">Savings: <span id="savings">0</span></div>
+            <div class="ui-panel">Debt: <span id="debt">0</span></div>
+            <div class="ui-panel">
+                <div>Necessity</div>
+                <div class="health-bar">
+                    <div id="necessityBar" class="health-fill" style="width: 100%"></div>
+                </div>
             </div>
-            <div>Necessity Meter</div>
+            <div class="ui-panel">
+                <div>Stress</div>
+                <div class="health-bar">
+                    <div id="stressBar" class="health-fill" style="width: 0%; background: linear-gradient(90deg, #dc2626, #ef4444)"></div>
+                </div>
+            </div>
         </div>
         
         <div id="stressOverlay"></div>
         
         <div id="instructions">
-            SPACE = Jump | DOWN ARROW = Slide | S = Save | Avoid Red Coins (Riba) | Collect Green Coins (Halal)
+            🎮 SPACE/↑ = Jump | ↓ = Slide | S = Save | Avoid Red Coins (Riba) | Collect Green Coins (Halal)
         </div>
         
         <div id="gameOver">
-            <h2>Game Over!</h2>
+            <h2 style="color: #ff6b6b; font-size: 24px; margin-bottom: 20px;">GAME OVER</h2>
             <p>Final Score: <span id="finalScore">0</span></p>
             <p>Savings: <span id="finalSavings">0</span></p>
-            <button class="button" onclick="restartGame()">Play Again</button>
+            <button class="button" onclick="restartGame()">PLAY AGAIN</button>
         </div>
     </div>
 
     <script>
-        // Game State
+        // Enhanced Game State with Retro 16-bit Style
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        
+        // Disable image smoothing for pixel art
+        ctx.imageSmoothingEnabled = false;
         
         let gameState = {
             score: 0,
             savings: 0,
             debt: 0,
             necessity: 100,
+            stress: 0,
             isGameOver: false,
             isPaused: false,
-            speed: 5,
+            speed: 3, // Reduced initial speed
             kestrlActive: false,
-            kestrlTimer: 0
+            kestrlTimer: 0,
+            distance: 0
         };
         
-        // Player (Kestrel)
+        // Enhanced Player with Coyote Time and Better Physics
         class Player {
             constructor() {
-                this.x = 100;
-                this.y = canvas.height - 150;
-                this.width = 40;
-                this.height = 60;
+                this.x = 150;
+                this.y = canvas.height - 120;
+                this.width = 32;
+                this.height = 48;
                 this.velocityY = 0;
-                this.gravity = 0.8;
-                this.jumpForce = -15;
+                this.gravity = 0.6; // Reduced gravity
+                this.jumpForce = -12; // More manageable jump
                 this.isJumping = false;
                 this.isSliding = false;
                 this.slideTimer = 0;
-                this.originalHeight = 60;
+                this.originalHeight = 48;
+                this.runAnimation = 0;
+                this.coyoteTime = 0;
+                this.maxCoyoteTime = 8; // 8 frames of coyote time
+                this.wasOnGround = false;
+                this.jumpBuffer = 0;
+                this.maxJumpBuffer = 6; // 6 frames of jump buffer
             }
             
             jump() {
-                if (!this.isJumping && !this.isSliding) {
+                // Enhanced jump with coyote time and jump buffering
+                if (this.coyoteTime > 0 || this.jumpBuffer > 0) {
                     this.velocityY = this.jumpForce;
                     this.isJumping = true;
+                    this.coyoteTime = 0;
+                    this.jumpBuffer = 0;
                 }
             }
             
@@ -199,15 +269,37 @@
             }
             
             update() {
-                // Physics
+                // Enhanced physics with coyote time
+                const wasOnGround = this.isOnGround();
+                
+                // Apply gravity
                 this.velocityY += this.gravity;
                 this.y += this.velocityY;
                 
-                // Ground collision
-                if (this.y > canvas.height - 150) {
-                    this.y = canvas.height - 150;
-                    this.velocityY = 0;
+                // Ground collision with softer landing
+                if (this.y > canvas.height - 120) {
+                    this.y = canvas.height - 120;
+                    if (this.velocityY > 0) {
+                        this.velocityY = 0;
+                    }
                     this.isJumping = false;
+                }
+                
+                // Update coyote time
+                if (wasOnGround && !this.isOnGround()) {
+                    this.coyoteTime = this.maxCoyoteTime;
+                } else if (this.coyoteTime > 0) {
+                    this.coyoteTime--;
+                }
+                
+                // Update jump buffer
+                if (this.jumpBuffer > 0) {
+                    this.jumpBuffer--;
+                }
+                
+                // Update run animation
+                if (this.isOnGround() && !this.isSliding) {
+                    this.runAnimation = (this.runAnimation + 0.3) % 4;
                 }
                 
                 // Slide timer
@@ -221,107 +313,140 @@
                 }
             }
             
+            isOnGround() {
+                return this.y >= canvas.height - 120;
+            }
+            
             draw() {
                 ctx.save();
                 
-                // Kestrel body
-                ctx.fillStyle = '#8B4513';
-                ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+                // Retro 16-bit Kestrel sprite
+                const spriteX = this.x;
+                const spriteY = this.y - this.height;
                 
-                // Kestrel head
+                // Body (brown pixel blocks)
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(spriteX + 8, spriteY + 16, 16, 24);
+                
+                // Head
                 ctx.fillStyle = '#A0522D';
-                ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y - this.height - 10, 12, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillRect(spriteX + 12, spriteY + 8, 8, 8);
                 
                 // Beak
                 ctx.fillStyle = '#FFD700';
-                ctx.beginPath();
-                ctx.moveTo(this.x + this.width/2 + 10, this.y - this.height - 10);
-                ctx.lineTo(this.x + this.width/2 + 20, this.y - this.height - 5);
-                ctx.lineTo(this.x + this.width/2 + 10, this.y - this.height);
-                ctx.fill();
+                ctx.fillRect(spriteX + 18, spriteY + 10, 4, 4);
                 
                 // Eyes
                 ctx.fillStyle = '#000';
-                ctx.beginPath();
-                ctx.arc(this.x + this.width/2 - 5, this.y - this.height - 15, 2, 0, Math.PI * 2);
-                ctx.arc(this.x + this.width/2 + 5, this.y - this.height - 15, 2, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillRect(spriteX + 14, spriteY + 10, 2, 2);
+                ctx.fillRect(spriteX + 16, spriteY + 10, 2, 2);
                 
-                // Wings
+                // Wings with animation
                 ctx.fillStyle = '#654321';
                 if (this.isJumping) {
-                    // Spread wings when jumping
-                    ctx.fillRect(this.x - 15, this.y - this.height + 20, 15, 25);
-                    ctx.fillRect(this.x + this.width, this.y - this.height + 20, 15, 25);
+                    // Spread wings
+                    ctx.fillRect(spriteX, spriteY + 20, 8, 12);
+                    ctx.fillRect(spriteX + 24, spriteY + 20, 8, 12);
+                } else if (this.isSliding) {
+                    // Folded wings for sliding
+                    ctx.fillRect(spriteX + 6, spriteY + 24, 6, 8);
+                    ctx.fillRect(spriteX + 20, spriteY + 24, 6, 8);
                 } else {
-                    // Folded wings when running/sliding
-                    ctx.fillRect(this.x - 5, this.y - this.height + 10, 10, 20);
-                    ctx.fillRect(this.x + this.width - 5, this.y - this.height + 10, 10, 20);
+                    // Running animation
+                    const wingOffset = Math.sin(this.runAnimation) * 2;
+                    ctx.fillRect(spriteX + 4, spriteY + 18 + wingOffset, 6, 10);
+                    ctx.fillRect(spriteX + 22, spriteY + 18 - wingOffset, 6, 10);
+                }
+                
+                // Tail feathers
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(spriteX - 4, spriteY + 20, 6, 8);
+                
+                // Legs
+                ctx.fillStyle = '#FFD700';
+                if (!this.isSliding) {
+                    ctx.fillRect(spriteX + 10, spriteY + 36, 3, 8);
+                    ctx.fillRect(spriteX + 17, spriteY + 36, 3, 8);
+                } else {
+                    ctx.fillRect(spriteX + 8, spriteY + 28, 16, 4);
                 }
                 
                 ctx.restore();
             }
         }
         
-        // Coins
+        // Enhanced Coins with Retro Style
         class Coin {
             constructor(x, y, type) {
                 this.x = x;
                 this.y = y;
-                this.width = 30;
-                this.height = 30;
+                this.width = 24;
+                this.height = 24;
                 this.type = type; // 'green' or 'red'
                 this.collected = false;
                 this.rotation = 0;
+                this.glowIntensity = 0;
+                this.bounce = 0;
             }
             
             update() {
                 this.x -= gameState.speed;
-                this.rotation += 0.1;
+                this.rotation += 0.15;
+                this.glowIntensity += 0.1;
+                this.bounce = Math.sin(this.glowIntensity) * 2;
             }
             
             draw() {
                 if (this.collected) return;
                 
                 ctx.save();
-                ctx.translate(this.x + this.width/2, this.y + this.height/2);
-                ctx.rotate(this.rotation);
                 
-                // Coin glow effect
-                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.width/2);
+                const centerX = this.x + this.width/2;
+                const centerY = this.y + this.height/2 + this.bounce;
+                
+                // Glow effect
+                const glowSize = 20 + Math.sin(this.glowIntensity) * 5;
+                const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowSize);
+                
                 if (this.type === 'green') {
-                    gradient.addColorStop(0, '#90EE90');
-                    gradient.addColorStop(1, '#228B22');
+                    gradient.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
+                    gradient.addColorStop(1, 'rgba(34, 197, 94, 0.2)');
                 } else {
-                    gradient.addColorStop(0, '#FFB6C1');
-                    gradient.addColorStop(1, '#DC143C');
+                    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.8)');
+                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0.2)');
                 }
                 
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
-                ctx.arc(0, 0, this.width/2, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, glowSize, 0, Math.PI * 2);
                 ctx.fill();
                 
+                // Retro coin sprite
+                ctx.fillStyle = this.type === 'green' ? '#f59e0b' : '#dc2626';
+                ctx.fillRect(this.x + 4, this.y + 4 + this.bounce, 16, 16);
+                
+                // Coin shine
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillRect(this.x + 6, this.y + 6 + this.bounce, 8, 4);
+                
                 // Coin symbol
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px Courier';
                 ctx.textAlign = 'center';
-                ctx.fillText(this.type === 'green' ? 'H' : 'R', 0, 4);
+                ctx.fillText(this.type === 'green' ? 'H' : 'R', centerX, centerY + 3);
                 
                 ctx.restore();
             }
         }
         
-        // Obstacles
+        // Enhanced Obstacles with Retro Style
         class Obstacle {
             constructor(x, type) {
                 this.x = x;
                 this.type = type; // 'high' or 'low'
-                this.width = 40;
-                this.height = this.type === 'high' ? 100 : 40;
-                this.y = this.type === 'high' ? canvas.height - 150 - this.height : canvas.height - 150;
+                this.width = 32;
+                this.height = this.type === 'high' ? 80 : 40;
+                this.y = this.type === 'high' ? canvas.height - 120 - this.height : canvas.height - 120;
             }
             
             update() {
@@ -329,81 +454,92 @@
             }
             
             draw() {
-                // Obstacle with spikes
+                // Retro obstacle blocks
                 ctx.fillStyle = '#8B4513';
                 ctx.fillRect(this.x, this.y, this.width, this.height);
                 
-                // Spikes
+                // Spike details
                 ctx.fillStyle = '#654321';
-                for (let i = 0; i < this.width; i += 10) {
-                    ctx.beginPath();
-                    ctx.moveTo(this.x + i, this.y);
-                    ctx.lineTo(this.x + i + 5, this.y - 10);
-                    ctx.lineTo(this.x + i + 10, this.y);
-                    ctx.fill();
+                for (let i = 0; i < this.width; i += 8) {
+                    ctx.fillRect(this.x + i, this.y - 8, 4, 8);
+                    ctx.fillRect(this.x + i + 4, this.y - 4, 4, 4);
                 }
+                
+                // Shadow effect
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(this.x + 4, this.y + 4, this.width, this.height);
             }
         }
         
-        // Riba Monster
+        // Enhanced Riba Monster
         class RibaMonster {
             constructor() {
-                this.x = -100;
-                this.y = canvas.height - 200;
-                this.width = 80;
-                this.height = 100;
-                this.baseX = -100;
+                this.x = -150;
+                this.y = canvas.height - 140;
+                this.width = 64;
+                this.height = 80;
+                this.baseX = -150;
+                this.animation = 0;
             }
             
             update() {
-                // Monster gets closer based on debt
-                const debtRatio = Math.max(0, -gameState.score / 200);
-                this.x = this.baseX + (debtRatio * 300);
+                // Monster gets closer based on stress/debt
+                const stressRatio = Math.min(1, gameState.stress / 100);
+                const debtRatio = Math.max(0, -gameState.score / 300);
+                const totalRatio = Math.max(stressRatio, debtRatio);
+                
+                this.x = this.baseX + (totalRatio * 400);
+                this.animation += 0.1;
                 
                 // If monster touches player, game over
-                if (this.x < player.x + player.width && this.x + this.width > player.x) {
-                    if (!gameState.kestrlActive) {
-                        endGame();
-                    }
+                if (this.x < player.x + player.width && this.x + this.width > player.x &&
+                    !gameState.kestrlActive) {
+                    endGame();
                 }
             }
             
             draw() {
-                if (gameState.score >= 0) return; // Only visible when in debt
+                if (gameState.score >= 0 && gameState.stress < 50) return;
                 
                 ctx.save();
                 
-                // Monster body
-                ctx.fillStyle = '#8B0000';
-                ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+                // Retro shadow demon sprite
+                const spriteX = this.x;
+                const spriteY = this.y - this.height;
                 
-                // Monster head
-                ctx.fillStyle = '#A52A2A';
-                ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y - this.height - 20, 25, 0, Math.PI * 2);
-                ctx.fill();
+                // Shadowy body
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(spriteX + 8, spriteY + 16, 48, 48);
+                
+                // Demon head
+                ctx.fillStyle = '#0d0d0d';
+                ctx.fillRect(spriteX + 16, spriteY + 8, 32, 24);
                 
                 // Glowing red eyes
-                ctx.fillStyle = '#FF0000';
-                ctx.beginPath();
-                ctx.arc(this.x + this.width/2 - 10, this.y - this.height - 25, 5, 0, Math.PI * 2);
-                ctx.arc(this.x + this.width/2 + 10, this.y - this.height - 25, 5, 0, Math.PI * 2);
-                ctx.fill();
+                const eyeGlow = Math.sin(this.animation * 3) * 2 + 3;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(spriteX + 20, spriteY + 12, eyeGlow, eyeGlow);
+                ctx.fillRect(spriteX + 32, spriteY + 12, eyeGlow, eyeGlow);
                 
                 // Evil smile
-                ctx.strokeStyle = '#FF0000';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y - this.height - 15, 15, 0, Math.PI);
-                ctx.stroke();
+                ctx.fillStyle = '#660000';
+                ctx.fillRect(spriteX + 24, spriteY + 20, 16, 4);
+                
+                // Shadow tentacles
+                for (let i = 0; i < 3; i++) {
+                    const tentacleX = spriteX + 12 + i * 16;
+                    const tentacleWave = Math.sin(this.animation + i) * 4;
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fillRect(tentacleX, spriteY + 64 + tentacleWave, 4, 16);
+                }
                 
                 // Debt chains
-                ctx.strokeStyle = '#696969';
-                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 3;
                 for (let i = 0; i < 3; i++) {
                     ctx.beginPath();
-                    ctx.moveTo(this.x + 10 + i * 20, this.y - this.height + 20);
-                    ctx.lineTo(this.x + 10 + i * 20, this.y - this.height + 40);
+                    ctx.moveTo(spriteX + 16 + i * 16, spriteY + 32);
+                    ctx.lineTo(spriteX + 16 + i * 16, spriteY + 48);
                     ctx.stroke();
                 }
                 
@@ -416,15 +552,17 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.width = 40;
-                this.height = 50;
+                this.width = 32;
+                this.height = 40;
                 this.collected = false;
                 this.glow = 0;
+                this.bounce = 0;
             }
             
             update() {
                 this.x -= gameState.speed;
-                this.glow += 0.1;
+                this.glow += 0.2;
+                this.bounce = Math.sin(this.glow) * 3;
             }
             
             draw() {
@@ -432,47 +570,74 @@
                 
                 ctx.save();
                 
-                // Glow effect
-                const glowSize = 30 + Math.sin(this.glow) * 10;
-                const gradient = ctx.createRadialGradient(
-                    this.x + this.width/2, this.y + this.height/2, 0,
-                    this.x + this.width/2, this.y + this.height/2, glowSize
-                );
-                gradient.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
-                gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                const centerX = this.x + this.width/2;
+                const centerY = this.y + this.height/2 + this.bounce;
+                
+                // Retro glow effect
+                const glowSize = 25 + Math.sin(this.glow) * 8;
+                const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowSize);
+                gradient.addColorStop(0, 'rgba(6, 182, 212, 0.9)');
+                gradient.addColorStop(1, 'rgba(34, 211, 238, 0.2)');
                 
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, glowSize, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, glowSize, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Card
-                ctx.fillStyle = '#FFD700';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Retro card sprite
+                ctx.fillStyle = '#06b6d4';
+                ctx.fillRect(this.x + 4, this.y + 4 + this.bounce, 24, 32);
+                
+                // Card border
+                ctx.strokeStyle = '#0891b2';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x + 4, this.y + 4 + this.bounce, 24, 32);
                 
                 // Card symbol
-                ctx.fillStyle = '#B8860B';
-                ctx.font = 'bold 16px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Courier';
                 ctx.textAlign = 'center';
-                ctx.fillText('K', this.x + this.width/2, this.y + this.height/2 + 5);
+                ctx.fillText('K', centerX, centerY + 5 + this.bounce);
+                
+                // Sparkle effects
+                for (let i = 0; i < 3; i++) {
+                    const sparkleX = centerX + Math.sin(this.glow + i * 2) * 20;
+                    const sparkleY = centerY + Math.cos(this.glow + i * 2) * 20;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(sparkleX, sparkleY, 2, 2);
+                }
                 
                 ctx.restore();
             }
         }
         
-        // Background
+        // Enhanced Background with Parallax
         class Background {
             constructor() {
                 this.clouds = [];
+                this.mountains = [];
                 this.groundOffset = 0;
                 
-                // Initialize clouds
-                for (let i = 0; i < 5; i++) {
+                // Initialize clouds (softer, retro style)
+                for (let i = 0; i < 6; i++) {
                     this.clouds.push({
                         x: Math.random() * canvas.width,
-                        y: Math.random() * 200 + 50,
-                        size: Math.random() * 30 + 20,
-                        speed: Math.random() * 2 + 1
+                        y: Math.random() * 150 + 50,
+                        size: Math.random() * 40 + 30,
+                        speed: Math.random() * 1 + 0.5,
+                        opacity: Math.random() * 0.4 + 0.3
+                    });
+                }
+                
+                // Initialize mountains (parallax layers)
+                for (let i = 0; i < 3; i++) {
+                    this.mountains.push({
+                        x: Math.random() * canvas.width,
+                        y: canvas.height - 200 - i * 50,
+                        width: Math.random() * 200 + 150,
+                        height: Math.random() * 100 + 80,
+                        speed: (i + 1) * 0.3,
+                        opacity: 0.6 - i * 0.2
                     });
                 }
             }
@@ -481,50 +646,74 @@
                 // Update clouds
                 this.clouds.forEach(cloud => {
                     cloud.x -= cloud.speed;
-                    if (cloud.x < -50) {
-                        cloud.x = canvas.width + 50;
-                        cloud.y = Math.random() * 200 + 50;
+                    if (cloud.x < -100) {
+                        cloud.x = canvas.width + 100;
+                        cloud.y = Math.random() * 150 + 50;
+                    }
+                });
+                
+                // Update mountains
+                this.mountains.forEach(mountain => {
+                    mountain.x -= mountain.speed;
+                    if (mountain.x < -mountain.width) {
+                        mountain.x = canvas.width + mountain.width;
                     }
                 });
                 
                 // Update ground
                 this.groundOffset -= gameState.speed;
-                if (this.groundOffset <= -100) {
+                if (this.groundOffset <= -32) {
                     this.groundOffset = 0;
                 }
             }
             
             draw() {
-                // Sky gradient
+                // Sky gradient (retro SNES style)
                 const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, '#87CEEB');
-                gradient.addColorStop(1, '#98FB98');
+                gradient.addColorStop(0, '#1e1b4b');
+                gradient.addColorStop(0.5, '#312e81');
+                gradient.addColorStop(1, '#d4a574');
                 ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Clouds
-                this.clouds.forEach(cloud => {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                // Draw mountains (parallax layers)
+                this.mountains.forEach(mountain => {
+                    ctx.fillStyle = `rgba(99, 102, 241, ${mountain.opacity})`;
                     ctx.beginPath();
-                    ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
-                    ctx.arc(cloud.x + cloud.size, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
-                    ctx.arc(cloud.x - cloud.size, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+                    ctx.moveTo(mountain.x, mountain.y + mountain.height);
+                    ctx.lineTo(mountain.x + mountain.width/2, mountain.y);
+                    ctx.lineTo(mountain.x + mountain.width, mountain.y + mountain.height);
                     ctx.fill();
                 });
                 
-                // Ground with pattern
-                ctx.fillStyle = '#8FBC8F';
-                ctx.fillRect(0, canvas.height - 150, canvas.width, 150);
-                
-                // Ground pattern
-                ctx.strokeStyle = '#228B22';
-                ctx.lineWidth = 2;
-                for (let x = this.groundOffset; x < canvas.width; x += 50) {
+                // Draw clouds
+                this.clouds.forEach(cloud => {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${cloud.opacity})`;
                     ctx.beginPath();
-                    ctx.moveTo(x, canvas.height - 150);
-                    ctx.lineTo(x + 25, canvas.height - 130);
-                    ctx.lineTo(x + 50, canvas.height - 150);
-                    ctx.stroke();
+                    ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+                    ctx.arc(cloud.x + cloud.size * 0.7, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+                    ctx.arc(cloud.x - cloud.size * 0.7, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                // Retro tile-based ground
+                const tileSize = 32;
+                ctx.fillStyle = '#d4a574';
+                ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+                
+                // Tile pattern
+                for (let x = this.groundOffset; x < canvas.width + tileSize; x += tileSize) {
+                    for (let y = canvas.height - 120; y < canvas.height; y += tileSize) {
+                        // Alternate tile colors
+                        const isDark = (Math.floor(x/tileSize) + Math.floor(y/tileSize)) % 2 === 0;
+                        ctx.fillStyle = isDark ? '#c49664' : '#d4a574';
+                        ctx.fillRect(x, y, tileSize, tileSize);
+                        
+                        // Tile border
+                        ctx.strokeStyle = '#b8935a';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x, y, tileSize, tileSize);
+                    }
                 }
             }
         }
@@ -538,15 +727,15 @@
         let obstacles = [];
         let kestrlCards = [];
         
-        // Input handling
+        // Input handling with jump buffering
         const keys = {};
         
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             
-            if (e.code === 'Space') {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
                 e.preventDefault();
-                player.jump();
+                player.jumpBuffer = player.maxJumpBuffer;
             } else if (e.code === 'ArrowDown') {
                 e.preventDefault();
                 player.slide();
@@ -560,35 +749,48 @@
             keys[e.code] = false;
         });
         
-        // Game functions
+        // Enhanced spawn system with easier green coins
         function spawnObjects() {
-            // Spawn coins
+            // Spawn green coins in accessible positions (more frequent)
+            if (Math.random() < 0.04) { // Increased spawn rate
+                const heights = [canvas.height - 120, canvas.height - 160, canvas.height - 200];
+                const y = heights[Math.floor(Math.random() * heights.length)];
+                coins.push(new Coin(canvas.width, y, 'green'));
+                
+                // Spawn green coins in clusters
+                if (Math.random() < 0.6) {
+                    for (let i = 1; i < 3; i++) {
+                        coins.push(new Coin(canvas.width + i * 40, y + Math.random() * 40 - 20, 'green'));
+                    }
+                }
+            }
+            
+            // Spawn red coins less frequently
             if (Math.random() < 0.02) {
-                const type = Math.random() < 0.6 ? 'red' : 'green';
-                const y = Math.random() < 0.5 ? canvas.height - 200 : canvas.height - 100;
-                coins.push(new Coin(canvas.width, y, type));
+                const y = canvas.height - 120; // Easy position
+                coins.push(new Coin(canvas.width, y, 'red'));
             }
             
             // Spawn obstacles
-            if (Math.random() < 0.015) {
+            if (Math.random() < 0.02) {
                 const type = Math.random() < 0.6 ? 'high' : 'low';
                 obstacles.push(new Obstacle(canvas.width, type));
             }
             
-            // Spawn Kestrl cards
-            if (Math.random() < 0.005) {
-                kestrlCards.push(new KestrlCard(canvas.width, canvas.height - 200));
+            // Spawn Kestrl cards more frequently
+            if (Math.random() < 0.008) {
+                kestrlCards.push(new KestrlCard(canvas.width, canvas.height - 160));
             }
         }
         
         function checkCollisions() {
-            // Coin collisions
+            // Enhanced coin collision with larger hitboxes
             coins.forEach(coin => {
                 if (!coin.collected && 
-                    player.x < coin.x + coin.width &&
-                    player.x + player.width > coin.x &&
-                    player.y - player.height < coin.y + coin.height &&
-                    player.y > coin.y) {
+                    player.x < coin.x + coin.width + 8 && // Larger hitbox
+                    player.x + player.width > coin.x - 8 &&
+                    player.y - player.height < coin.y + coin.height + 8 &&
+                    player.y > coin.y - 8) {
                     
                     coin.collected = true;
                     
@@ -596,9 +798,11 @@
                         gameState.score += 10;
                     } else if (coin.type === 'green') {
                         gameState.score += 10;
+                        gameState.stress = Math.max(0, gameState.stress - 15);
                     } else {
                         gameState.score -= 50;
                         gameState.debt += 50;
+                        gameState.stress = Math.min(100, gameState.stress + 25);
                     }
                 }
             });
@@ -632,37 +836,47 @@
         
         function activateKestrl() {
             gameState.kestrlActive = true;
-            gameState.kestrlTimer = 600; // 10 seconds at 60fps
+            gameState.kestrlTimer = 600; // 10 seconds
             
             // Push back Riba Monster
-            ribaMonster.baseX = -200;
+            ribaMonster.baseX = -250;
         }
         
         function updateNecessity() {
-            gameState.necessity -= 0.1;
+            gameState.necessity -= 0.08; // Slower depletion
             if (gameState.necessity <= 0) {
                 gameState.necessity = 0;
-                gameState.score -= 2; // Drain score when necessity is empty
+                gameState.score -= 1; // Slower drain
             }
         }
         
-        function updateStressEffect() {
-            const stressOverlay = document.getElementById('stressOverlay');
-            const debtRatio = Math.max(0, -gameState.score / 300);
+        function updateStress() {
+            // Stress increases over time and with debt
+            if (gameState.score < 0) {
+                gameState.stress = Math.min(100, gameState.stress + 0.05);
+            }
             
-            if (debtRatio > 0.5) {
-                const intensity = (debtRatio - 0.5) * 2;
+            // Apply visual stress effects
+            const stressOverlay = document.getElementById('stressOverlay');
+            if (gameState.stress > 50) {
+                const intensity = (gameState.stress - 50) / 50;
                 stressOverlay.style.background = `rgba(255, 0, 0, ${intensity * 0.3})`;
-                stressOverlay.style.filter = `blur(${intensity * 3}px)`;
+                
+                // CRT glitch effect
+                if (gameState.stress > 80) {
+                    canvas.classList.add('crt-effect');
+                } else {
+                    canvas.classList.remove('crt-effect');
+                }
             } else {
                 stressOverlay.style.background = 'rgba(255, 0, 0, 0)';
-                stressOverlay.style.filter = 'blur(0px)';
+                canvas.classList.remove('crt-effect');
             }
         }
         
         function saveScore() {
             if (gameState.score > 0) {
-                const saveAmount = Math.min(gameState.score, 20);
+                const saveAmount = Math.min(gameState.score, 15); // Smaller save amount
                 gameState.savings += saveAmount;
                 gameState.score -= saveAmount;
             }
@@ -673,6 +887,7 @@
             document.getElementById('savings').textContent = gameState.savings;
             document.getElementById('debt').textContent = gameState.debt;
             document.getElementById('necessityBar').style.width = gameState.necessity + '%';
+            document.getElementById('stressBar').style.width = gameState.stress + '%';
         }
         
         function endGame() {
@@ -685,7 +900,9 @@
                 gameState.score = 0;
                 gameState.debt = 0;
                 gameState.necessity = 100;
+                gameState.stress = 0;
                 gameState.isGameOver = false;
+                ribaMonster.baseX = -150;
                 return;
             }
             
@@ -697,19 +914,21 @@
         function restartGame() {
             gameState = {
                 score: 0,
-                savings: gameState.savings, // Keep savings
+                savings: gameState.savings,
                 debt: 0,
                 necessity: 100,
+                stress: 0,
                 isGameOver: false,
                 isPaused: false,
-                speed: 5,
+                speed: 3, // Reset to slower speed
                 kestrlActive: false,
-                kestrlTimer: 0
+                kestrlTimer: 0,
+                distance: 0
             };
             
             // Reset player
-            player.x = 100;
-            player.y = canvas.height - 150;
+            player.x = 150;
+            player.y = canvas.height - 120;
             player.velocityY = 0;
             player.isJumping = false;
             player.isSliding = false;
@@ -720,13 +939,14 @@
             kestrlCards = [];
             
             // Reset monster
-            ribaMonster.baseX = -100;
+            ribaMonster.baseX = -150;
             
             document.getElementById('gameOver').style.display = 'none';
+            canvas.classList.remove('crt-effect');
             updateUI();
         }
         
-        // Game loop
+        // Enhanced game loop
         function gameLoop() {
             if (!gameState.isGameOver) {
                 // Clear canvas
@@ -773,20 +993,21 @@
                 
                 // Update game systems
                 updateNecessity();
-                updateStressEffect();
+                updateStress();
                 
                 // Update Kestrl timer
                 if (gameState.kestrlActive) {
                     gameState.kestrlTimer--;
                     if (gameState.kestrlTimer <= 0) {
                         gameState.kestrlActive = false;
-                        ribaMonster.baseX = -100;
+                        ribaMonster.baseX = -150;
                     }
                 }
                 
-                // Increase difficulty
-                if (gameState.score > 0 && gameState.score % 100 === 0) {
-                    gameState.speed += 0.5;
+                // Progressive difficulty (slower increase)
+                gameState.distance++;
+                if (gameState.distance % 1000 === 0) {
+                    gameState.speed += 0.2; // Slower speed increase
                 }
                 
                 // Update UI
