@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riba Runner - Financial Literacy Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #gameContainer {
+            position: relative;
+            border: 3px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: #000;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 100%);
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 200;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .button:hover {
+            background: #45a049;
+        }
+        
+        #saveButton {
+            background: #2196F3;
+        }
+        
+        #saveButton:hover {
+            background: #0b7dda;
+        }
+        
+        .bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        #necessityBar {
+            background: linear-gradient(90deg, #ff6b6b, #ffa500);
+        }
+        
+        #stressOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,0,0,0);
+            pointer-events: none;
+            transition: background 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+        
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Savings: <span id="savings">0</span></div>
+            <div>Debt: <span id="debt">0</span></div>
+            <div class="bar">
+                <div id="necessityBar" class="bar-fill" style="width: 100%"></div>
+            </div>
+            <div>Necessity Meter</div>
+        </div>
+        
+        <div id="stressOverlay"></div>
+        
+        <div id="instructions">
+            SPACE = Jump | DOWN ARROW = Slide | S = Save | Avoid Red Coins (Riba) | Collect Green Coins (Halal)
+        </div>
+        
+        <div id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>Savings: <span id="finalSavings">0</span></p>
+            <button class="button" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = {
+            score: 0,
+            savings: 0,
+            debt: 0,
+            necessity: 100,
+            isGameOver: false,
+            isPaused: false,
+            speed: 5,
+            kestrlActive: false,
+            kestrlTimer: 0
+        };
+        
+        // Player (Kestrel)
+        class Player {
+            constructor() {
+                this.x = 100;
+                this.y = canvas.height - 150;
+                this.width = 40;
+                this.height = 60;
+                this.velocityY = 0;
+                this.gravity = 0.8;
+                this.jumpForce = -15;
+                this.isJumping = false;
+                this.isSliding = false;
+                this.slideTimer = 0;
+                this.originalHeight = 60;
+            }
+            
+            jump() {
+                if (!this.isJumping && !this.isSliding) {
+                    this.velocityY = this.jumpForce;
+                    this.isJumping = true;
+                }
+            }
+            
+            slide() {
+                if (!this.isJumping && !this.isSliding) {
+                    this.isSliding = true;
+                    this.height = this.originalHeight / 2;
+                    this.y += this.originalHeight / 2;
+                    this.slideTimer = 30;
+                }
+            }
+            
+            update() {
+                // Physics
+                this.velocityY += this.gravity;
+                this.y += this.velocityY;
+                
+                // Ground collision
+                if (this.y > canvas.height - 150) {
+                    this.y = canvas.height - 150;
+                    this.velocityY = 0;
+                    this.isJumping = false;
+                }
+                
+                // Slide timer
+                if (this.isSliding) {
+                    this.slideTimer--;
+                    if (this.slideTimer <= 0) {
+                        this.isSliding = false;
+                        this.y -= this.originalHeight / 2;
+                        this.height = this.originalHeight;
+                    }
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                
+                // Kestrel body
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+                
+                // Kestrel head
+                ctx.fillStyle = '#A0522D';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y - this.height - 10, 12, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Beak
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width/2 + 10, this.y - this.height - 10);
+                ctx.lineTo(this.x + this.width/2 + 20, this.y - this.height - 5);
+                ctx.lineTo(this.x + this.width/2 + 10, this.y - this.height);
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2 - 5, this.y - this.height - 15, 2, 0, Math.PI * 2);
+                ctx.arc(this.x + this.width/2 + 5, this.y - this.height - 15, 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Wings
+                ctx.fillStyle = '#654321';
+                if (this.isJumping) {
+                    // Spread wings when jumping
+                    ctx.fillRect(this.x - 15, this.y - this.height + 20, 15, 25);
+                    ctx.fillRect(this.x + this.width, this.y - this.height + 20, 15, 25);
+                } else {
+                    // Folded wings when running/sliding
+                    ctx.fillRect(this.x - 5, this.y - this.height + 10, 10, 20);
+                    ctx.fillRect(this.x + this.width - 5, this.y - this.height + 10, 10, 20);
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        // Coins
+        class Coin {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.width = 30;
+                this.height = 30;
+                this.type = type; // 'green' or 'red'
+                this.collected = false;
+                this.rotation = 0;
+            }
+            
+            update() {
+                this.x -= gameState.speed;
+                this.rotation += 0.1;
+            }
+            
+            draw() {
+                if (this.collected) return;
+                
+                ctx.save();
+                ctx.translate(this.x + this.width/2, this.y + this.height/2);
+                ctx.rotate(this.rotation);
+                
+                // Coin glow effect
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.width/2);
+                if (this.type === 'green') {
+                    gradient.addColorStop(0, '#90EE90');
+                    gradient.addColorStop(1, '#228B22');
+                } else {
+                    gradient.addColorStop(0, '#FFB6C1');
+                    gradient.addColorStop(1, '#DC143C');
+                }
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Coin symbol
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.type === 'green' ? 'H' : 'R', 0, 4);
+                
+                ctx.restore();
+            }
+        }
+        
+        // Obstacles
+        class Obstacle {
+            constructor(x, type) {
+                this.x = x;
+                this.type = type; // 'high' or 'low'
+                this.width = 40;
+                this.height = this.type === 'high' ? 100 : 40;
+                this.y = this.type === 'high' ? canvas.height - 150 - this.height : canvas.height - 150;
+            }
+            
+            update() {
+                this.x -= gameState.speed;
+            }
+            
+            draw() {
+                // Obstacle with spikes
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Spikes
+                ctx.fillStyle = '#654321';
+                for (let i = 0; i < this.width; i += 10) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + i, this.y);
+                    ctx.lineTo(this.x + i + 5, this.y - 10);
+                    ctx.lineTo(this.x + i + 10, this.y);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Riba Monster
+        class RibaMonster {
+            constructor() {
+                this.x = -100;
+                this.y = canvas.height - 200;
+                this.width = 80;
+                this.height = 100;
+                this.baseX = -100;
+            }
+            
+            update() {
+                // Monster gets closer based on debt
+                const debtRatio = Math.max(0, -gameState.score / 200);
+                this.x = this.baseX + (debtRatio * 300);
+                
+                // If monster touches player, game over
+                if (this.x < player.x + player.width && this.x + this.width > player.x) {
+                    if (!gameState.kestrlActive) {
+                        endGame();
+                    }
+                }
+            }
+            
+            draw() {
+                if (gameState.score >= 0) return; // Only visible when in debt
+                
+                ctx.save();
+                
+                // Monster body
+                ctx.fillStyle = '#8B0000';
+                ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+                
+                // Monster head
+                ctx.fillStyle = '#A52A2A';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y - this.height - 20, 25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Glowing red eyes
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2 - 10, this.y - this.height - 25, 5, 0, Math.PI * 2);
+                ctx.arc(this.x + this.width/2 + 10, this.y - this.height - 25, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Evil smile
+                ctx.strokeStyle = '#FF0000';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y - this.height - 15, 15, 0, Math.PI);
+                ctx.stroke();
+                
+                // Debt chains
+                ctx.strokeStyle = '#696969';
+                ctx.lineWidth = 4;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + 10 + i * 20, this.y - this.height + 20);
+                    ctx.lineTo(this.x + 10 + i * 20, this.y - this.height + 40);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        // Kestrl Card Power-up
+        class KestrlCard {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 40;
+                this.height = 50;
+                this.collected = false;
+                this.glow = 0;
+            }
+            
+            update() {
+                this.x -= gameState.speed;
+                this.glow += 0.1;
+            }
+            
+            draw() {
+                if (this.collected) return;
+                
+                ctx.save();
+                
+                // Glow effect
+                const glowSize = 30 + Math.sin(this.glow) * 10;
+                const gradient = ctx.createRadialGradient(
+                    this.x + this.width/2, this.y + this.height/2, 0,
+                    this.x + this.width/2, this.y + this.height/2, glowSize
+                );
+                gradient.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y + this.height/2, glowSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Card
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Card symbol
+                ctx.fillStyle = '#B8860B';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('K', this.x + this.width/2, this.y + this.height/2 + 5);
+                
+                ctx.restore();
+            }
+        }
+        
+        // Background
+        class Background {
+            constructor() {
+                this.clouds = [];
+                this.groundOffset = 0;
+                
+                // Initialize clouds
+                for (let i = 0; i < 5; i++) {
+                    this.clouds.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * 200 + 50,
+                        size: Math.random() * 30 + 20,
+                        speed: Math.random() * 2 + 1
+                    });
+                }
+            }
+            
+            update() {
+                // Update clouds
+                this.clouds.forEach(cloud => {
+                    cloud.x -= cloud.speed;
+                    if (cloud.x < -50) {
+                        cloud.x = canvas.width + 50;
+                        cloud.y = Math.random() * 200 + 50;
+                    }
+                });
+                
+                // Update ground
+                this.groundOffset -= gameState.speed;
+                if (this.groundOffset <= -100) {
+                    this.groundOffset = 0;
+                }
+            }
+            
+            draw() {
+                // Sky gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(1, '#98FB98');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Clouds
+                this.clouds.forEach(cloud => {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+                    ctx.arc(cloud.x + cloud.size, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+                    ctx.arc(cloud.x - cloud.size, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                // Ground with pattern
+                ctx.fillStyle = '#8FBC8F';
+                ctx.fillRect(0, canvas.height - 150, canvas.width, 150);
+                
+                // Ground pattern
+                ctx.strokeStyle = '#228B22';
+                ctx.lineWidth = 2;
+                for (let x = this.groundOffset; x < canvas.width; x += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, canvas.height - 150);
+                    ctx.lineTo(x + 25, canvas.height - 130);
+                    ctx.lineTo(x + 50, canvas.height - 150);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Game objects
+        const player = new Player();
+        const background = new Background();
+        const ribaMonster = new RibaMonster();
+        
+        let coins = [];
+        let obstacles = [];
+        let kestrlCards = [];
+        
+        // Input handling
+        const keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            
+            if (e.code === 'Space') {
+                e.preventDefault();
+                player.jump();
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                player.slide();
+            } else if (e.code === 'KeyS') {
+                e.preventDefault();
+                saveScore();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // Game functions
+        function spawnObjects() {
+            // Spawn coins
+            if (Math.random() < 0.02) {
+                const type = Math.random() < 0.6 ? 'red' : 'green';
+                const y = Math.random() < 0.5 ? canvas.height - 200 : canvas.height - 100;
+                coins.push(new Coin(canvas.width, y, type));
+            }
+            
+            // Spawn obstacles
+            if (Math.random() < 0.015) {
+                const type = Math.random() < 0.6 ? 'high' : 'low';
+                obstacles.push(new Obstacle(canvas.width, type));
+            }
+            
+            // Spawn Kestrl cards
+            if (Math.random() < 0.005) {
+                kestrlCards.push(new KestrlCard(canvas.width, canvas.height - 200));
+            }
+        }
+        
+        function checkCollisions() {
+            // Coin collisions
+            coins.forEach(coin => {
+                if (!coin.collected && 
+                    player.x < coin.x + coin.width &&
+                    player.x + player.width > coin.x &&
+                    player.y - player.height < coin.y + coin.height &&
+                    player.y > coin.y) {
+                    
+                    coin.collected = true;
+                    
+                    if (gameState.kestrlActive) {
+                        gameState.score += 10;
+                    } else if (coin.type === 'green') {
+                        gameState.score += 10;
+                    } else {
+                        gameState.score -= 50;
+                        gameState.debt += 50;
+                    }
+                }
+            });
+            
+            // Obstacle collisions
+            obstacles.forEach(obstacle => {
+                if (player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y - player.height < obstacle.y + obstacle.height &&
+                    player.y > obstacle.y) {
+                    
+                    if (!gameState.kestrlActive) {
+                        endGame();
+                    }
+                }
+            });
+            
+            // Kestrl card collisions
+            kestrlCards.forEach(card => {
+                if (!card.collected &&
+                    player.x < card.x + card.width &&
+                    player.x + player.width > card.x &&
+                    player.y - player.height < card.y + card.height &&
+                    player.y > card.y) {
+                    
+                    card.collected = true;
+                    activateKestrl();
+                }
+            });
+        }
+        
+        function activateKestrl() {
+            gameState.kestrlActive = true;
+            gameState.kestrlTimer = 600; // 10 seconds at 60fps
+            
+            // Push back Riba Monster
+            ribaMonster.baseX = -200;
+        }
+        
+        function updateNecessity() {
+            gameState.necessity -= 0.1;
+            if (gameState.necessity <= 0) {
+                gameState.necessity = 0;
+                gameState.score -= 2; // Drain score when necessity is empty
+            }
+        }
+        
+        function updateStressEffect() {
+            const stressOverlay = document.getElementById('stressOverlay');
+            const debtRatio = Math.max(0, -gameState.score / 300);
+            
+            if (debtRatio > 0.5) {
+                const intensity = (debtRatio - 0.5) * 2;
+                stressOverlay.style.background = `rgba(255, 0, 0, ${intensity * 0.3})`;
+                stressOverlay.style.filter = `blur(${intensity * 3}px)`;
+            } else {
+                stressOverlay.style.background = 'rgba(255, 0, 0, 0)';
+                stressOverlay.style.filter = 'blur(0px)';
+            }
+        }
+        
+        function saveScore() {
+            if (gameState.score > 0) {
+                const saveAmount = Math.min(gameState.score, 20);
+                gameState.savings += saveAmount;
+                gameState.score -= saveAmount;
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('savings').textContent = gameState.savings;
+            document.getElementById('debt').textContent = gameState.debt;
+            document.getElementById('necessityBar').style.width = gameState.necessity + '%';
+        }
+        
+        function endGame() {
+            gameState.isGameOver = true;
+            
+            // Check for savings revive
+            const reviveCost = 50 + gameState.debt;
+            if (gameState.savings >= reviveCost) {
+                gameState.savings -= reviveCost;
+                gameState.score = 0;
+                gameState.debt = 0;
+                gameState.necessity = 100;
+                gameState.isGameOver = false;
+                return;
+            }
+            
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalSavings').textContent = gameState.savings;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        function restartGame() {
+            gameState = {
+                score: 0,
+                savings: gameState.savings, // Keep savings
+                debt: 0,
+                necessity: 100,
+                isGameOver: false,
+                isPaused: false,
+                speed: 5,
+                kestrlActive: false,
+                kestrlTimer: 0
+            };
+            
+            // Reset player
+            player.x = 100;
+            player.y = canvas.height - 150;
+            player.velocityY = 0;
+            player.isJumping = false;
+            player.isSliding = false;
+            
+            // Clear arrays
+            coins = [];
+            obstacles = [];
+            kestrlCards = [];
+            
+            // Reset monster
+            ribaMonster.baseX = -100;
+            
+            document.getElementById('gameOver').style.display = 'none';
+            updateUI();
+        }
+        
+        // Game loop
+        function gameLoop() {
+            if (!gameState.isGameOver) {
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Update background
+                background.update();
+                background.draw();
+                
+                // Update player
+                player.update();
+                player.draw();
+                
+                // Spawn objects
+                spawnObjects();
+                
+                // Update and draw coins
+                coins = coins.filter(coin => {
+                    coin.update();
+                    coin.draw();
+                    return coin.x > -50 && !coin.collected;
+                });
+                
+                // Update and draw obstacles
+                obstacles = obstacles.filter(obstacle => {
+                    obstacle.update();
+                    obstacle.draw();
+                    return obstacle.x > -50;
+                });
+                
+                // Update and draw Kestrl cards
+                kestrlCards = kestrlCards.filter(card => {
+                    card.update();
+                    card.draw();
+                    return card.x > -50 && !card.collected;
+                });
+                
+                // Update monster
+                ribaMonster.update();
+                ribaMonster.draw();
+                
+                // Check collisions
+                checkCollisions();
+                
+                // Update game systems
+                updateNecessity();
+                updateStressEffect();
+                
+                // Update Kestrl timer
+                if (gameState.kestrlActive) {
+                    gameState.kestrlTimer--;
+                    if (gameState.kestrlTimer <= 0) {
+                        gameState.kestrlActive = false;
+                        ribaMonster.baseX = -100;
+                    }
+                }
+                
+                // Increase difficulty
+                if (gameState.score > 0 && gameState.score % 100 === 0) {
+                    gameState.speed += 0.5;
+                }
+                
+                // Update UI
+                updateUI();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
