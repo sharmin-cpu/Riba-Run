@@ -34,9 +34,12 @@
     const PLAYER_SLIDE_HEIGHT = 28;
     const GRAVITY = 0.55;
     const JUMP_FORCE = -14;
+
+    // Faster, Subway-Surfers-style ramp
     const INITIAL_SPEED = 4.5;
-    const MAX_SPEED = 10;
-    const SPEED_INCREMENT = 0.0006;
+    const MAX_SPEED = 16;
+    const BASE_SPEED_INCREMENT = 0.0012;
+
     const COYOTE_TIME = 8;
 
     // ---------- GAME STATE ----------
@@ -358,8 +361,15 @@
       game.frameCount++;
       game.distance = Math.floor((game.frameCount * game.speed) / 15);
 
-      if (game.speed < MAX_SPEED) {
-        game.speed += SPEED_INCREMENT;
+      // Subway-Surfers-style speed ramp:
+      // base increment + extra boost based on distance
+      const distanceFactor = Math.min(game.distance / 800, 1.5); // caps extra speed
+      const targetSpeed = Math.min(
+        INITIAL_SPEED + distanceFactor * 6,
+        MAX_SPEED
+      );
+      if (game.speed < targetSpeed) {
+        game.speed += BASE_SPEED_INCREMENT * (1 + distanceFactor);
       }
 
       // Kestrl card timer
@@ -444,12 +454,12 @@
 
       // Spawn stuff
       if (
-        game.frameCount % Math.max(70, 140 - Math.floor(game.speed * 4)) ===
+        game.frameCount % Math.max(60, 130 - Math.floor(game.speed * 3)) ===
         0
       ) {
         spawnObstacle();
       }
-      if (game.frameCount % 55 === 0) {
+      if (game.frameCount % 50 === 0) {
         spawnCoin();
       }
       if (game.frameCount % 120 === 0) {
@@ -525,6 +535,12 @@
               game.necessityMeter + 5
             );
             createParticles(coin.x, coin.y, "#ef4444", 10);
+
+            // Immediate extra glitch when you take Riba
+            game.glitchIntensity = Math.min(
+              1,
+              game.glitchIntensity + 0.18
+            );
           }
           return false;
         }
@@ -546,7 +562,7 @@
           centerY < pu.y + pu.height + 20
         ) {
           game.hasKestrlCard = true;
-          game.kestrlCardTimer = 600; // about 10s at 60fps
+          game.kestrlCardTimer = 600; // ~10s
           createParticles(
             pu.x + pu.width / 2,
             pu.y + pu.height / 2,
@@ -554,8 +570,8 @@
             20
           );
           // push monster back
-          game.monster.x = -250;
-          game.monster.targetX = -250;
+          game.monster.x = -260;
+          game.monster.targetX = -260;
           return false;
         }
 
@@ -717,7 +733,7 @@
 
       // glow when Kestrl card active
       if (game.hasKestrlCard) {
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.7)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.8)";
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.ellipse(0, 0, 22, 26, 0, 0, Math.PI * 2);
@@ -729,7 +745,16 @@
 
     // ---------- DRAW MAIN ----------
     function draw() {
-      ctx.imageSmoothingEnabled = true;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false; // retro crisp edges
+
+      // Slight screen shake when glitchy
+      if (game.glitchIntensity > 0.25) {
+        const s = game.glitchIntensity * 6;
+        const shakeX = (Math.random() - 0.5) * s;
+        const shakeY = (Math.random() - 0.5) * s;
+        ctx.translate(shakeX, shakeY);
+      }
 
       // Background gradient
       const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -770,11 +795,25 @@
       });
       ctx.restore();
 
-      // Ground
-      ctx.fillStyle = "#facc15";
-      ctx.fillRect(0, game.groundY, canvas.width, 8);
-      ctx.fillStyle = "#92400e";
-      ctx.fillRect(0, game.groundY + 8, canvas.width, GROUND_HEIGHT);
+      // Retro tiled ground (Mario-ish blocks)
+      const tileSize = 32;
+      for (let x = 0; x < canvas.width + tileSize; x += tileSize) {
+        // top tile
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(x, game.groundY, tileSize, 10);
+
+        ctx.fillStyle = "#eab308";
+        ctx.fillRect(x, game.groundY + 10, tileSize, 6);
+
+        // main dirt
+        ctx.fillStyle = "#92400e";
+        ctx.fillRect(x, game.groundY + 16, tileSize, GROUND_HEIGHT - 16);
+
+        // tile outline
+        ctx.strokeStyle = "#78350f";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, game.groundY + 16, tileSize, GROUND_HEIGHT - 16);
+      }
 
       // Monster
       if (game.monster.x < canvas.width + 200) {
@@ -792,6 +831,11 @@
         ctx.lineTo(obs.width / 2, 0);
         ctx.closePath();
         ctx.fill();
+
+        // outline
+        ctx.strokeStyle = "#4f46e5";
+        ctx.lineWidth = 2;
+        ctx.stroke();
         ctx.restore();
       });
 
@@ -801,6 +845,16 @@
         ctx.save();
         ctx.translate(pu.x + pu.width / 2, pu.y + pu.height / 2);
         ctx.rotate(t * 0.02);
+
+        // glow
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, pu.width);
+        glow.addColorStop(0, "rgba(56, 189, 248, 0.8)");
+        glow.addColorStop(1, "rgba(56, 189, 248, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, pu.width, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.fillStyle = "#0ea5e9";
         ctx.fillRect(-pu.width / 2 - t, -pu.height / 2, pu.width + t * 2, pu.height);
         ctx.strokeStyle = "#38bdf8";
@@ -814,11 +868,37 @@
         ctx.restore();
       });
 
-      // Coins
+      // Coins (with glows + +10 / -50 text)
       game.coins.forEach((coin) => {
         const pulse = Math.sin(coin.pulsePhase) * 2;
         const r = coin.radius + pulse;
 
+        // glow
+        const glowRadius = r * 2.4;
+        const glow = ctx.createRadialGradient(
+          coin.x,
+          coin.y,
+          0,
+          coin.x,
+          coin.y,
+          glowRadius
+        );
+        if (game.hasKestrlCard) {
+          glow.addColorStop(0, "rgba(45, 212, 191, 0.9)");
+          glow.addColorStop(1, "rgba(45, 212, 191, 0)");
+        } else if (coin.isGreen) {
+          glow.addColorStop(0, "rgba(250, 204, 21, 0.9)");
+          glow.addColorStop(1, "rgba(250, 204, 21, 0)");
+        } else {
+          glow.addColorStop(0, "rgba(248, 113, 113, 0.9)");
+          glow.addColorStop(1, "rgba(248, 113, 113, 0)");
+        }
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // coin body
         if (game.hasKestrlCard) {
           ctx.fillStyle = "#22c55e";
         } else if (coin.isGreen) {
@@ -826,16 +906,26 @@
         } else {
           ctx.fillStyle = "#ef4444";
         }
-
         ctx.beginPath();
         ctx.arc(coin.x, coin.y, r, 0, Math.PI * 2);
         ctx.fill();
 
+        // inner symbol
         ctx.fillStyle = "#111827";
         ctx.font = "bold 12px monospace";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(coin.isGreen ? "$" : "!", coin.x, coin.y);
+
+        // value text under coin
+        ctx.font = "12px monospace";
+        if (game.hasKestrlCard || coin.isGreen) {
+          ctx.fillStyle = "#bbf7d0";
+          ctx.fillText("+10", coin.x, coin.y + r + 14);
+        } else {
+          ctx.fillStyle = "#fecaca";
+          ctx.fillText("-50", coin.x, coin.y + r + 14);
+        }
       });
 
       // Player
@@ -857,24 +947,27 @@
         ctx.fillStyle = `rgba(148, 27, 27, ${0.2 * t})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // heavy scanlines
         for (let y = 0; y < canvas.height; y += 3) {
           ctx.fillStyle = `rgba(0, 0, 0, ${0.1 + 0.15 * t})`;
           ctx.fillRect(0, y, canvas.width, 1);
         }
 
-        if (t > 0.4) {
-          for (let i = 0; i < 40 * t; i++) {
-            const nx = Math.random() * canvas.width;
-            const ny = Math.random() * canvas.height;
-            ctx.fillStyle =
-              Math.random() > 0.5 ? "rgba(220,38,38,0.7)" : "rgba(0,0,0,0.7)";
-            ctx.fillRect(nx, ny, 2, 2);
-          }
+        // static
+        const noiseCount = 40 * t;
+        for (let i = 0; i < noiseCount; i++) {
+          const nx = Math.random() * canvas.width;
+          const ny = Math.random() * canvas.height;
+          ctx.fillStyle =
+            Math.random() > 0.5 ? "rgba(220,38,38,0.7)" : "rgba(15,23,42,0.7)";
+          ctx.fillRect(nx, ny, 2, 2);
         }
       }
 
       // HUD
       drawHUD();
+
+      ctx.restore();
     }
 
     function drawHUD() {
@@ -884,7 +977,7 @@
       ctx.textBaseline = "top";
 
       // Score
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#020617";
       ctx.fillRect(16, 16, 160, 46);
       ctx.strokeStyle = game.score >= 0 ? "#facc15" : "#ef4444";
       ctx.lineWidth = 3;
@@ -897,7 +990,7 @@
 
       // Distance
       ctx.font = "16px monospace";
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#020617";
       ctx.fillRect(16, 72, 140, 38);
       ctx.strokeStyle = "#38bdf8";
       ctx.strokeRect(16, 72, 140, 38);
@@ -908,7 +1001,7 @@
 
       // Savings pot
       const spX = canvas.width - 180;
-      ctx.fillStyle = "#052e16";
+      ctx.fillStyle = "#022c22";
       ctx.fillRect(spX, 16, 164, 46);
       ctx.strokeStyle = "#22c55e";
       ctx.strokeRect(spX, 16, 164, 46);
@@ -920,7 +1013,7 @@
 
       // Coins counters
       ctx.font = "14px monospace";
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#020617";
       ctx.fillRect(spX, 72, 164, 38);
       ctx.strokeStyle = "#4b5563";
       ctx.strokeRect(spX, 72, 164, 38);
@@ -935,7 +1028,7 @@
       const barW = 360;
       const barH = 22;
 
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#020617";
       ctx.fillRect(barX, barY, barW, barH);
       ctx.strokeStyle = "#9ca3af";
       ctx.strokeRect(barX, barY, barW, barH);
@@ -962,7 +1055,7 @@
         ctx.font = "14px monospace";
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        ctx.fillStyle = "#0f172a";
+        ctx.fillStyle = "#020617";
         ctx.fillRect(canvas.width / 2 - 80, 56, 160, 32);
         ctx.strokeStyle = "#06b6d4";
         ctx.strokeRect(canvas.width / 2 - 80, 56, 160, 32);
@@ -1007,6 +1100,7 @@
   </script>
 </body>
 </html>
+
 
 
 
