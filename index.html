@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Riba Run – Minimal JS Port</title>
+  <title>Riba Run – Canvas Edition</title>
   <style>
     html, body {
       margin: 0;
@@ -11,7 +11,7 @@
       width: 100%;
       overflow: hidden;
       background: #020617;
-      font-family: monospace;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     #gameCanvas {
       position: fixed;
@@ -23,7 +23,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="init()">
   <canvas id="gameCanvas"></canvas>
 
   <script>
@@ -35,9 +35,13 @@
     const GRAVITY = 0.55;
     const JUMP_FORCE = -14;
     const INITIAL_SPEED = 4.5;
+    const MAX_SPEED = 10;
+    const SPEED_INCREMENT = 0.0006;
+    const COYOTE_TIME = 8;
 
     // ---------- GAME STATE ----------
     const game = {
+      state: "running", // "running" | "gameover"
       player: {
         x: 120,
         y: 0,
@@ -46,15 +50,28 @@
         isSliding: false,
         slideTimer: 0,
       },
-      groundY: 0,
-      speed: INITIAL_SPEED,
-      frameCount: 0,
-      distance: 0,
-      isRunning: true,
+      obstacles: [],
+      coins: [],
+      powerUps: [],
+      particles: [],
+      parallaxLayers: [],
+      monster: { x: -150, targetX: -150, size: 1 },
       coyoteCounter: 0,
+      speed: INITIAL_SPEED,
+      score: 0,
+      greenCoins: 0,
+      redCoins: 0,
+      necessityMeter: 100,
+      distance: 0,
+      frameCount: 0,
+      groundY: 0,
+      hasKestrlCard: false,
+      kestrlCardTimer: 0,
+      debtThreshold: -150,
+      glitchIntensity: 0,
+      gameOverTime: 0,
+      savingsPot: 0,
     };
-
-    const COYOTE_TIME = 8;
 
     let canvas, ctx;
     let animationId;
@@ -63,6 +80,16 @@
     function init() {
       canvas = document.getElementById("gameCanvas");
       ctx = canvas.getContext("2d");
+
+      // Load savings pot from localStorage
+      try {
+        const saved = localStorage.getItem("ribaRunSavings");
+        if (saved !== null) {
+          game.savingsPot = parseInt(saved, 10) || 0;
+        }
+      } catch (e) {
+        game.savingsPot = 0;
+      }
 
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
@@ -73,28 +100,78 @@
       gameLoop();
     }
 
+    function resetRun() {
+      game.state = "running";
+      game.obstacles = [];
+      game.coins = [];
+      game.powerUps = [];
+      game.particles = [];
+      game.parallaxLayers = [
+        { x: 0, speed: 0.2 },
+        { x: 0, speed: 0.4 },
+        { x: 0, speed: 0.6 },
+      ];
+
+      game.monster = { x: -150, targetX: -150, size: 1 };
+      game.coyoteCounter = 0;
+      game.speed = INITIAL_SPEED;
+      game.score = 0;
+      game.greenCoins = 0;
+      game.redCoins = 0;
+      game.necessityMeter = 100;
+      game.distance = 0;
+      game.frameCount = 0;
+      game.hasKestrlCard = false;
+      game.kestrlCardTimer = 0;
+      game.glitchIntensity = 0;
+      game.gameOverTime = 0;
+
+      game.player.x = 120;
+      game.player.y = game.groundY - PLAYER_HEIGHT;
+      game.player.velocityY = 0;
+      game.player.isJumping = false;
+      game.player.isSliding = false;
+      game.player.slideTimer = 0;
+    }
+
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
       game.groundY = canvas.height - GROUND_HEIGHT;
-      game.player.y = game.groundY - PLAYER_HEIGHT;
+      if (game.state === "running") {
+        game.player.y = game.groundY - PLAYER_HEIGHT;
+      }
     }
 
     // ---------- INPUT ----------
     function handleKeyDown(e) {
+      if (game.state === "gameover") {
+        if (e.code === "Space" || e.code === "Enter") {
+          resetRun();
+        }
+        return;
+      }
+
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
         handleJump();
       } else if (e.code === "ArrowDown") {
         e.preventDefault();
         handleSlide();
+      } else if (e.code === "KeyS") {
+        e.preventDefault();
+        handleSave();
       }
     }
 
     function handleTouch(e) {
       e.preventDefault();
       const touch = e.touches[0];
+      if (game.state === "gameover") {
+        resetRun();
+        return;
+      }
       if (touch.clientY > window.innerHeight / 2) {
         handleSlide();
       } else {
@@ -103,34 +180,211 @@
     }
 
     function handleJump() {
-      if (
-        (!game.player.isJumping || game.coyoteCounter > 0) &&
-        !game.player.isSliding &&
-        game.isRunning
-      ) {
-        game.player.velocityY = JUMP_FORCE;
-        game.player.isJumping = true;
+      const p = game.player;
+      const canJump =
+        (!p.isJumping || game.coyoteCounter > 0) &&
+        !p.isSliding &&
+        game.state === "running";
+      if (canJump) {
+        p.velocityY = JUMP_FORCE;
+        p.isJumping = true;
         game.coyoteCounter = 0;
       }
     }
 
     function handleSlide() {
-      if (!game.player.isJumping && !game.player.isSliding && game.isRunning) {
-        game.player.isSliding = true;
-        game.player.slideTimer = 35;
+      const p = game.player;
+      if (!p.isJumping && !p.isSliding && game.state === "running") {
+        p.isSliding = true;
+        p.slideTimer = 35;
+      }
+    }
+
+    function handleSave() {
+      if (game.state !== "running") return;
+      if (game.score >= 10) {
+        game.score -= 10;
+        game.savingsPot += 10;
+        try {
+          localStorage.setItem("ribaRunSavings", String(game.savingsPot));
+        } catch (e) {}
+        createParticles(
+          game.player.x + PLAYER_WIDTH / 2,
+          game.player.y,
+          "#22c55e",
+          10
+        );
+      }
+    }
+
+    // ---------- SPAWN HELPERS ----------
+    function spawnObstacle() {
+      const types = ["low", "high", "double"];
+      const type = types[Math.floor(Math.random() * types.length)];
+
+      let obstacle = { x: canvas.width + 50, type, passed: false };
+
+      if (type === "low") {
+        obstacle.y = game.groundY - 45;
+        obstacle.width = 35;
+        obstacle.height = 45;
+      } else if (type === "high") {
+        obstacle.y = game.groundY - 90;
+        obstacle.width = 45;
+        obstacle.height = 35;
+      } else {
+        obstacle.y = game.groundY - 70;
+        obstacle.width = 55;
+        obstacle.height = 70;
+      }
+
+      game.obstacles.push(obstacle);
+    }
+
+    // Green coins = riskier jumps, red coins = safe path
+    function spawnCoin() {
+      const spawnGreen = Math.random() < 0.6; // slightly more green
+
+      if (spawnGreen) {
+        const positions = [
+          { y: game.groundY - 120, count: 3 }, // high jump
+          { y: game.groundY - 90, count: 2 },  // medium jump
+        ];
+        const pos = positions[Math.floor(Math.random() * positions.length)];
+        for (let i = 0; i < pos.count; i++) {
+          game.coins.push({
+            x: canvas.width + 60 + i * 40,
+            y: pos.y,
+            radius: 16,
+            isGreen: true,
+            pulsePhase: Math.random() * Math.PI * 2,
+          });
+        }
+      } else {
+        // Red coins along safe ground path
+        const count = Math.floor(Math.random() * 2) + 1;
+        for (let i = 0; i < count; i++) {
+          game.coins.push({
+            x: canvas.width + 60 + i * 35,
+            y: game.groundY - 40,
+            radius: 14,
+            isGreen: false,
+            pulsePhase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+    }
+
+    function spawnKestrlCard() {
+      if (
+        Math.random() < 0.25 &&
+        !game.hasKestrlCard &&
+        game.powerUps.length === 0
+      ) {
+        game.powerUps.push({
+          x: canvas.width + 50,
+          y: game.groundY - 90,
+          width: 50,
+          height: 32,
+          pulsePhase: 0,
+        });
+      }
+    }
+
+    function createParticles(x, y, color, count) {
+      const n = count || 10;
+      for (let i = 0; i < n; i++) {
+        game.particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          life: 1,
+          color,
+          size: Math.random() * 3 + 2,
+        });
+      }
+    }
+
+    // ---------- DEATH / REVIVE ----------
+    function triggerDeath() {
+      if (game.state !== "running") return;
+
+      const finalScore = Math.floor(game.score);
+      const currentDebt = finalScore < 0 ? finalScore : 0; // negative or 0
+      const reviveCost = 50 + Math.abs(currentDebt);
+
+      if (game.savingsPot >= reviveCost) {
+        // SECOND CHANCE
+        game.savingsPot -= reviveCost;
+        try {
+          localStorage.setItem("ribaRunSavings", String(game.savingsPot));
+        } catch (e) {}
+
+        // Clean up and continue run
+        game.score = Math.max(0, finalScore);
+        game.necessityMeter = 50;
+        game.hasKestrlCard = false;
+        game.kestrlCardTimer = 0;
+        game.glitchIntensity = 0;
+
+        // Push monster back
+        game.monster.x = -250;
+        game.monster.targetX = -250;
+        game.monster.size = 1;
+
+        createParticles(
+          game.player.x + PLAYER_WIDTH / 2,
+          game.player.y,
+          "#22c55e",
+          25
+        );
+      } else {
+        // TRUE GAME OVER
+        game.state = "gameover";
+        game.gameOverTime = 0;
       }
     }
 
     // ---------- UPDATE ----------
     function update() {
-      if (!game.isRunning) return;
+      if (game.state !== "running") {
+        if (game.state === "gameover") {
+          game.gameOverTime++;
+        }
+        return;
+      }
 
       game.frameCount++;
-      game.distance = Math.floor(game.frameCount * game.speed / 15);
+      game.distance = Math.floor((game.frameCount * game.speed) / 15);
 
+      if (game.speed < MAX_SPEED) {
+        game.speed += SPEED_INCREMENT;
+      }
+
+      // Kestrl card timer
+      if (game.hasKestrlCard) {
+        game.kestrlCardTimer--;
+        if (game.kestrlCardTimer <= 0) {
+          game.hasKestrlCard = false;
+        }
+      }
+
+      // Necessity meter
+      game.necessityMeter = Math.max(0, game.necessityMeter - 0.03);
+      if (game.necessityMeter <= 0) {
+        game.score -= 0.5; // score bleed when life expenses not met
+      }
+
+      // Parallax
+      game.parallaxLayers.forEach((layer) => {
+        layer.x -= game.speed * layer.speed;
+        if (layer.x <= -canvas.width) layer.x += canvas.width;
+      });
+
+      // Player movement
       const p = game.player;
 
-      // Slide timer
       if (p.isSliding) {
         p.slideTimer--;
         if (p.slideTimer <= 0) {
@@ -138,12 +392,10 @@
         }
       }
 
-      // Gravity + vertical movement
       p.velocityY += GRAVITY;
       p.y += p.velocityY;
 
       const playerHeight = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
-
       if (p.y >= game.groundY - playerHeight) {
         p.y = game.groundY - playerHeight;
         p.velocityY = 0;
@@ -152,43 +404,598 @@
       } else if (game.coyoteCounter > 0) {
         game.coyoteCounter--;
       }
-    }
 
-    // ---------- DRAW ----------
-    function draw() {
-      // Background gradient
-      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGradient.addColorStop(0, "#1a0a2e");
-      bgGradient.addColorStop(0.3, "#2d1b4e");
-      bgGradient.addColorStop(0.6, "#4a3070");
-      bgGradient.addColorStop(1, "#6b4d8a");
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Simple stars
-      ctx.fillStyle = "#ffffff";
-      for (let i = 0; i < 40; i++) {
-        const starX = (i * 137 + game.frameCount * 0.1) % canvas.width;
-        const starY = (i * 89) % (game.groundY - 80);
-        ctx.fillRect(Math.floor(starX), Math.floor(starY), 2, 2);
+      // Monster – Riba stress
+      const monsterBaseX = -150;
+      if (game.score < 0) {
+        const debt = Math.abs(game.score);
+        game.monster.targetX = monsterBaseX + Math.min(debt * 1.5, p.x - 80);
+        game.monster.size = 1 + Math.min(debt / 200, 1.5);
+      } else {
+        game.monster.targetX = monsterBaseX;
+        game.monster.size = Math.max(1, game.monster.size - 0.01);
       }
 
+      if (game.hasKestrlCard) {
+        game.monster.targetX = monsterBaseX - 150;
+      }
+
+      game.monster.x += (game.monster.targetX - game.monster.x) * 0.05;
+
+      // Glitch vision once debt is large
+      if (game.score < game.debtThreshold) {
+        const excessDebt =
+          Math.abs(game.score) - Math.abs(game.debtThreshold);
+        game.glitchIntensity = Math.min(1, excessDebt / 200);
+      } else {
+        game.glitchIntensity = Math.max(0, game.glitchIntensity - 0.02);
+      }
+
+      // Monster catch
+      if (game.monster.x + 40 >= p.x) {
+        createParticles(
+          p.x + PLAYER_WIDTH / 2,
+          p.y + PLAYER_HEIGHT / 2,
+          "#ef4444",
+          25
+        );
+        triggerDeath();
+      }
+
+      // Spawn stuff
+      if (
+        game.frameCount % Math.max(70, 140 - Math.floor(game.speed * 4)) ===
+        0
+      ) {
+        spawnObstacle();
+      }
+      if (game.frameCount % 55 === 0) {
+        spawnCoin();
+      }
+      if (game.frameCount % 120 === 0) {
+        spawnKestrlCard();
+      }
+
+      // Obstacles update
+      game.obstacles = game.obstacles.filter((obs) => {
+        obs.x -= game.speed;
+
+        const playerBox = {
+          x: p.x,
+          y: p.y,
+          width: PLAYER_WIDTH - 10,
+          height: playerHeight,
+        };
+
+        if (
+          playerBox.x < obs.x + obs.width - 5 &&
+          playerBox.x + playerBox.width > obs.x + 5 &&
+          playerBox.y < obs.y + obs.height &&
+          playerBox.y + playerBox.height > obs.y
+        ) {
+          createParticles(
+            p.x + PLAYER_WIDTH / 2,
+            p.y + PLAYER_HEIGHT / 2,
+            "#ef4444",
+            20
+          );
+          triggerDeath();
+        }
+
+        if (!obs.passed && obs.x + obs.width < p.x) {
+          obs.passed = true;
+          game.score += 5;
+        }
+
+        return obs.x > -100;
+      });
+
+      // Coins update
+      game.coins = game.coins.filter((coin) => {
+        coin.x -= game.speed;
+        coin.pulsePhase += 0.1;
+
+        const centerX = p.x + PLAYER_WIDTH / 2;
+        const centerY = p.y + playerHeight / 2;
+        const dx = coin.x - centerX;
+        const dy = coin.y - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < coin.radius + 28) {
+          if (game.hasKestrlCard) {
+            game.score += 10;
+            game.necessityMeter = Math.min(
+              100,
+              game.necessityMeter + 8
+            );
+            createParticles(coin.x, coin.y, "#06b6d4", 10);
+          } else if (coin.isGreen) {
+            game.greenCoins++;
+            game.score += 10;
+            game.necessityMeter = Math.min(
+              100,
+              game.necessityMeter + 12
+            );
+            createParticles(coin.x, coin.y, "#22c55e", 10);
+          } else {
+            game.redCoins++;
+            game.score -= 50;
+            game.necessityMeter = Math.min(
+              100,
+              game.necessityMeter + 5
+            );
+            createParticles(coin.x, coin.y, "#ef4444", 10);
+          }
+          return false;
+        }
+
+        return coin.x > -40;
+      });
+
+      // Power-up update
+      game.powerUps = game.powerUps.filter((pu) => {
+        pu.x -= game.speed;
+        pu.pulsePhase += 0.12;
+
+        const centerX = p.x + PLAYER_WIDTH / 2;
+        const centerY = p.y + playerHeight / 2;
+        if (
+          centerX > pu.x - 20 &&
+          centerX < pu.x + pu.width + 20 &&
+          centerY > pu.y - 20 &&
+          centerY < pu.y + pu.height + 20
+        ) {
+          game.hasKestrlCard = true;
+          game.kestrlCardTimer = 600; // about 10s at 60fps
+          createParticles(
+            pu.x + pu.width / 2,
+            pu.y + pu.height / 2,
+            "#06b6d4",
+            20
+          );
+          // push monster back
+          game.monster.x = -250;
+          game.monster.targetX = -250;
+          return false;
+        }
+
+        return pu.x > -100;
+      });
+
+      // Particles life
+      game.particles = game.particles.filter((p2) => {
+        p2.x += p2.vx;
+        p2.y += p2.vy;
+        p2.life -= 0.03;
+        return p2.life > 0;
+      });
+
+      // Dust when running
+      if (
+        !p.isJumping &&
+        !p.isSliding &&
+        game.frameCount % 8 === 0
+      ) {
+        game.particles.push({
+          x: p.x,
+          y: game.groundY - 4,
+          vx: -2,
+          vy: -1,
+          life: 0.5,
+          color: "#facc15",
+          size: 3,
+        });
+      }
+    }
+
+    // ---------- DRAW HELPERS ----------
+    function drawMonster() {
+      const m = game.monster;
+      const intensity =
+        game.score < 0 ? Math.min(1, Math.abs(game.score) / 200) : 0;
+
+      ctx.save();
+      ctx.translate(m.x + 60 * m.size, game.groundY - 80 * m.size);
+
+      const radius = 40 * m.size;
+      const gradient = ctx.createRadialGradient(
+        0,
+        0,
+        10,
+        0,
+        0,
+        radius * 1.8
+      );
+      gradient.addColorStop(0, `rgba(0,0,0,0.9)`);
+      gradient.addColorStop(0.5, `rgba(88, 28, 28, ${0.5 + intensity * 0.4})`);
+      gradient.addColorStop(1, `rgba(15, 23, 42, 0)`);
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Body
+      ctx.fillStyle = "#111827";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes
+      const eyeOffsetX = 14 * m.size;
+      const eyeOffsetY = -8 * m.size;
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      ctx.arc(-eyeOffsetX, eyeOffsetY, 6 * m.size, 0, Math.PI * 2);
+      ctx.arc(eyeOffsetX, eyeOffsetY, 6 * m.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(-eyeOffsetX, eyeOffsetY, 3 * m.size, 0, Math.PI * 2);
+      ctx.arc(eyeOffsetX, eyeOffsetY, 3 * m.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mouth
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 10 * m.size, 16 * m.size, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      const p = game.player;
+      const height = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
+
+      ctx.save();
+      ctx.translate(p.x + PLAYER_WIDTH / 2, p.y + height / 2);
+
+      if (p.isSliding) {
+        ctx.scale(1.1, 0.7);
+        ctx.rotate(-0.2);
+      }
+
+      // simple kestrel-style bird
+
+      // body
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 18, 22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // belly
+      ctx.fillStyle = "#fed7aa";
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 10, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // wing
+      ctx.fillStyle = "#ea580c";
+      ctx.beginPath();
+      ctx.ellipse(-6, 0, 12, 18, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // head
+      ctx.fillStyle = "#0ea5e9";
+      ctx.beginPath();
+      ctx.arc(8, -12, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // eye
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(11, -14, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(12, -15, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // beak
+      ctx.fillStyle = game.hasKestrlCard ? "#22c55e" : "#eab308";
+      ctx.beginPath();
+      ctx.moveTo(18, -10);
+      ctx.lineTo(26, -8);
+      ctx.lineTo(18, -6);
+      ctx.closePath();
+      ctx.fill();
+
+      // legs
+      if (!p.isSliding) {
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-4, 16);
+        ctx.lineTo(-4, 24);
+        ctx.moveTo(2, 16);
+        ctx.lineTo(2, 24);
+        ctx.stroke();
+      }
+
+      // glow when Kestrl card active
+      if (game.hasKestrlCard) {
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.7)";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 22, 26, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // ---------- DRAW MAIN ----------
+    function draw() {
+      ctx.imageSmoothingEnabled = true;
+
+      // Background gradient
+      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bg.addColorStop(0, "#1e1b4b");
+      bg.addColorStop(0.4, "#312e81");
+      bg.addColorStop(0.8, "#1e293b");
+      bg.addColorStop(1, "#020617");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Stars
+      ctx.fillStyle = "#e5e7eb";
+      for (let i = 0; i < 60; i++) {
+        const x = (i * 137 + game.frameCount * 0.1) % canvas.width;
+        const y = (i * 89) % (game.groundY - 80);
+        const s = (i % 5 === 0 ? 2 : 1);
+        ctx.fillRect(Math.floor(x), Math.floor(y), s, s);
+      }
+
+      // Parallax mountains
+      ctx.save();
+      const colors = ["#1d1b4a", "#26235c", "#312e81"];
+      game.parallaxLayers.forEach((layer, idx) => {
+        const baseY = game.groundY - 40 - idx * 30;
+        ctx.fillStyle = colors[idx % colors.length];
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        for (let x = -canvas.width; x <= canvas.width * 2; x += 40) {
+          const worldX = x + layer.x;
+          const h =
+            Math.sin((worldX + idx * 50) * 0.004) * (40 + idx * 10) +
+            Math.sin((worldX + idx * 80) * 0.0015) * 30;
+          ctx.lineTo(worldX, baseY - h);
+        }
+        ctx.lineTo(canvas.width * 2, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+      });
+      ctx.restore();
+
       // Ground
-      ctx.fillStyle = "#c4a35a";
+      ctx.fillStyle = "#facc15";
       ctx.fillRect(0, game.groundY, canvas.width, 8);
-      ctx.fillStyle = "#8b7355";
+      ctx.fillStyle = "#92400e";
       ctx.fillRect(0, game.groundY + 8, canvas.width, GROUND_HEIGHT);
 
-      // Player (DEBUG rectangle for now)
-      const p = game.player;
-      const playerHeight = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
-      ctx.fillStyle = "#facc15"; // yellow
-      ctx.fillRect(p.x, p.y, PLAYER_WIDTH, playerHeight);
+      // Monster
+      if (game.monster.x < canvas.width + 200) {
+        drawMonster();
+      }
 
-      // Simple distance text
-      ctx.fillStyle = "#ffffff";
+      // Obstacles
+      ctx.fillStyle = "#6366f1";
+      game.obstacles.forEach((obs) => {
+        ctx.save();
+        ctx.translate(obs.x + obs.width / 2, obs.y + obs.height);
+        ctx.beginPath();
+        ctx.moveTo(-obs.width / 2, 0);
+        ctx.lineTo(0, -obs.height);
+        ctx.lineTo(obs.width / 2, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Power-ups (Kestrl card)
+      game.powerUps.forEach((pu) => {
+        const t = Math.sin(pu.pulsePhase) * 2;
+        ctx.save();
+        ctx.translate(pu.x + pu.width / 2, pu.y + pu.height / 2);
+        ctx.rotate(t * 0.02);
+        ctx.fillStyle = "#0ea5e9";
+        ctx.fillRect(-pu.width / 2 - t, -pu.height / 2, pu.width + t * 2, pu.height);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-pu.width / 2 - t, -pu.height / 2, pu.width + t * 2, pu.height);
+        ctx.fillStyle = "#e5e7eb";
+        ctx.font = "bold 16px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("K", 0, 0);
+        ctx.restore();
+      });
+
+      // Coins
+      game.coins.forEach((coin) => {
+        const pulse = Math.sin(coin.pulsePhase) * 2;
+        const r = coin.radius + pulse;
+
+        if (game.hasKestrlCard) {
+          ctx.fillStyle = "#22c55e";
+        } else if (coin.isGreen) {
+          ctx.fillStyle = "#facc15";
+        } else {
+          ctx.fillStyle = "#ef4444";
+        }
+
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#111827";
+        ctx.font = "bold 12px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(coin.isGreen ? "$" : "!", coin.x, coin.y);
+      });
+
+      // Player
+      drawPlayer();
+
+      // Particles
+      game.particles.forEach((p) => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      // Glitch overlay (Vision of Debt)
+      if (game.glitchIntensity > 0) {
+        const t = game.glitchIntensity;
+        ctx.fillStyle = `rgba(148, 27, 27, ${0.2 * t})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let y = 0; y < canvas.height; y += 3) {
+          ctx.fillStyle = `rgba(0, 0, 0, ${0.1 + 0.15 * t})`;
+          ctx.fillRect(0, y, canvas.width, 1);
+        }
+
+        if (t > 0.4) {
+          for (let i = 0; i < 40 * t; i++) {
+            const nx = Math.random() * canvas.width;
+            const ny = Math.random() * canvas.height;
+            ctx.fillStyle =
+              Math.random() > 0.5 ? "rgba(220,38,38,0.7)" : "rgba(0,0,0,0.7)";
+            ctx.fillRect(nx, ny, 2, 2);
+          }
+        }
+      }
+
+      // HUD
+      drawHUD();
+    }
+
+    function drawHUD() {
+      ctx.save();
       ctx.font = "16px monospace";
-      ctx.fillText(`DIST: ${game.distance}m`, 20, 30);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+
+      // Score
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(16, 16, 160, 46);
+      ctx.strokeStyle = game.score >= 0 ? "#facc15" : "#ef4444";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(16, 16, 160, 46);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillText("SCORE", 24, 22);
+      ctx.fillStyle = game.score >= 0 ? "#facc15" : "#f97316";
+      ctx.font = "bold 20px monospace";
+      ctx.fillText(Math.floor(game.score).toString(), 24, 38);
+
+      // Distance
+      ctx.font = "16px monospace";
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(16, 72, 140, 38);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.strokeRect(16, 72, 140, 38);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillText("DIST", 24, 78);
+      ctx.fillStyle = "#e5e7eb";
+      ctx.fillText(game.distance.toString() + "m", 24, 92);
+
+      // Savings pot
+      const spX = canvas.width - 180;
+      ctx.fillStyle = "#052e16";
+      ctx.fillRect(spX, 16, 164, 46);
+      ctx.strokeStyle = "#22c55e";
+      ctx.strokeRect(spX, 16, 164, 46);
+      ctx.fillStyle = "#6ee7b7";
+      ctx.fillText("SAVED (S)", spX + 8, 22);
+      ctx.fillStyle = "#bbf7d0";
+      ctx.font = "bold 20px monospace";
+      ctx.fillText(game.savingsPot.toString(), spX + 8, 38);
+
+      // Coins counters
+      ctx.font = "14px monospace";
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(spX, 72, 164, 38);
+      ctx.strokeStyle = "#4b5563";
+      ctx.strokeRect(spX, 72, 164, 38);
+      ctx.fillStyle = "#facc15";
+      ctx.fillText("HALAL: " + game.greenCoins, spX + 8, 78);
+      ctx.fillStyle = "#fca5a5";
+      ctx.fillText("RIBA: " + game.redCoins, spX + 8, 94);
+
+      // Necessity meter
+      const barX = canvas.width / 2 - 180;
+      const barY = 20;
+      const barW = 360;
+      const barH = 22;
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.strokeStyle = "#9ca3af";
+      ctx.strokeRect(barX, barY, barW, barH);
+
+      const ratio = game.necessityMeter / 100;
+      const color =
+        ratio > 0.6 ? "#22c55e" : ratio > 0.3 ? "#eab308" : "#ef4444";
+      ctx.fillStyle = color;
+      ctx.fillRect(barX + 2, barY + 2, (barW - 4) * Math.max(0, ratio), barH - 4);
+
+      ctx.fillStyle = "#e5e7eb";
+      ctx.font = "12px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        "NECESSITY " + Math.round(game.necessityMeter) + "%",
+        barX + barW / 2,
+        barY + barH / 2
+      );
+
+      // Kestrel card timer
+      if (game.hasKestrlCard) {
+        const secs = Math.ceil(game.kestrlCardTimer / 60);
+        ctx.font = "14px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(canvas.width / 2 - 80, 56, 160, 32);
+        ctx.strokeStyle = "#06b6d4";
+        ctx.strokeRect(canvas.width / 2 - 80, 56, 160, 32);
+        ctx.fillStyle = "#67e8f9";
+        ctx.fillText("KESTRL CARD: " + secs + "s", canvas.width / 2, 62);
+      }
+
+      // Game over overlay
+      if (game.state === "gameover") {
+        ctx.fillStyle = "rgba(15, 23, 42, 0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "32px monospace";
+        ctx.fillStyle = "#f87171";
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
+
+        ctx.font = "18px monospace";
+        ctx.fillStyle = "#e5e7eb";
+        ctx.fillText(
+          "Final score: " + Math.floor(game.score),
+          canvas.width / 2,
+          canvas.height / 2
+        );
+        ctx.fillText(
+          "Press SPACE / TAP to restart",
+          canvas.width / 2,
+          canvas.height / 2 + 40
+        );
+      }
+
+      ctx.restore();
     }
 
     // ---------- LOOP ----------
@@ -197,8 +1004,6 @@
       draw();
       animationId = requestAnimationFrame(gameLoop);
     }
-
-    window.addEventListener("load", init);
   </script>
 </body>
 </html>
