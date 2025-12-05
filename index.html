@@ -35,9 +35,11 @@
   const GRAVITY = 0.55;
   const JUMP_FORCE = -14;
 
-  const INITIAL_SPEED = 4.5;
-  const MAX_SPEED = 16;
-  const BASE_SPEED_INCREMENT = 0.0012;
+  // SPEED TUNING: FASTER, SUBWAY-SURFERS STYLE
+  const INITIAL_SPEED = 7;        // was 4.5 – starts faster
+  const MAX_SPEED = 22;           // was 16 – higher top speed
+  const BASE_SPEED_INCREMENT = 0.003; // stronger ramp
+
   const COYOTE_TIME = 8;
 
   // ---------- GAME STATE ----------
@@ -97,7 +99,7 @@
         ry,
         status: "unlocked",
       },
-      // future regions can be added here
+      // Future regions can be added here (e.g. Gharar, Maysir, etc.)
     ];
   }
 
@@ -119,7 +121,7 @@
   }
 
   function startRibaRun() {
-    resetRun();
+    resetRun();        // sets state to "running" and reinitialises the runner
   }
 
   // ---------- INIT ----------
@@ -191,6 +193,7 @@
   function handleKeyDown(e) {
     if (game.state === "map") {
       if (e.code === "Space" || e.code === "Enter") {
+        // quick-start Riba level
         startRibaRun();
       }
       return;
@@ -278,6 +281,7 @@
       try {
         localStorage.setItem("ribaRunSavings", String(game.savingsPot));
       } catch (e) {}
+
       createParticles(
         game.player.x + PLAYER_WIDTH / 2,
         game.player.y,
@@ -383,6 +387,7 @@
     const reviveCost = 50 + Math.abs(currentDebt);
 
     if (game.savingsPot >= reviveCost) {
+      // revive using savings
       game.savingsPot -= reviveCost;
       try {
         localStorage.setItem("ribaRunSavings", String(game.savingsPot));
@@ -410,7 +415,7 @@
     }
   }
 
-  // ---------- UPDATE (NEW STRONGER RIBA / GLITCH LOGIC) ----------
+  // ---------- UPDATE ----------
   function update() {
     // Map idle animation
     if (game.state === "map") {
@@ -426,14 +431,15 @@
     game.frameCount++;
     game.distance = Math.floor((game.frameCount * game.speed) / 15);
 
-    // Speed ramp – Subway Surfers vibe
-    const distanceFactor = Math.min(game.distance / 800, 1.5);
-    const targetSpeed = Math.min(INITIAL_SPEED + distanceFactor * 6, MAX_SPEED);
-    if (game.speed < targetSpeed) {
-      game.speed += BASE_SPEED_INCREMENT * (1 + distanceFactor);
-    }
+    // SPEED RAMP – MUCH FASTER NOW
+    const distanceFactor = Math.min(game.distance / 400, 2.5); // ramps quicker
+    const targetSpeed = Math.min(
+      INITIAL_SPEED + distanceFactor * 10, // stronger scaling
+      MAX_SPEED
+    );
+    // smooth but aggressive interpolation towards target speed
+    game.speed += (targetSpeed - game.speed) * 0.06;
 
-    // Power-up timer
     if (game.hasKestrlCard) {
       game.kestrlCardTimer--;
       if (game.kestrlCardTimer <= 0) {
@@ -441,19 +447,16 @@
       }
     }
 
-    // Necessity meter
     game.necessityMeter = Math.max(0, game.necessityMeter - 0.03);
     if (game.necessityMeter <= 0) {
       game.score -= 0.5;
     }
 
-    // Parallax
     game.parallaxLayers.forEach((layer) => {
       layer.x -= game.speed * layer.speed;
       if (layer.x <= -canvas.width) layer.x += canvas.width;
     });
 
-    // ----- PLAYER PHYSICS -----
     const p = game.player;
 
     if (p.isSliding) {
@@ -474,39 +477,31 @@
       game.coyoteCounter--;
     }
 
-    // ----- RIBA MONSTER BEHAVIOUR -----
-    const monsterBaseX = -120;
+    const monsterBaseX = -150;
     if (game.score < 0) {
-      const debt = Math.min(Math.abs(game.score), 300);
-      const closeness = debt / 300;
-
-      const targetBehindPlayer = p.x - 50;
-      game.monster.targetX =
-        monsterBaseX + closeness * (targetBehindPlayer - monsterBaseX);
-
-      game.monster.size = 1 + closeness * 1.8;
+      const debt = Math.abs(game.score);
+      game.monster.targetX = monsterBaseX + Math.min(debt * 1.5, p.x - 80);
+      game.monster.size = 1 + Math.min(debt / 200, 1.5);
     } else {
       game.monster.targetX = monsterBaseX;
-      game.monster.size = Math.max(1, game.monster.size - 0.02);
+      game.monster.size = Math.max(1, game.monster.size - 0.01);
     }
 
     if (game.hasKestrlCard) {
-      game.monster.targetX = monsterBaseX - 180;
+      game.monster.targetX = monsterBaseX - 150;
     }
 
-    game.monster.x += (game.monster.targetX - game.monster.x) * 0.06;
+    game.monster.x += (game.monster.targetX - game.monster.x) * 0.05;
 
-    // ----- GLITCH INTENSITY -----
-    if (game.score < 0) {
-      const debt = Math.min(Math.abs(game.score), 300);
-      const base = 0.3;
-      game.glitchIntensity = Math.min(1, base + debt / 250);
+    if (game.score < game.debtThreshold) {
+      const excessDebt =
+        Math.abs(game.score) - Math.abs(game.debtThreshold);
+      game.glitchIntensity = Math.min(1, excessDebt / 200);
     } else {
-      game.glitchIntensity = Math.max(0, game.glitchIntensity - 0.03);
+      game.glitchIntensity = Math.max(0, game.glitchIntensity - 0.02);
     }
 
-    // Collision with monster
-    if (game.monster.x + 40 * game.monster.size >= p.x) {
+    if (game.monster.x + 40 >= p.x) {
       createParticles(
         p.x + PLAYER_WIDTH / 2,
         p.y + PLAYER_HEIGHT / 2,
@@ -516,14 +511,13 @@
       triggerDeath();
     }
 
-    // ----- SPAWNING -----
-    if (game.frameCount % Math.max(60, 130 - Math.floor(game.speed * 3)) === 0) {
+    // MORE FREQUENT OBSTACLES AT HIGH SPEED
+    if (game.frameCount % Math.max(40, 120 - Math.floor(game.speed * 4)) === 0) {
       spawnObstacle();
     }
     if (game.frameCount % 50 === 0) spawnCoin();
     if (game.frameCount % 120 === 0) spawnKestrlCard();
 
-    // ----- OBSTACLES -----
     game.obstacles = game.obstacles.filter((obs) => {
       obs.x -= game.speed;
 
@@ -557,7 +551,6 @@
       return obs.x > -100;
     });
 
-    // ----- COINS -----
     game.coins = game.coins.filter((coin) => {
       coin.x -= game.speed;
       coin.pulsePhase += 0.1;
@@ -583,7 +576,7 @@
           game.score -= 50;
           game.necessityMeter = Math.min(100, game.necessityMeter + 5);
           createParticles(coin.x, coin.y, "#ef4444", 10);
-          game.glitchIntensity = Math.min(1, game.glitchIntensity + 0.25);
+          game.glitchIntensity = Math.min(1, game.glitchIntensity + 0.18);
         }
         return false;
       }
@@ -591,7 +584,6 @@
       return coin.x > -40;
     });
 
-    // ----- POWER-UPS -----
     game.powerUps = game.powerUps.filter((pu) => {
       pu.x -= game.speed;
       pu.pulsePhase += 0.12;
@@ -614,14 +606,12 @@
         );
         game.monster.x = -260;
         game.monster.targetX = -260;
-        game.glitchIntensity = 0;
         return false;
       }
 
       return pu.x > -100;
     });
 
-    // ----- PARTICLES -----
     game.particles = game.particles.filter((p2) => {
       p2.x += p2.vx;
       p2.y += p2.vy;
@@ -642,10 +632,10 @@
     }
   }
 
-  // ---------- DRAW MONSTER (MORE ANGRY / RED) ----------
+  // ---------- DRAW HELPERS ----------
   function drawPixelMonster() {
     const m = game.monster;
-    const debtIntensity =
+    const intensity =
       game.score < 0 ? Math.min(1, Math.abs(game.score) / 200) : 0;
 
     const pixel = 4;
@@ -655,10 +645,10 @@
     ctx.translate(m.x + 40 * m.size, game.groundY - 70 * m.size);
     ctx.scale(m.size, m.size);
 
-    const radius = baseSize * pixel * (1.6 + debtIntensity * 0.5);
+    const radius = baseSize * pixel * 1.6;
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-    gradient.addColorStop(0, `rgba(15,23,42,${0.3 + debtIntensity * 0.4})`);
-    gradient.addColorStop(0.5, `rgba(127,29,29,${0.6 + debtIntensity * 0.4})`);
+    gradient.addColorStop(0, "rgba(15,23,42,0.9)");
+    gradient.addColorStop(0.6, `rgba(127,29,29,${0.5 + intensity * 0.4})`);
     gradient.addColorStop(1, "rgba(15,23,42,0)");
     ctx.fillStyle = gradient;
     ctx.beginPath();
@@ -672,18 +662,11 @@
 
     const bodyCol = "#111827";
     const highlightCol = "#1f2937";
-    const hotHighlight = debtIntensity > 0.6 ? "#7f1d1d" : "#1f2937";
 
     for (let row = -6; row <= 6; row++) {
       const width = row < 0 ? 6 + row : 6 - row * 0.7;
       for (let col = -width; col <= width; col++) {
-        const r = Math.random();
-        const c =
-          r > 0.8 + debtIntensity * 0.1
-            ? hotHighlight
-            : r > 0.6
-            ? highlightCol
-            : bodyCol;
+        const c = Math.random() > 0.75 ? highlightCol : bodyCol;
         drawBlock(col, row, 1, 1, c);
       }
     }
@@ -692,7 +675,7 @@
     drawBlock(3, -7, 2, 3, "#000000");
 
     ctx.shadowColor = "#f97316";
-    ctx.shadowBlur = 10 + debtIntensity * 20;
+    ctx.shadowBlur = 12 + intensity * 12;
     drawBlock(-3, -3, 2, 2, "#f97316");
     drawBlock(2, -3, 2, 2, "#f97316");
     ctx.shadowBlur = 0;
@@ -700,16 +683,14 @@
     drawBlock(-2, -2, 1, 1, "#ffffff");
     drawBlock(3, -2, 1, 1, "#ffffff");
 
-    const mouthHeight = 2 + Math.floor(debtIntensity * 3);
     for (let i = -3; i <= 3; i++) {
-      const h = i % 2 === 0 ? mouthHeight : mouthHeight - 1;
+      const h = i % 2 === 0 ? 2 : 1;
       drawBlock(i, 2, 1, h, "#ef4444");
     }
 
     ctx.restore();
   }
 
-  // ---------- DRAW PLAYER ----------
   function drawPixelPlayer() {
     const p = game.player;
     const height = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
@@ -790,6 +771,7 @@
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
+    // dark vignette outer
     const g = ctx.createRadialGradient(
       canvas.width / 2,
       canvas.height / 2,
@@ -803,6 +785,7 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // parchment
     const margin = Math.min(canvas.width, canvas.height) * 0.08;
     const x = margin;
     const y = margin;
@@ -824,6 +807,7 @@
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 10, y + 10, w - 20, h - 20);
 
+    // title
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillStyle = "#1f2937";
@@ -838,6 +822,7 @@
       y + 64
     );
 
+    // lore text
     ctx.font = "14px monospace";
     ctx.fillStyle = "#4b5563";
     ctx.fillText(
@@ -846,6 +831,7 @@
       y + 90
     );
 
+    // continents (decorative)
     ctx.fillStyle = "#a3a3a3";
     ctx.globalAlpha = 0.6;
     ctx.beginPath();
@@ -879,6 +865,7 @@
     ctx.fill();
     ctx.globalAlpha = 1;
 
+    // regions
     const regions = getMapRegions();
     regions.forEach((region) => {
       const pulse = Math.sin(game.frameCount * 0.05) * 8;
@@ -887,6 +874,7 @@
       const rx = region.rx + pulse;
       const ry = region.ry + pulse * 0.6;
 
+      // aura
       const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx * 1.1);
       glow.addColorStop(0, "rgba(248,250,252,0.9)");
       glow.addColorStop(1, "rgba(248,250,252,0)");
@@ -895,6 +883,7 @@
       ctx.ellipse(cx, cy, rx * 1.1, ry * 1.1, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // island shape
       ctx.fillStyle = "#fed7aa";
       ctx.strokeStyle = "#b45309";
       ctx.lineWidth = 3;
@@ -903,6 +892,7 @@
       ctx.fill();
       ctx.stroke();
 
+      // city marker
       ctx.fillStyle = "#b45309";
       ctx.fillRect(cx - 6, cy - 10, 12, 18);
       ctx.beginPath();
@@ -912,6 +902,7 @@
       ctx.closePath();
       ctx.fill();
 
+      // label panel
       const panelY = cy + ry + 16;
       ctx.fillStyle = "#111827";
       ctx.fillRect(cx - 120, panelY, 240, 52);
@@ -929,6 +920,7 @@
       ctx.fillText("Riba Market – Click to enter", cx, panelY + 28);
     });
 
+    // bottom hint
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
     ctx.font = "14px monospace";
@@ -1122,48 +1114,25 @@
     });
     ctx.globalAlpha = 1;
 
-    // ----- GLITCH OVERLAY -----
     if (game.glitchIntensity > 0) {
       const t = game.glitchIntensity;
-
-      ctx.fillStyle = `rgba(148,27,27,${0.35 * t})`;
+      ctx.fillStyle = `rgba(148,27,27,${0.2 * t})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      for (let y = 0; y < canvas.height; y += 2) {
-        ctx.fillStyle = `rgba(0,0,0,${0.12 + 0.18 * t})`;
+      for (let y = 0; y < canvas.height; y += 3) {
+        ctx.fillStyle = `rgba(0,0,0,${0.1 + 0.15 * t})`;
         ctx.fillRect(0, y, canvas.width, 1);
       }
 
-      const noiseCount = Math.floor(120 * t);
+      const noiseCount = 40 * t;
       for (let i = 0; i < noiseCount; i++) {
         const nx = Math.random() * canvas.width;
         const ny = Math.random() * canvas.height;
-        const w = 2 + Math.random() * 3;
-        const h = 2 + Math.random() * 3;
         ctx.fillStyle =
           Math.random() > 0.5
             ? "rgba(220,38,38,0.8)"
             : "rgba(15,23,42,0.8)";
-        ctx.fillRect(nx, ny, w, h);
-      }
-
-      const sliceCount = 3 + Math.floor(5 * t);
-      for (let i = 0; i < sliceCount; i++) {
-        const sliceY = Math.random() * canvas.height;
-        const sliceH = 8 + Math.random() * 24;
-        const offset = (Math.random() - 0.5) * 40 * t;
-
-        ctx.drawImage(
-          canvas,
-          0,
-          sliceY,
-          canvas.width,
-          sliceH,
-          offset,
-          sliceY,
-          canvas.width,
-          sliceH
-        );
+        ctx.fillRect(nx, ny, 2, 2);
       }
     }
 
@@ -1297,6 +1266,7 @@
 </script>
 </body>
 </html>
+
 
 
 
