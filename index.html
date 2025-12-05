@@ -20,6 +20,7 @@
       height: 100%;
       display: block;
       touch-action: none;
+      cursor: crosshair;
     }
   </style>
 </head>
@@ -40,10 +41,11 @@
   const BASE_SPEED_INCREMENT = 0.0012;
   const COYOTE_TIME = 8;
 
-  // Palette (Kestrl watermelon + teal, parchment, etc.)
+  // Palette (watermelon / teal + parchment)
   const PALETTE = {
     seaDark: "#022c22",
     seaLight: "#0f766e",
+    seaEdge: "#67e8f9",
     parchmentLight: "#fef9c3",
     parchmentMid: "#fde68a",
     parchmentDark: "#f97316",
@@ -91,25 +93,24 @@
   let canvas, ctx;
   let animationId;
 
-  // ----------------------------------------------------
-  //  MAP REGIONS  (fantasy kingdoms on the world map)
-  // ----------------------------------------------------
+  // map hover
+  let hoveredRegionId = null;
+
+  // ---------- MAP REGIONS (5 KINGDOMS) ----------
   function getMapRegions() {
     const w = canvas.width;
     const h = canvas.height;
 
-    // Main parchment bounds
     const margin = Math.min(w, h) * 0.08;
     const x = margin;
     const y = margin * 1.1;
     const mapW = w - margin * 2;
     const mapH = h - margin * 2.2;
 
-    // Helper for % positions inside the island
-    const px = (fx) => x + mapW * fx;
-    const py = (fy) => y + mapH * fy;
-
-    const baseRadius = Math.max(70, Math.min(w, h) * 0.07);
+    // helper to place regions as percentage of island
+    const px = f => x + mapW * f;
+    const py = f => y + mapH * f;
+    const baseR = Math.max(30, Math.min(w, h) * 0.035);
 
     return [
       {
@@ -117,60 +118,45 @@
         name: "QARD VALLEY",
         subtitle: "Student Debt Ravine",
         status: "locked",
-        cx: px(0.50),
-        cy: py(0.18),
-        rx: baseRadius * 1.05,
-        ry: baseRadius * 0.85,
+        cx: px(0.22),
+        cy: py(0.30),
+        r: baseR
       },
       {
         id: "bayt",
         name: "BAYT AL-TIJARA",
         subtitle: "Consumer Credit Bazaar",
         status: "locked",
-        cx: px(0.27),
-        cy: py(0.36),
-        rx: baseRadius,
-        ry: baseRadius * 0.85,
-      },
-      {
-        id: "murabaha",
-        name: "MURABAHA PEAKS",
-        subtitle: "Buy-Now Mountain Pass",
-        status: "locked",
-        cx: px(0.23),
-        cy: py(0.70),
-        rx: baseRadius,
-        ry: baseRadius * 0.85,
-      },
-      {
-        id: "sukuk",
-        name: "SUKUK SANDS",
-        subtitle: "Speculation Stormfront",
-        status: "locked",
-        cx: px(0.82),
-        cy: py(0.32),
-        rx: baseRadius,
-        ry: baseRadius * 0.85,
-      },
-      {
-        id: "takaful",
-        name: "TAKAFUL ISLES",
-        subtitle: "Tides of Shared Risk",
-        status: "locked",
-        cx: px(0.63),
-        cy: py(0.78),
-        rx: baseRadius * 1.05,
-        ry: baseRadius * 0.85,
+        cx: px(0.40),
+        cy: py(0.42),
+        r: baseR
       },
       {
         id: "riba",
         name: "KINGDOM OF SYARMIN",
         subtitle: "Riba Market",
         status: "unlocked",
-        cx: px(0.65),
-        cy: py(0.52),
-        rx: baseRadius * 1.3,
-        ry: baseRadius * 1.0,
+        cx: px(0.58),
+        cy: py(0.54),
+        r: baseR * 1.15
+      },
+      {
+        id: "sukuk",
+        name: "SUKUK SANDS",
+        subtitle: "Speculation Dunes",
+        status: "locked",
+        cx: px(0.76),
+        cy: py(0.42),
+        r: baseR
+      },
+      {
+        id: "takaful",
+        name: "TAKAFUL ISLES",
+        subtitle: "Shared Risk Archipelago",
+        status: "locked",
+        cx: px(0.70),
+        cy: py(0.72),
+        r: baseR
       },
     ];
   }
@@ -178,18 +164,28 @@
   function pointInRegion(x, y, region) {
     const dx = x - region.cx;
     const dy = y - region.cy;
-    const val = (dx * dx) / (region.rx * region.rx) + (dy * dy) / (region.ry * region.ry);
-    return val <= 1;
+    return dx * dx + dy * dy <= region.r * region.r * 1.5;
   }
 
   function handleMapClick(x, y) {
     const regions = getMapRegions();
     for (const region of regions) {
       if (pointInRegion(x, y, region)) {
-        if (region.id === "riba") {
+        if (region.id === "riba" && region.status === "unlocked") {
           startRibaRun();
         }
         return;
+      }
+    }
+  }
+
+  function handleMapHover(x, y) {
+    const regions = getMapRegions();
+    hoveredRegionId = null;
+    for (const region of regions) {
+      if (region.status === "unlocked" && pointInRegion(x, y, region)) {
+        hoveredRegionId = region.id;
+        break;
       }
     }
   }
@@ -198,9 +194,7 @@
     resetRun();
   }
 
-  // ----------------------------------------------------
-  //  INIT
-  // ----------------------------------------------------
+  // ---------- INIT ----------
   function init() {
     canvas = document.getElementById("gameCanvas");
     ctx = canvas.getContext("2d");
@@ -218,6 +212,7 @@
     window.addEventListener("keydown", handleKeyDown);
     canvas.addEventListener("touchstart", handleTouch, { passive: false });
     canvas.addEventListener("click", handleClick);
+    canvas.addEventListener("mousemove", handleMouseMove);
 
     gameLoop();
   }
@@ -265,9 +260,7 @@
     }
   }
 
-  // ----------------------------------------------------
-  //  INPUT
-  // ----------------------------------------------------
+  // ---------- INPUT ----------
   function handleKeyDown(e) {
     if (game.state === "map") {
       if (e.code === "Space" || e.code === "Enter") {
@@ -329,6 +322,14 @@
     }
   }
 
+  function handleMouseMove(e) {
+    if (game.state !== "map") return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    handleMapHover(x, y);
+  }
+
   function handleJump() {
     const p = game.player;
     const canJump =
@@ -368,9 +369,7 @@
     }
   }
 
-  // ----------------------------------------------------
-  //  SPAWN HELPERS
-  // ----------------------------------------------------
+  // ---------- SPAWN HELPERS ----------
   function spawnObstacle() {
     const types = ["low", "high", "double"];
     const type = types[Math.floor(Math.random() * types.length)];
@@ -457,9 +456,7 @@
     }
   }
 
-  // ----------------------------------------------------
-  //  DEATH / REVIVE
-  // ----------------------------------------------------
+  // ---------- DEATH / REVIVE ----------
   function triggerDeath() {
     if (game.state !== "running") return;
 
@@ -495,9 +492,7 @@
     }
   }
 
-  // ----------------------------------------------------
-  //  UPDATE
-  // ----------------------------------------------------
+  // ---------- UPDATE ----------
   function update() {
     if (game.state === "map") {
       game.frameCount++;
@@ -708,9 +703,7 @@
     }
   }
 
-  // ----------------------------------------------------
-  //  DRAW – MONSTER & PLAYER (pixel art)
-  // ----------------------------------------------------
+  // ---------- DRAW PIXEL MONSTER ----------
   function drawPixelMonster() {
     const m = game.monster;
     const intensity =
@@ -769,6 +762,7 @@
     ctx.restore();
   }
 
+  // ---------- DRAW PIXEL KESTREL ----------
   function drawPixelPlayer() {
     const p = game.player;
     const height = p.isSliding ? PLAYER_SLIDE_HEIGHT : PLAYER_HEIGHT;
@@ -844,30 +838,37 @@
     ctx.restore();
   }
 
-  // ----------------------------------------------------
-  //  DRAW – FANTASY MAP
-  // ----------------------------------------------------
+  // ---------- DRAW FANTASY WORLD MAP ----------
   function drawWorldMap() {
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
     const w = canvas.width;
     const h = canvas.height;
 
-    // Sea background
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+
+    // Sea background with subtle vertical shimmer
     const seaGrad = ctx.createLinearGradient(0, 0, 0, h);
     seaGrad.addColorStop(0, PALETTE.seaLight);
     seaGrad.addColorStop(1, PALETTE.seaDark);
     ctx.fillStyle = seaGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Parchment frame
+    // animated water stripes
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = PALETTE.seaEdge;
+    const stripeOffset = (game.frameCount * 0.7) % 40;
+    for (let i = -40; i < h + 40; i += 40) {
+      ctx.fillRect(0, i + stripeOffset, w, 2);
+    }
+    ctx.globalAlpha = 1;
+
     const margin = Math.min(w, h) * 0.08;
     const x = margin;
     const y = margin * 1.1;
     const mapW = w - margin * 2;
     const mapH = h - margin * 2.2;
 
+    // parchment frame
     const parchment = ctx.createLinearGradient(0, y, 0, y + mapH);
     parchment.addColorStop(0, PALETTE.parchmentLight);
     parchment.addColorStop(0.5, PALETTE.parchmentMid);
@@ -883,18 +884,7 @@
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 10, y + 10, mapW - 20, mapH - 20);
 
-    // Rough torn edges (subtle)
-    ctx.strokeStyle = "rgba(0,0,0,0.15)";
-    ctx.beginPath();
-    for (let i = 0; i <= 30; i++) {
-      const t = i / 30;
-      const jitter = (Math.random() - 0.5) * 10;
-      const px = x + t * mapW;
-      ctx.lineTo(px, y + jitter);
-    }
-    ctx.stroke();
-
-    // Title
+    // title
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillStyle = "#111827";
@@ -917,170 +907,166 @@
       y + 80
     );
 
-    // MAIN ISLAND (fantasy shape)
+    // main island shape
     const islandX = x + mapW * 0.06;
-    const islandY = y + mapH * 0.08;
+    const islandY = y + mapH * 0.16;
     const islandW = mapW * 0.88;
-    const islandH = mapH * 0.78;
+    const islandH = mapH * 0.68;
 
-    // Base island
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(islandX + islandW * 0.05, islandY + islandH * 0.4);
+    ctx.moveTo(islandX + islandW * 0.12, islandY + islandH * 0.15);
     ctx.bezierCurveTo(
-      islandX + islandW * 0.00, islandY + islandH * 0.10,
-      islandX + islandW * 0.30, islandY + islandH * 0.02,
-      islandX + islandW * 0.55, islandY + islandH * 0.05
+      islandX + islandW * 0.00, islandY + islandH * 0.40,
+      islandX + islandW * 0.10, islandY + islandH * 0.70,
+      islandX + islandW * 0.26, islandY + islandH * 0.85
     );
     ctx.bezierCurveTo(
-      islandX + islandW * 0.90, islandY + islandH * 0.08,
-      islandX + islandW * 0.98, islandY + islandH * 0.45,
-      islandX + islandW * 0.90, islandY + islandH * 0.75
+      islandX + islandW * 0.55, islandY + islandH * 1.05,
+      islandX + islandW * 0.90, islandY + islandH * 0.90,
+      islandX + islandW * 0.92, islandY + islandH * 0.55
     );
     ctx.bezierCurveTo(
-      islandX + islandW * 0.80, islandY + islandH * 0.98,
-      islandX + islandW * 0.35, islandY + islandH * 0.95,
-      islandX + islandW * 0.10, islandY + islandH * 0.80
+      islandX + islandW * 0.95, islandY + islandH * 0.25,
+      islandX + islandW * 0.70, islandY + islandH * 0.04,
+      islandX + islandW * 0.40, islandY + islandH * 0.10
     );
     ctx.bezierCurveTo(
-      islandX + islandW * 0.01, islandY + islandH * 0.65,
-      islandX + islandW * 0.02, islandY + islandH * 0.50,
-      islandX + islandW * 0.05, islandY + islandH * 0.40
+      islandX + islandW * 0.25, islandY + islandH * 0.12,
+      islandX + islandW * 0.15, islandY + islandH * 0.10,
+      islandX + islandW * 0.12, islandY + islandH * 0.15
     );
     ctx.closePath();
 
     const landGrad = ctx.createLinearGradient(islandX, islandY, islandX, islandY + islandH);
     landGrad.addColorStop(0, "#e5e7eb");
-    landGrad.addColorStop(0.3, "#bbf7d0");
+    landGrad.addColorStop(0.35, "#bbf7d0");
     landGrad.addColorStop(0.6, "#a5f3fc");
-    landGrad.addColorStop(1, "#f97316");
+    landGrad.addColorStop(1, "#fed7aa");
     ctx.fillStyle = landGrad;
     ctx.fill();
     ctx.strokeStyle = "#0f172a";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Biomes (mountains, desert, jungle) – rough shapes
-    // Mountains (top band)
+    // biomes: mountains (top), plains (centre), desert (right), jungle (bottom left)
+    // mountains
     ctx.fillStyle = "#e5e7eb";
     ctx.beginPath();
-    ctx.moveTo(islandX + islandW * 0.10, islandY + islandH * 0.18);
+    ctx.moveTo(islandX + islandW * 0.18, islandY + islandH * 0.18);
     ctx.lineTo(islandX + islandW * 0.28, islandY + islandH * 0.08);
-    ctx.lineTo(islandX + islandW * 0.46, islandY + islandH * 0.20);
-    ctx.lineTo(islandX + islandW * 0.65, islandY + islandH * 0.10);
-    ctx.lineTo(islandX + islandW * 0.86, islandY + islandH * 0.20);
-    ctx.lineTo(islandX + islandW * 0.70, islandY + islandH * 0.28);
+    ctx.lineTo(islandX + islandW * 0.38, islandY + islandH * 0.19);
+    ctx.lineTo(islandX + islandW * 0.48, islandY + islandH * 0.09);
+    ctx.lineTo(islandX + islandW * 0.58, islandY + islandH * 0.20);
+    ctx.lineTo(islandX + islandW * 0.70, islandY + islandH * 0.11);
+    ctx.lineTo(islandX + islandW * 0.82, islandY + islandH * 0.23);
+    ctx.lineTo(islandX + islandW * 0.65, islandY + islandH * 0.28);
     ctx.lineTo(islandX + islandW * 0.30, islandY + islandH * 0.28);
     ctx.closePath();
     ctx.fill();
 
-    // Desert (right)
+    // desert
     ctx.fillStyle = "#fed7aa";
     ctx.beginPath();
-    ctx.moveTo(islandX + islandW * 0.55, islandY + islandH * 0.25);
-    ctx.lineTo(islandX + islandW * 0.93, islandY + islandH * 0.30);
-    ctx.lineTo(islandX + islandW * 0.88, islandY + islandH * 0.70);
+    ctx.moveTo(islandX + islandW * 0.55, islandY + islandH * 0.30);
+    ctx.lineTo(islandX + islandW * 0.90, islandY + islandH * 0.38);
+    ctx.lineTo(islandX + islandW * 0.86, islandY + islandH * 0.70);
     ctx.lineTo(islandX + islandW * 0.60, islandY + islandH * 0.65);
     ctx.closePath();
     ctx.fill();
 
-    // Jungle (bottom left)
-    ctx.fillStyle = "#065f46";
+    // jungle
+    ctx.fillStyle = "#064e3b";
     ctx.beginPath();
-    ctx.moveTo(islandX + islandW * 0.08, islandY + islandH * 0.55);
-    ctx.lineTo(islandX + islandW * 0.40, islandY + islandH * 0.62);
-    ctx.lineTo(islandX + islandW * 0.28, islandY + islandH * 0.90);
-    ctx.lineTo(islandX + islandW * 0.06, islandY + islandH * 0.80);
+    ctx.moveTo(islandX + islandW * 0.12, islandY + islandH * 0.55);
+    ctx.lineTo(islandX + islandW * 0.38, islandY + islandH * 0.60);
+    ctx.lineTo(islandX + islandW * 0.30, islandY + islandH * 0.88);
+    ctx.lineTo(islandX + islandW * 0.10, islandY + islandH * 0.80);
     ctx.closePath();
     ctx.fill();
 
-    // Rivers (watermelon-teal river system)
+    // rivers
     ctx.strokeStyle = "#22d3ee";
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
-
     ctx.beginPath();
-    ctx.moveTo(islandX + islandW * 0.50, islandY + islandH * 0.16);
+    ctx.moveTo(islandX + islandW * 0.48, islandY + islandH * 0.20);
     ctx.bezierCurveTo(
-      islandX + islandW * 0.45, islandY + islandH * 0.28,
-      islandX + islandW * 0.44, islandY + islandH * 0.42,
-      islandX + islandW * 0.42, islandY + islandH * 0.55
+      islandX + islandW * 0.44, islandY + islandH * 0.32,
+      islandX + islandW * 0.43, islandY + islandH * 0.45,
+      islandX + islandW * 0.41, islandY + islandH * 0.58
     );
     ctx.bezierCurveTo(
-      islandX + islandW * 0.40, islandY + islandH * 0.72,
-      islandX + islandW * 0.30, islandY + islandH * 0.82,
-      islandX + islandW * 0.20, islandY + islandH * 0.88
+      islandX + islandW * 0.38, islandY + islandH * 0.77,
+      islandX + islandW * 0.30, islandY + islandH * 0.86,
+      islandX + islandW * 0.20, islandY + islandH * 0.90
     );
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(islandX + islandW * 0.50, islandY + islandH * 0.18);
+    ctx.moveTo(islandX + islandW * 0.48, islandY + islandH * 0.22);
     ctx.bezierCurveTo(
-      islandX + islandW * 0.55, islandY + islandH * 0.30,
+      islandX + islandW * 0.54, islandY + islandH * 0.32,
       islandX + islandW * 0.62, islandY + islandH * 0.42,
       islandX + islandW * 0.70, islandY + islandH * 0.55
     );
     ctx.stroke();
-
     ctx.restore();
 
-    // Tiny pixel mountains / trees for Mario vibe
+    // tiny pixel trees & mountains for Mario vibe
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    const pxSize = 4;
-    const drawTriangle = (cx, cy, size, color) => {
-      ctx.fillStyle = color;
+    const drawTree = (cx, cy) => {
+      ctx.fillStyle = "#065f46";
+      ctx.fillRect(cx - 2, cy, 4, 8);
       ctx.beginPath();
-      ctx.moveTo(cx, cy - size);
-      ctx.lineTo(cx - size, cy + size);
-      ctx.lineTo(cx + size, cy + size);
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#10b981";
+      ctx.fill();
+    };
+    const drawMiniMountain = (cx, cy) => {
+      ctx.fillStyle = "#9ca3af";
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 10);
+      ctx.lineTo(cx - 8, cy + 6);
+      ctx.lineTo(cx + 8, cy + 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#6b7280";
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 10);
+      ctx.lineTo(cx - 4, cy);
+      ctx.lineTo(cx, cy);
       ctx.closePath();
       ctx.fill();
     };
 
+    for (let i = 0; i < 18; i++) {
+      const tx = islandX + islandW * (0.14 + (i % 6) * 0.06);
+      const ty = islandY + islandH * (0.58 + Math.floor(i / 6) * 0.08);
+      drawTree(tx, ty);
+    }
     for (let i = 0; i < 14; i++) {
-      const rx = islandX + islandW * (0.15 + i * 0.05);
-      const ry = islandY + islandH * (0.18 + (i % 2) * 0.03);
-      drawTriangle(rx, ry, 10, "#9ca3af");
-      drawTriangle(rx, ry + 4, 8, "#6b7280");
+      const mx = islandX + islandW * (0.18 + i * 0.04);
+      const my = islandY + islandH * (0.24 + (i % 2) * 0.03);
+      drawMiniMountain(mx, my);
     }
 
-    // Jungle trees
-    for (let i = 0; i < 15; i++) {
-      const rx = islandX + islandW * (0.12 + (i % 5) * 0.05);
-      const ry = islandY + islandH * (0.60 + Math.floor(i / 5) * 0.08);
-      ctx.fillStyle = "#065f46";
-      ctx.fillRect(rx - pxSize / 2, ry, pxSize, pxSize * 2);
+    // animated clouds above island
+    const cloudY = y + mapH * 0.08;
+    const cloudSpeed = 0.3;
+    ctx.fillStyle = "rgba(248,250,252,0.9)";
+    for (let i = 0; i < 4; i++) {
+      const cxBase = (i * 220 + game.frameCount * cloudSpeed) % (mapW + 200);
+      const cxCloud = x + cxBase - 100;
       ctx.beginPath();
-      ctx.arc(rx, ry, pxSize * 1.4, 0, Math.PI * 2);
-      ctx.fillStyle = "#10b981";
+      ctx.arc(cxCloud, cloudY, 26, 0, Math.PI * 2);
+      ctx.arc(cxCloud + 24, cloudY + 6, 22, 0, Math.PI * 2);
+      ctx.arc(cxCloud - 24, cloudY + 6, 20, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    // Tiny mosque / castle for Syarmin
-    const regions = getMapRegions();
-    const syarmin = regions.find(r => r.id === "riba");
-    if (syarmin) {
-      ctx.save();
-      ctx.translate(syarmin.cx, syarmin.cy - syarmin.ry * 0.45);
-      ctx.scale(1.1, 1.1);
-      ctx.fillStyle = "#f9fafb";
-      ctx.fillRect(-24, -10, 48, 20);
-      ctx.fillStyle = "#e5e7eb";
-      ctx.fillRect(-18, -16, 36, 6);
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(-16, -2, 8, 12);
-      ctx.fillRect(8, -2, 8, 12);
-      ctx.fillStyle = "#f97316";
-      ctx.beginPath();
-      ctx.arc(0, -18, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
     ctx.restore();
 
-    // Compass / Qibla dial (top-right)
+    // Qibla / compass top-right
     ctx.save();
     const compassR = Math.min(w, h) * 0.055;
     const cxCompass = x + mapW - compassR - 24;
@@ -1116,92 +1102,146 @@
     ctx.fillText("QIBLA", cxCompass, cyCompass + compassR * 0.55);
     ctx.restore();
 
-    // Regions (kingdom markers)
+    // LEVEL NODES + PATH
+    const regions = getMapRegions();
+
+    // draw connecting path (Mario-style) from qard -> bayt -> syarmin -> sukuk -> takaful
+    const pathPoints = regions.map(r => ({ x: r.cx, y: r.cy }));
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    const pixel = 4;
+    ctx.strokeStyle = "rgba(15,23,42,0.7)";
+    ctx.lineWidth = 5;
+    ctx.setLineDash([14, 10]);
+    ctx.lineDashOffset = -game.frameCount * 0.6;
+    ctx.beginPath();
+    for (let i = 0; i < pathPoints.length; i++) {
+      const pt = pathPoints[i];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-    regions.forEach((region) => {
-      const pulse = Math.sin(game.frameCount * 0.05) * 6;
-      const cxR = region.cx;
-      const cyR = region.cy;
-      const rxR = region.rx + pulse;
-      const ryR = region.ry + pulse * 0.6;
+    // glowing overlay path for unlocked chain (currently only up to Syarmin)
+    ctx.strokeStyle = "rgba(56,189,248,0.6)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= 2; i++) {  // qard -> bayt -> syarmin segment
+      const pt = pathPoints[i];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+    ctx.restore();
 
+    // draw each kingdom node
+    ctx.save();
+    regions.forEach(region => {
       const unlocked = region.status === "unlocked";
+      const isHover = unlocked && region.id === hoveredRegionId;
+      const pulse = Math.sin(game.frameCount * 0.08) * (unlocked ? 4 : 1);
+      const r = region.r + (unlocked ? 4 : 0) + (isHover ? 3 : 0);
 
-      // Glow
-      const glow = ctx.createRadialGradient(cxR, cyR, 0, cxR, cyR, rxR * 1.15);
+      // glow for unlocked
       if (unlocked) {
-        glow.addColorStop(0, "rgba(248,250,252,0.9)");
-        glow.addColorStop(1, "rgba(248,250,252,0)");
-      } else {
-        glow.addColorStop(0, "rgba(148,163,184,0.6)");
-        glow.addColorStop(1, "rgba(148,163,184,0)");
+        const glowR = r * 2;
+        const glow = ctx.createRadialGradient(
+          region.cx, region.cy, 0,
+          region.cx, region.cy, glowR
+        );
+        glow.addColorStop(0, "rgba(52,211,153,0.9)");
+        glow.addColorStop(1, "rgba(16,185,129,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(region.cx, region.cy, glowR, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.fillStyle = glow;
+
+      // base circle
+      const circleGrad = ctx.createLinearGradient(
+        region.cx, region.cy - r, region.cx, region.cy + r
+      );
+      if (unlocked) {
+        circleGrad.addColorStop(0, "#fef3c7");
+        circleGrad.addColorStop(1, "#22c55e");
+      } else {
+        circleGrad.addColorStop(0, "#e5e7eb");
+        circleGrad.addColorStop(1, "#9ca3af");
+      }
+      ctx.fillStyle = circleGrad;
       ctx.beginPath();
-      ctx.ellipse(cxR, cyR, rxR * 1.2, ryR * 1.15, 0, 0, Math.PI * 2);
+      ctx.arc(region.cx, region.cy, r, 0, Math.PI * 2);
       ctx.fill();
-
-      // Pixel-style island capsule
-      const grad = ctx.createLinearGradient(cxR, cyR - ryR, cxR, cyR + ryR);
-      if (unlocked) {
-        grad.addColorStop(0, "#fed7aa");
-        grad.addColorStop(1, "#f97316");
-      } else {
-        grad.addColorStop(0, "#e5e7eb");
-        grad.addColorStop(1, "#9ca3af");
-      }
-      ctx.fillStyle = grad;
-      ctx.strokeStyle = unlocked ? "#7c2d12" : "#4b5563";
+      ctx.strokeStyle = unlocked ? "#064e3b" : "#4b5563";
       ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(cxR, cyR, rxR, ryR, 0, 0, Math.PI * 2);
-      ctx.fill();
       ctx.stroke();
 
-      // Arrow / marker
-      ctx.fillStyle = unlocked ? PALETTE.watermelonDark : "#4b5563";
-      ctx.fillRect(cxR - 10, cyR - ryR * 0.65, 20, ryR * 0.40);
+      // flagpole-style arrow
+      ctx.fillStyle = unlocked ? PALETTE.watermelonDark : "#6b7280";
+      const poleH = r * 0.9;
+      ctx.fillRect(region.cx - 6, region.cy - poleH * 0.7, 12, poleH * 0.7);
       ctx.beginPath();
-      ctx.moveTo(cxR - 14, cyR - ryR * 0.65);
-      ctx.lineTo(cxR, cyR - ryR * 0.90);
-      ctx.lineTo(cxR + 14, cyR - ryR * 0.65);
+      ctx.moveTo(region.cx - 10, region.cy - poleH * 0.7);
+      ctx.lineTo(region.cx, region.cy - poleH);
+      ctx.lineTo(region.cx + 10, region.cy - poleH * 0.7);
       ctx.closePath();
       ctx.fill();
 
-      // Label panel
-      const panelY = cyR + ryR + 14;
-      const panelW = Math.max(260, region.name.length * 12);
+      // lock icon for locked regions
+      if (!unlocked) {
+        const lockR = r * 0.38;
+        ctx.fillStyle = "#020617";
+        ctx.beginPath();
+        ctx.roundRect(region.cx - lockR, region.cy - lockR * 0.5, lockR * 2, lockR * 1.4, 6);
+        ctx.fill();
+        ctx.fillStyle = "#e5e7eb";
+        ctx.fillRect(region.cx - lockR * 0.55, region.cy - lockR * 0.1, lockR * 1.1, lockR * 0.45);
+        ctx.beginPath();
+        ctx.arc(region.cx, region.cy - lockR * 0.2, lockR * 0.7, Math.PI, 0);
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        // sparkles around syarmin
+        for (let i = 0; i < 8; i++) {
+          const angle = (Math.PI * 2 * i) / 8 + game.frameCount * 0.05;
+          const dist = r * 1.6;
+          const sx = region.cx + Math.cos(angle) * dist;
+          const sy = region.cy + Math.sin(angle) * dist;
+          ctx.fillStyle = "rgba(250,250,250,0.9)";
+          ctx.fillRect(sx - 1, sy - 1, 2, 2);
+        }
+      }
+
+      // label panel
+      const panelY = region.cy + r + 12;
+      const panelW = Math.max(260, region.name.length * 11);
       ctx.fillStyle = "#020617";
-      ctx.fillRect(cxR - panelW / 2, panelY, panelW, 58);
+      ctx.fillRect(region.cx - panelW / 2, panelY, panelW, 54);
       ctx.strokeStyle = unlocked ? PALETTE.teal : "#4b5563";
       ctx.lineWidth = 2;
-      ctx.strokeRect(cxR - panelW / 2, panelY, panelW, 58);
+      ctx.strokeRect(region.cx - panelW / 2, panelY, panelW, 54);
 
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.font = "16px 'Courier New', monospace";
-      ctx.fillStyle = unlocked ? "#e5e7eb" : "#9ca3af";
-      ctx.fillText(region.name, cxR, panelY + 6);
+      ctx.fillStyle = "#e5e7eb";
+      ctx.fillText(region.name, region.cx, panelY + 4);
 
       ctx.font = "13px 'Courier New', monospace";
-      ctx.fillStyle = unlocked ? "#a5f3fc" : "#9ca3af";
-      ctx.fillText(region.subtitle, cxR, panelY + 24);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillText(region.subtitle, region.cx, panelY + 22);
 
-      if (!unlocked) {
-        ctx.fillStyle = "#fecaca";
-        ctx.fillText("LOCKED · Coming soon", cxR, panelY + 40);
-      } else {
+      if (unlocked) {
         ctx.fillStyle = "#bbf7d0";
-        ctx.fillText("CLICK TO ENTER", cxR, panelY + 40);
+        ctx.fillText("CLICK TO ENTER", region.cx, panelY + 36);
+      } else {
+        ctx.fillStyle = "#fecaca";
+        ctx.fillText("LOCKED · Coming soon", region.cx, panelY + 36);
       }
     });
-
     ctx.restore();
 
-    // Bottom tip
+    // tip text
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
@@ -1210,14 +1250,12 @@
     ctx.fillText(
       "Tip: Press SPACE or ENTER to jump straight into the Kingdom of Syarmin",
       w / 2,
-      y + mapH - 12
+      y + mapH - 8
     );
     ctx.restore();
   }
 
-  // ----------------------------------------------------
-  //  DRAW – MAIN GAME
-  // ----------------------------------------------------
+  // ---------- DRAW MAIN GAME ----------
   function draw() {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
@@ -1424,9 +1462,7 @@
     ctx.restore();
   }
 
-  // ----------------------------------------------------
-  //  HUD
-  // ----------------------------------------------------
+  // ---------- HUD ----------
   function drawHUD() {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
@@ -1542,9 +1578,7 @@
     ctx.restore();
   }
 
-  // ----------------------------------------------------
-  //  LOOP
-  // ----------------------------------------------------
+  // ---------- LOOP ----------
   function gameLoop() {
     update();
     draw();
@@ -1553,6 +1587,7 @@
 </script>
 </body>
 </html>
+
 
 
 
