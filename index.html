@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Riba Run – Pixel Retro Edition</title>
+  <title>Halal Realm – Riba Run</title>
   <style>
     html, body {
       margin: 0;
@@ -42,7 +42,7 @@
 
   // ---------- GAME STATE ----------
   const game = {
-    state: "running",
+    state: "map",             // "map" | "running" | "gameover"
     player: {
       x: 120,
       y: 0,
@@ -77,6 +77,51 @@
   let canvas, ctx;
   let animationId;
 
+  // ---------- MAP HELPERS ----------
+  function getMapRegions() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w * 0.63;
+    const cy = h * 0.55;
+    const rx = Math.max(140, w * 0.16);
+    const ry = Math.max(90, h * 0.16);
+
+    return [
+      {
+        id: "riba",
+        name: "Kingdom of Syarmin",
+        subtitle: "Riba Market",
+        cx,
+        cy,
+        rx,
+        ry,
+        status: "unlocked",
+      },
+      // Future regions can be added here (e.g. Gharar, Maysir, etc.)
+    ];
+  }
+
+  function pointInRegion(x, y, region) {
+    const dx = x - region.cx;
+    const dy = y - region.cy;
+    const val = (dx * dx) / (region.rx * region.rx) + (dy * dy) / (region.ry * region.ry);
+    return val <= 1;
+  }
+
+  function handleMapClick(x, y) {
+    const regions = getMapRegions();
+    for (const region of regions) {
+      if (pointInRegion(x, y, region) && region.id === "riba") {
+        startRibaRun();
+        return;
+      }
+    }
+  }
+
+  function startRibaRun() {
+    resetRun();        // sets state to "running" and reinitialises the runner
+  }
+
   // ---------- INIT ----------
   function init() {
     canvas = document.getElementById("gameCanvas");
@@ -94,6 +139,7 @@
 
     window.addEventListener("keydown", handleKeyDown);
     canvas.addEventListener("touchstart", handleTouch, { passive: false });
+    canvas.addEventListener("click", handleClick);
 
     gameLoop();
   }
@@ -135,7 +181,6 @@
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     game.groundY = canvas.height - GROUND_HEIGHT;
     if (game.state === "running") {
       game.player.y = game.groundY - PLAYER_HEIGHT;
@@ -144,6 +189,14 @@
 
   // ---------- INPUT ----------
   function handleKeyDown(e) {
+    if (game.state === "map") {
+      if (e.code === "Space" || e.code === "Enter") {
+        // quick-start Riba level
+        startRibaRun();
+      }
+      return;
+    }
+
     if (game.state === "gameover") {
       if (e.code === "Space" || e.code === "Enter") {
         resetRun();
@@ -165,15 +218,35 @@
 
   function handleTouch(e) {
     e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    if (game.state === "map") {
+      handleMapClick(x, y);
+      return;
+    }
+
     if (game.state === "gameover") {
       resetRun();
       return;
     }
-    if (touch.clientY > window.innerHeight / 2) {
+
+    if (y > window.innerHeight / 2) {
       handleSlide();
     } else {
       handleJump();
+    }
+  }
+
+  function handleClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (game.state === "map") {
+      handleMapClick(x, y);
     }
   }
 
@@ -335,7 +408,6 @@
         25
       );
     } else {
-      // true game over
       game.state = "gameover";
       game.gameOverTime = 0;
     }
@@ -343,6 +415,12 @@
 
   // ---------- UPDATE ----------
   function update() {
+    // Map idle animation
+    if (game.state === "map") {
+      game.frameCount++;
+      return;
+    }
+
     if (game.state !== "running") {
       if (game.state === "gameover") game.gameOverTime++;
       return;
@@ -351,14 +429,12 @@
     game.frameCount++;
     game.distance = Math.floor((game.frameCount * game.speed) / 15);
 
-    // speed ramp
     const distanceFactor = Math.min(game.distance / 800, 1.5);
     const targetSpeed = Math.min(INITIAL_SPEED + distanceFactor * 6, MAX_SPEED);
     if (game.speed < targetSpeed) {
       game.speed += BASE_SPEED_INCREMENT * (1 + distanceFactor);
     }
 
-    // kestrl card timer
     if (game.hasKestrlCard) {
       game.kestrlCardTimer--;
       if (game.kestrlCardTimer <= 0) {
@@ -366,19 +442,16 @@
       }
     }
 
-    // necessity + score bleed
     game.necessityMeter = Math.max(0, game.necessityMeter - 0.03);
     if (game.necessityMeter <= 0) {
       game.score -= 0.5;
     }
 
-    // parallax layers
     game.parallaxLayers.forEach((layer) => {
       layer.x -= game.speed * layer.speed;
       if (layer.x <= -canvas.width) layer.x += canvas.width;
     });
 
-    // player physics
     const p = game.player;
 
     if (p.isSliding) {
@@ -399,7 +472,6 @@
       game.coyoteCounter--;
     }
 
-    // monster chase
     const monsterBaseX = -150;
     if (game.score < 0) {
       const debt = Math.abs(game.score);
@@ -416,7 +488,6 @@
 
     game.monster.x += (game.monster.targetX - game.monster.x) * 0.05;
 
-    // glitch buildup from deep debt
     if (game.score < game.debtThreshold) {
       const excessDebt =
         Math.abs(game.score) - Math.abs(game.debtThreshold);
@@ -425,7 +496,6 @@
       game.glitchIntensity = Math.max(0, game.glitchIntensity - 0.02);
     }
 
-    // monster catches player
     if (game.monster.x + 40 >= p.x) {
       createParticles(
         p.x + PLAYER_WIDTH / 2,
@@ -436,14 +506,12 @@
       triggerDeath();
     }
 
-    // spawn things
     if (game.frameCount % Math.max(60, 130 - Math.floor(game.speed * 3)) === 0) {
       spawnObstacle();
     }
     if (game.frameCount % 50 === 0) spawnCoin();
     if (game.frameCount % 120 === 0) spawnKestrlCard();
 
-    // obstacles
     game.obstacles = game.obstacles.filter((obs) => {
       obs.x -= game.speed;
 
@@ -477,7 +545,6 @@
       return obs.x > -100;
     });
 
-    // coins
     game.coins = game.coins.filter((coin) => {
       coin.x -= game.speed;
       coin.pulsePhase += 0.1;
@@ -511,7 +578,6 @@
       return coin.x > -40;
     });
 
-    // power-ups
     game.powerUps = game.powerUps.filter((pu) => {
       pu.x -= game.speed;
       pu.pulsePhase += 0.12;
@@ -540,7 +606,6 @@
       return pu.x > -100;
     });
 
-    // particles
     game.particles = game.particles.filter((p2) => {
       p2.x += p2.vx;
       p2.y += p2.vy;
@@ -548,7 +613,6 @@
       return p2.life > 0;
     });
 
-    // running dust
     if (!p.isJumping && !p.isSliding && game.frameCount % 8 === 0) {
       game.particles.push({
         x: p.x,
@@ -562,20 +626,19 @@
     }
   }
 
-  // ---------- DRAW HELPERS (PIXEL ART) ----------
+  // ---------- DRAW HELPERS ----------
   function drawPixelMonster() {
     const m = game.monster;
     const intensity =
       game.score < 0 ? Math.min(1, Math.abs(game.score) / 200) : 0;
 
     const pixel = 4;
-    const baseSize = 10; // in pixels (grid units)
+    const baseSize = 10;
 
     ctx.save();
     ctx.translate(m.x + 40 * m.size, game.groundY - 70 * m.size);
     ctx.scale(m.size, m.size);
 
-    // aura
     const radius = baseSize * pixel * 1.6;
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
     gradient.addColorStop(0, "rgba(15,23,42,0.9)");
@@ -586,7 +649,6 @@
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // helper
     const drawBlock = (x, y, w, h, color) => {
       ctx.fillStyle = color;
       ctx.fillRect(x * pixel, y * pixel, w * pixel, h * pixel);
@@ -595,7 +657,6 @@
     const bodyCol = "#111827";
     const highlightCol = "#1f2937";
 
-    // chunky oval body
     for (let row = -6; row <= 6; row++) {
       const width = row < 0 ? 6 + row : 6 - row * 0.7;
       for (let col = -width; col <= width; col++) {
@@ -604,11 +665,9 @@
       }
     }
 
-    // horns
     drawBlock(-5, -7, 2, 3, "#000000");
     drawBlock(3, -7, 2, 3, "#000000");
 
-    // eyes
     ctx.shadowColor = "#f97316";
     ctx.shadowBlur = 12 + intensity * 12;
     drawBlock(-3, -3, 2, 2, "#f97316");
@@ -618,7 +677,6 @@
     drawBlock(-2, -2, 1, 1, "#ffffff");
     drawBlock(3, -2, 1, 1, "#ffffff");
 
-    // mouth
     for (let i = -3; i <= 3; i++) {
       const h = i % 2 === 0 ? 2 : 1;
       drawBlock(i, 2, 1, h, "#ef4444");
@@ -668,37 +726,29 @@
       ctx.fillRect(x * pixel, y * pixel, w * pixel, h * pixel);
     };
 
-    // outline box
     drawPx(-6, -6, 13, 11, cols.outline);
 
-    // body
     drawPx(-5, -5, 11, 9, cols.bodyMid);
     drawPx(-5, -5, 9, 3, cols.bodyLight);
     drawPx(-5, 1, 11, 3, cols.bodyDark);
 
-    // wing (flap)
     const wingY = [-3, -4, -5, -4][wingFrame];
     drawPx(-4, wingY, 6, 4, cols.wingDark);
     drawPx(-3, wingY, 4, 2, cols.wingMid);
 
-    // head
     drawPx(4, -7, 6, 6, cols.head);
     drawPx(4, -7, 5, 2, "#38bdf8");
 
-    // eye
     drawPx(7, -6, 2, 2, cols.eye);
     drawPx(8, -6, 1, 1, cols.eyeShine);
 
-    // beak
     drawPx(10, -5, 3, 1, cols.beak);
     drawPx(11, -4, 2, 1, cols.beakLight);
 
-    // tail feathers
     drawPx(-7, -1, 2, 1, cols.wingMid);
     drawPx(-8, 0, 2, 1, cols.wingDark);
     drawPx(-9, 1, 2, 1, cols.wingMid);
 
-    // legs
     if (!p.isSliding) {
       const leg1Y = 3 + legOffset;
       const leg2Y = 3 - legOffset;
@@ -710,10 +760,184 @@
     ctx.restore();
   }
 
-  // ---------- DRAW ----------
+  // ---------- DRAW MAP ----------
+  function drawWorldMap() {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+
+    // dark vignette outer
+    const g = ctx.createRadialGradient(
+      canvas.width / 2,
+      canvas.height / 2,
+      canvas.width * 0.1,
+      canvas.width / 2,
+      canvas.height / 2,
+      canvas.width * 0.7
+    );
+    g.addColorStop(0, "#0f172a");
+    g.addColorStop(1, "#020617");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // parchment
+    const margin = Math.min(canvas.width, canvas.height) * 0.08;
+    const x = margin;
+    const y = margin;
+    const w = canvas.width - margin * 2;
+    const h = canvas.height - margin * 2;
+
+    const parchment = ctx.createLinearGradient(0, y, 0, y + h);
+    parchment.addColorStop(0, "#fef3c7");
+    parchment.addColorStop(0.5, "#facc6b");
+    parchment.addColorStop(1, "#fbbf24");
+    ctx.fillStyle = parchment;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.strokeStyle = "#92400e";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 10, y + 10, w - 20, h - 20);
+
+    // title
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#1f2937";
+    ctx.font = "bold 40px monospace";
+    ctx.fillText("HALAL REALM", canvas.width / 2, y + 18);
+
+    ctx.font = "16px monospace";
+    ctx.fillStyle = "#374151";
+    ctx.fillText(
+      "Click a kingdom to cleanse its markets",
+      canvas.width / 2,
+      y + 64
+    );
+
+    // lore text
+    ctx.font = "14px monospace";
+    ctx.fillStyle = "#4b5563";
+    ctx.fillText(
+      "Begin in the Kingdom of Syarmin and confront Riba.",
+      canvas.width / 2,
+      y + 90
+    );
+
+    // continents (decorative)
+    ctx.fillStyle = "#a3a3a3";
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.18, y + h * 0.35);
+    ctx.bezierCurveTo(
+      x + w * 0.10, y + h * 0.55,
+      x + w * 0.22, y + h * 0.65,
+      x + w * 0.30, y + h * 0.70
+    );
+    ctx.bezierCurveTo(
+      x + w * 0.40, y + h * 0.78,
+      x + w * 0.42, y + h * 0.55,
+      x + w * 0.35, y + h * 0.45
+    );
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.55, y + h * 0.30);
+    ctx.bezierCurveTo(
+      x + w * 0.70, y + h * 0.28,
+      x + w * 0.82, y + h * 0.40,
+      x + w * 0.80, y + h * 0.50
+    );
+    ctx.bezierCurveTo(
+      x + w * 0.78, y + h * 0.68,
+      x + w * 0.60, y + h * 0.75,
+      x + w * 0.52, y + h * 0.62
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // regions
+    const regions = getMapRegions();
+    regions.forEach((region) => {
+      const pulse = Math.sin(game.frameCount * 0.05) * 8;
+      const cx = region.cx;
+      const cy = region.cy;
+      const rx = region.rx + pulse;
+      const ry = region.ry + pulse * 0.6;
+
+      // aura
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx * 1.1);
+      glow.addColorStop(0, "rgba(248,250,252,0.9)");
+      glow.addColorStop(1, "rgba(248,250,252,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx * 1.1, ry * 1.1, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // island shape
+      ctx.fillStyle = "#fed7aa";
+      ctx.strokeStyle = "#b45309";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // city marker
+      ctx.fillStyle = "#b45309";
+      ctx.fillRect(cx - 6, cy - 10, 12, 18);
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy - 10);
+      ctx.lineTo(cx, cy - 22);
+      ctx.lineTo(cx + 8, cy - 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // label panel
+      const panelY = cy + ry + 16;
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(cx - 120, panelY, 240, 52);
+      ctx.strokeStyle = "#f97316";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx - 120, panelY, 240, 52);
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.font = "16px monospace";
+      ctx.fillStyle = "#fed7aa";
+      ctx.fillText(region.name.toUpperCase(), cx, panelY + 8);
+      ctx.font = "13px monospace";
+      ctx.fillStyle = "#fde68a";
+      ctx.fillText("Riba Market – Click to enter", cx, panelY + 28);
+    });
+
+    // bottom hint
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.font = "14px monospace";
+    ctx.fillStyle = "#4b5563";
+    ctx.fillText(
+      "Tip: Press SPACE / ENTER to jump straight into Kingdom of Syarmin",
+      canvas.width / 2,
+      y + h - 16
+    );
+
+    ctx.restore();
+  }
+
+  // ---------- DRAW MAIN ----------
   function draw() {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
+
+    if (game.state === "map") {
+      drawWorldMap();
+      ctx.restore();
+      return;
+    }
 
     if (game.glitchIntensity > 0.25) {
       const s = game.glitchIntensity * 5;
@@ -723,14 +947,12 @@
       );
     }
 
-    // NES-style sky
     const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
     sky.addColorStop(0, "#5c94fc");
     sky.addColorStop(1, "#1e40af");
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // simple stars
     ctx.fillStyle = "#eff6ff";
     for (let i = 0; i < 40; i++) {
       const x = (i * 173 + game.frameCount * 0.1) % canvas.width;
@@ -738,7 +960,6 @@
       ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
     }
 
-    // simple pixel mountains
     ctx.fillStyle = "#1e3a8a";
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
@@ -755,7 +976,6 @@
     ctx.closePath();
     ctx.fill();
 
-    // brick ground à la Mario
     const tile = 32;
     for (let x = 0; x < canvas.width + tile; x += tile) {
       ctx.fillStyle = "#f97316";
@@ -770,12 +990,10 @@
       ctx.strokeRect(x, game.groundY, tile, GROUND_HEIGHT);
     }
 
-    // monster
     if (game.monster.x < canvas.width + 200) {
       drawPixelMonster();
     }
 
-    // obstacles (simple purple blocks)
     game.obstacles.forEach((obs) => {
       ctx.fillStyle = "#6d28d9";
       ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
@@ -784,7 +1002,6 @@
       ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
     });
 
-    // power-ups (Kestrl card)
     game.powerUps.forEach((pu) => {
       const t = Math.sin(pu.pulsePhase) * 1.5;
       ctx.save();
@@ -816,14 +1033,12 @@
       ctx.restore();
     });
 
-    // coins – pixel squares with glow
     game.coins.forEach((coin) => {
       const px = 4;
       const baseSize = 4;
       const pulse = Math.sin(coin.pulsePhase) * 0.5;
       const s = baseSize + pulse;
 
-      // glow
       const glowRadius = s * px * 3;
       const glow = ctx.createRadialGradient(
         coin.x,
@@ -848,7 +1063,6 @@
       ctx.arc(coin.x, coin.y, glowRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // square coin
       const sizePx = s * px;
       const x = Math.round(coin.x - sizePx / 2);
       const y = Math.round(coin.y - sizePx / 2);
@@ -880,10 +1094,8 @@
       }
     });
 
-    // player
     drawPixelPlayer();
 
-    // particles
     game.particles.forEach((p2) => {
       ctx.globalAlpha = p2.life;
       ctx.fillStyle = p2.color;
@@ -896,7 +1108,6 @@
     });
     ctx.globalAlpha = 1;
 
-    // glitch overlay
     if (game.glitchIntensity > 0) {
       const t = game.glitchIntensity;
       ctx.fillStyle = `rgba(148,27,27,${0.2 * t})`;
@@ -932,7 +1143,6 @@
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
-    // Score
     ctx.fillStyle = "#020617";
     ctx.fillRect(16, 16, 160, 46);
     ctx.strokeStyle = game.score >= 0 ? "#facc15" : "#ef4444";
@@ -944,7 +1154,6 @@
     ctx.font = "bold 20px monospace";
     ctx.fillText(Math.floor(game.score).toString(), 24, 38);
 
-    // Distance
     ctx.font = "16px monospace";
     ctx.fillStyle = "#020617";
     ctx.fillRect(16, 72, 140, 38);
@@ -955,7 +1164,6 @@
     ctx.fillStyle = "#e5e7eb";
     ctx.fillText(game.distance.toString() + "m", 24, 92);
 
-    // Savings pot
     const spX = canvas.width - 180;
     ctx.fillStyle = "#022c22";
     ctx.fillRect(spX, 16, 164, 46);
@@ -967,7 +1175,6 @@
     ctx.font = "bold 20px monospace";
     ctx.fillText(game.savingsPot.toString(), spX + 8, 38);
 
-    // Coins counters
     ctx.font = "14px monospace";
     ctx.fillStyle = "#020617";
     ctx.fillRect(spX, 72, 164, 38);
@@ -978,7 +1185,6 @@
     ctx.fillStyle = "#fca5a5";
     ctx.fillText("RIBA: " + game.redCoins, spX + 8, 94);
 
-    // Necessity meter
     const barX = canvas.width / 2 - 180;
     const barY = 20;
     const barW = 360;
@@ -1005,7 +1211,6 @@
       barY + barH / 2
     );
 
-    // Kestrl card timer
     if (game.hasKestrlCard) {
       const secs = Math.ceil(game.kestrlCardTimer / 60);
       ctx.font = "14px monospace";
@@ -1019,7 +1224,6 @@
       ctx.fillText("KESTRL CARD: " + secs + "s", canvas.width / 2, 62);
     }
 
-    // Game over overlay
     if (game.state === "gameover") {
       ctx.fillStyle = "rgba(15,23,42,0.7)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
