@@ -20,6 +20,7 @@
       height: 100%;
       display: block;
       touch-action: none;
+      background: #020617;
     }
   </style>
 </head>
@@ -72,6 +73,9 @@
     glitchIntensity: 0,
     gameOverTime: 0,
     savingsPot: 0,
+    // map-only UI state
+    mapMessage: "",
+    mapMessageTimer: 0
   };
 
   let canvas, ctx;
@@ -79,26 +83,75 @@
 
   // ---------- MAP HELPERS ----------
   function getMapRegions() {
-    const w = canvas.width;
-    const h = canvas.height;
-    const cx = w * 0.63;
-    const cy = h * 0.55;
-    const rx = Math.max(140, w * 0.16);
-    const ry = Math.max(90, h * 0.16);
+    // fall back to window size very early, but normally canvas is ready
+    const w = canvas ? canvas.width : window.innerWidth;
+    const h = canvas ? canvas.height : window.innerHeight;
+    const s = Math.min(w, h);
 
-    return [
+    const regions = [
       {
-        id: "riba",
+        id: "syarmin",
         name: "Kingdom of Syarmin",
         subtitle: "Riba Market",
-        cx,
-        cy,
-        rx,
-        ry,
         status: "unlocked",
+        cx: w * 0.63,
+        cy: h * 0.55,
+        rx: s * 0.18,
+        ry: s * 0.13,
       },
-      // Future regions can be added here (e.g. Gharar, Maysir, etc.)
+      {
+        id: "bayt",
+        name: "Bayt al-Tijara",
+        subtitle: "Consumer Credit Bazaar",
+        status: "locked",
+        cx: w * 0.30,
+        cy: h * 0.40,
+        rx: s * 0.13,
+        ry: s * 0.10,
+      },
+      {
+        id: "sukuk",
+        name: "Sukuk Sands",
+        subtitle: "Speculation Stormfront",
+        status: "locked",
+        cx: w * 0.78,
+        cy: h * 0.35,
+        rx: s * 0.12,
+        ry: s * 0.09,
+      },
+      {
+        id: "murabaha",
+        name: "Murabaha Peaks",
+        subtitle: "Buy-Now Mountain Pass",
+        status: "locked",
+        cx: w * 0.22,
+        cy: h * 0.70,
+        rx: s * 0.12,
+        ry: s * 0.09,
+      },
+      {
+        id: "takaful",
+        name: "Takaful Isles",
+        subtitle: "Tides of Shared Risk",
+        status: "locked",
+        cx: w * 0.64,
+        cy: h * 0.75,
+        rx: s * 0.12,
+        ry: s * 0.09,
+      },
+      {
+        id: "qard",
+        name: "Qard Valley",
+        subtitle: "Student Debt Ravine",
+        status: "locked",
+        cx: w * 0.44,
+        cy: h * 0.20,
+        rx: s * 0.11,
+        ry: s * 0.09,
+      }
     ];
+
+    return regions;
   }
 
   function pointInRegion(x, y, region) {
@@ -111,9 +164,16 @@
   function handleMapClick(x, y) {
     const regions = getMapRegions();
     for (const region of regions) {
-      if (pointInRegion(x, y, region) && region.id === "riba") {
-        startRibaRun();
-        return;
+      if (pointInRegion(x, y, region)) {
+        if (region.status === "locked") {
+          game.mapMessage = region.name + " is under construction – coming soon.";
+          game.mapMessageTimer = 180; // ~3 seconds
+          return;
+        }
+        if (region.id === "syarmin") {
+          startRibaRun();
+          return;
+        }
       }
     }
   }
@@ -418,6 +478,10 @@
     // Map idle animation
     if (game.state === "map") {
       game.frameCount++;
+      if (game.mapMessageTimer > 0) {
+        game.mapMessageTimer--;
+        if (game.mapMessageTimer <= 0) game.mapMessage = "";
+      }
       return;
     }
 
@@ -765,165 +829,309 @@
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    // dark vignette outer
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // outer dark vignette
     const g = ctx.createRadialGradient(
-      canvas.width / 2,
-      canvas.height / 2,
-      canvas.width * 0.1,
-      canvas.width / 2,
-      canvas.height / 2,
-      canvas.width * 0.7
+      w / 2,
+      h / 2,
+      w * 0.1,
+      w / 2,
+      h / 2,
+      w * 0.75
     );
-    g.addColorStop(0, "#0f172a");
+    g.addColorStop(0, "#111827");
     g.addColorStop(1, "#020617");
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, w, h);
 
-    // parchment
-    const margin = Math.min(canvas.width, canvas.height) * 0.08;
+    const margin = Math.min(w, h) * 0.08;
     const x = margin;
     const y = margin;
-    const w = canvas.width - margin * 2;
-    const h = canvas.height - margin * 2;
+    const pw = w - margin * 2;
+    const ph = h - margin * 2;
 
-    const parchment = ctx.createLinearGradient(0, y, 0, y + h);
-    parchment.addColorStop(0, "#fef3c7");
-    parchment.addColorStop(0.5, "#facc6b");
-    parchment.addColorStop(1, "#fbbf24");
+    // parchment base
+    const parchment = ctx.createLinearGradient(0, y, 0, y + ph);
+    parchment.addColorStop(0, "#fef9c3");
+    parchment.addColorStop(0.45, "#facc6b");
+    parchment.addColorStop(1, "#eab308");
     ctx.fillStyle = parchment;
-    ctx.fillRect(x, y, w, h);
+    ctx.fillRect(x, y, pw, ph);
 
-    ctx.strokeStyle = "#92400e";
+    // darker edge inset
+    ctx.strokeStyle = "#7c2d12";
     ctx.lineWidth = 6;
-    ctx.strokeRect(x, y, w, h);
+    ctx.strokeRect(x, y, pw, ph);
 
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
     ctx.lineWidth = 2;
-    ctx.strokeRect(x + 10, y + 10, w - 20, h - 20);
+    ctx.strokeRect(x + 12, y + 12, pw - 24, ph - 24);
 
-    // title
+    // fake burnt / crumpled texture
+    ctx.globalAlpha = 0.25;
+    for (let i = 0; i < 40; i++) {
+      const rx = x + Math.random() * pw;
+      const ry = y + Math.random() * ph;
+      const rr = 30 + Math.random() * 120;
+      const nGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, rr);
+      nGrad.addColorStop(0, "rgba(0,0,0,0.18)");
+      nGrad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = nGrad;
+      ctx.beginPath();
+      ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // header
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillStyle = "#1f2937";
-    ctx.font = "bold 40px monospace";
-    ctx.fillText("HALAL REALM", canvas.width / 2, y + 18);
+    ctx.font = "700 44px 'Georgia', serif";
+    ctx.fillText("HALAL REALM", w / 2, y + 18);
 
-    ctx.font = "16px monospace";
+    ctx.font = "16px 'Georgia', serif";
     ctx.fillStyle = "#374151";
-    ctx.fillText(
-      "Click a kingdom to cleanse its markets",
-      canvas.width / 2,
-      y + 64
-    );
+    ctx.fillText("Click a kingdom to cleanse its markets.", w / 2, y + 70);
 
-    // lore text
-    ctx.font = "14px monospace";
+    ctx.font = "14px 'Georgia', serif";
     ctx.fillStyle = "#4b5563";
     ctx.fillText(
       "Begin in the Kingdom of Syarmin and confront Riba.",
-      canvas.width / 2,
-      y + 90
+      w / 2,
+      y + 94
     );
 
-    // continents (decorative)
-    ctx.fillStyle = "#a3a3a3";
+    // compass rose (top-right)
+    const cr = Math.min(pw, ph) * 0.07;
+    const cx = x + pw - cr * 1.6;
+    const cy = y + cr * 1.6;
+    ctx.save();
+    ctx.translate(cx, cy);
+    const cGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, cr);
+    cGrad.addColorStop(0, "#fef3c7");
+    cGrad.addColorStop(1, "#d97706");
+    ctx.fillStyle = cGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, cr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#7c2d12";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.strokeStyle = "#7c2d12";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate((Math.PI / 2) * i);
+      ctx.beginPath();
+      ctx.moveTo(0, -cr * 0.85);
+      ctx.lineTo(0, -cr * 0.3);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "10px 'Georgia', serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("QIBLA", 0, cr * 0.55);
+    ctx.restore();
+
+    // stylised continents / landmasses (background)
+    ctx.save();
     ctx.globalAlpha = 0.6;
+    ctx.fillStyle = "#a3a3a3";
     ctx.beginPath();
-    ctx.moveTo(x + w * 0.18, y + h * 0.35);
+    ctx.moveTo(x + pw * 0.18, y + ph * 0.38);
     ctx.bezierCurveTo(
-      x + w * 0.10, y + h * 0.55,
-      x + w * 0.22, y + h * 0.65,
-      x + w * 0.30, y + h * 0.70
+      x + pw * 0.10, y + ph * 0.58,
+      x + pw * 0.22, y + ph * 0.68,
+      x + pw * 0.30, y + ph * 0.72
     );
     ctx.bezierCurveTo(
-      x + w * 0.40, y + h * 0.78,
-      x + w * 0.42, y + h * 0.55,
-      x + w * 0.35, y + h * 0.45
+      x + pw * 0.42, y + ph * 0.80,
+      x + pw * 0.44, y + ph * 0.56,
+      x + pw * 0.35, y + ph * 0.46
     );
     ctx.closePath();
     ctx.fill();
 
     ctx.beginPath();
-    ctx.moveTo(x + w * 0.55, y + h * 0.30);
+    ctx.moveTo(x + pw * 0.55, y + ph * 0.30);
     ctx.bezierCurveTo(
-      x + w * 0.70, y + h * 0.28,
-      x + w * 0.82, y + h * 0.40,
-      x + w * 0.80, y + h * 0.50
+      x + pw * 0.70, y + ph * 0.29,
+      x + pw * 0.82, y + ph * 0.40,
+      x + pw * 0.80, y + ph * 0.52
     );
     ctx.bezierCurveTo(
-      x + w * 0.78, y + h * 0.68,
-      x + w * 0.60, y + h * 0.75,
-      x + w * 0.52, y + h * 0.62
+      x + pw * 0.78, y + ph * 0.70,
+      x + pw * 0.60, y + ph * 0.78,
+      x + pw * 0.52, y + ph * 0.64
     );
     ctx.closePath();
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.restore();
 
-    // regions
     const regions = getMapRegions();
-    regions.forEach((region) => {
-      const pulse = Math.sin(game.frameCount * 0.05) * 8;
-      const cx = region.cx;
-      const cy = region.cy;
-      const rx = region.rx + pulse;
-      const ry = region.ry + pulse * 0.6;
 
-      // aura
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx * 1.1);
-      glow.addColorStop(0, "rgba(248,250,252,0.9)");
-      glow.addColorStop(1, "rgba(248,250,252,0)");
+    regions.forEach((region) => {
+      const pulse = Math.sin(game.frameCount * 0.05) * 6;
+      const cxr = region.cx;
+      const cyr = region.cy;
+      const rxr = region.rx + (region.status === "unlocked" ? pulse : 0);
+      const ryr = region.ry + (region.status === "unlocked" ? pulse * 0.6 : 0);
+
+      // outer glow
+      const glow = ctx.createRadialGradient(cxr, cyr, 0, cxr, cyr, rxr * 1.15);
+      if (region.status === "unlocked") {
+        glow.addColorStop(0, "rgba(254,252,232,0.95)");
+        glow.addColorStop(1, "rgba(254,252,232,0)");
+      } else {
+        glow.addColorStop(0, "rgba(15,23,42,0.7)");
+        glow.addColorStop(1, "rgba(15,23,42,0)");
+      }
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, rx * 1.1, ry * 1.1, 0, 0, Math.PI * 2);
+      ctx.ellipse(cxr, cyr, rxr * 1.15, ryr * 1.15, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // island shape
-      ctx.fillStyle = "#fed7aa";
-      ctx.strokeStyle = "#b45309";
+      // island base
+      const baseGrad = ctx.createLinearGradient(cxr, cyr - ryr, cxr, cyr + ryr);
+      if (region.status === "unlocked") {
+        baseGrad.addColorStop(0, "#fed7aa");
+        baseGrad.addColorStop(1, "#f97316");
+      } else {
+        baseGrad.addColorStop(0, "#c4a484");
+        baseGrad.addColorStop(1, "#a16207");
+      }
+      ctx.fillStyle = baseGrad;
+      ctx.strokeStyle = region.status === "unlocked" ? "#b45309" : "#4b5563";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.ellipse(cxr, cyr, rxr, ryr, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // city marker
-      ctx.fillStyle = "#b45309";
-      ctx.fillRect(cx - 6, cy - 10, 12, 18);
+      // simple hatching on land
+      ctx.save();
+      ctx.clip();
+      ctx.strokeStyle = "rgba(124,45,18,0.25)";
+      ctx.lineWidth = 1;
+      for (let i = -rxr; i < rxr; i += 6) {
+        ctx.beginPath();
+        ctx.moveTo(cxr - rxr + i, cyr - ryr);
+        ctx.lineTo(cxr + rxr + i, cyr + ryr);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // city marker – tower + roof
+      ctx.fillStyle = region.status === "unlocked" ? "#7c2d12" : "#374151";
+      const towerH = ryr * 0.65;
+      ctx.fillRect(cxr - 7, cyr - towerH, 14, towerH);
       ctx.beginPath();
-      ctx.moveTo(cx - 8, cy - 10);
-      ctx.lineTo(cx, cy - 22);
-      ctx.lineTo(cx + 8, cy - 10);
+      ctx.moveTo(cxr - 10, cyr - towerH);
+      ctx.lineTo(cxr, cyr - towerH - 18);
+      ctx.lineTo(cxr + 10, cyr - towerH);
       ctx.closePath();
       ctx.fill();
 
+      if (region.id === "syarmin") {
+        // little ring above Syarmin
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cxr, cyr - towerH - 10, 8, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
       // label panel
-      const panelY = cy + ry + 16;
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(cx - 120, panelY, 240, 52);
-      ctx.strokeStyle = "#f97316";
+      const panelY = cyr + ryr + 14;
+      const panelWidth = Math.min(260, pw * 0.35);
+      const pxL = cxr - panelWidth / 2;
+      const pxT = panelY;
+
+      // title box
+      ctx.fillStyle = region.status === "unlocked" ? "#111827" : "#111827";
+      ctx.fillRect(pxL, pxT, panelWidth, 52);
+      ctx.strokeStyle = region.status === "unlocked" ? "#f97316" : "#4b5563";
       ctx.lineWidth = 2;
-      ctx.strokeRect(cx - 120, panelY, 240, 52);
+      ctx.strokeRect(pxL, pxT, panelWidth, 52);
 
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.font = "16px monospace";
-      ctx.fillStyle = "#fed7aa";
-      ctx.fillText(region.name.toUpperCase(), cx, panelY + 8);
-      ctx.font = "13px monospace";
-      ctx.fillStyle = "#fde68a";
-      ctx.fillText("Riba Market – Click to enter", cx, panelY + 28);
+      ctx.font = "15px monospace";
+      ctx.fillStyle = region.status === "unlocked" ? "#fed7aa" : "#e5e7eb";
+      ctx.fillText(region.name.toUpperCase(), cxr, pxT + 6);
+
+      ctx.font = "12px monospace";
+      if (region.status === "unlocked") {
+        ctx.fillStyle = "#fde68a";
+        ctx.fillText(region.subtitle + " – Click to enter", cxr, pxT + 26);
+      } else {
+        ctx.fillStyle = "#cbd5f5";
+        ctx.fillText(region.subtitle, cxr, pxT + 24);
+        ctx.fillStyle = "#fecaca";
+        ctx.fillText("Locked · Coming soon", cxr, pxT + 38);
+      }
     });
 
-    // bottom hint
+    // bottom tip + key style
+    const keyBox = (label, xPos) => {
+      const paddingX = 8;
+      const paddingY = 3;
+      ctx.font = "13px monospace";
+      const wText = ctx.measureText(label).width;
+      const bw = wText + paddingX * 2;
+      const bh = 20;
+      const bx = xPos - bw / 2;
+      const by = y + ph - 36;
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeStyle = "#7c2d12";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.fillStyle = "#1f2937";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, xPos, by + bh / 2 + 1);
+    };
+
+    keyBox("SPACE", w / 2 - 40);
+    keyBox("ENTER", w / 2 + 40);
+
+    ctx.font = "13px 'Georgia', serif";
+    ctx.fillStyle = "#4b5563";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    ctx.font = "14px monospace";
-    ctx.fillStyle = "#4b5563";
     ctx.fillText(
-      "Tip: Press SPACE / ENTER to jump straight into Kingdom of Syarmin",
-      canvas.width / 2,
-      y + h - 16
+      "Tip: Press SPACE or ENTER to jump straight into the Kingdom of Syarmin.",
+      w / 2,
+      y + ph - 10
     );
+
+    // message when clicking locked kingdoms
+    if (game.mapMessage && game.mapMessageTimer > 0) {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "16px 'Georgia', serif";
+      ctx.fillStyle = "rgba(15,23,42,0.85)";
+      const mw = Math.min(pw * 0.7, 640);
+      const mh = 46;
+      const mx = w / 2 - mw / 2;
+      const my = y + ph - 90;
+      ctx.fillRect(mx, my, mw, mh);
+      ctx.strokeStyle = "#f97316";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(mx, my, mw, mh);
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillText(game.mapMessage, w / 2, my + mh / 2);
+      ctx.restore();
+    }
 
     ctx.restore();
   }
@@ -1175,7 +1383,7 @@
     ctx.font = "bold 20px monospace";
     ctx.fillText(game.savingsPot.toString(), spX + 8, 38);
 
-    ctx.font = "14px monospace";
+    ctx.font = "16px monospace";
     ctx.fillStyle = "#020617";
     ctx.fillRect(spX, 72, 164, 38);
     ctx.strokeStyle = "#4b5563";
