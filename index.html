@@ -1,662 +1,948 @@
-<script>
-  (function () {
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-
-    // Low-res “pixel” canvas scaling
-    const LOGICAL_WIDTH = 200;
-    const LOGICAL_HEIGHT = 112;
-    const SCALE = 4;
-    canvas.width = LOGICAL_WIDTH * SCALE;
-    canvas.height = LOGICAL_HEIGHT * SCALE;
-
-    ctx.imageSmoothingEnabled = false;
-    ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-
-    const statsDiv = document.getElementById('stats');
-    const overlay = document.getElementById('game-over-overlay');
-    const toast = document.getElementById('toast');
-
-    const btnRestart = document.getElementById('btn-restart');
-    const btnLoan = document.getElementById('btn-loan');
-    const gameOverTitle = document.getElementById('game-over-title');
-    const gameOverMessage = document.getElementById('game-over-message');
-
-    // --- Game constants ---
-    const LANES = 3;
-    const laneYs = [40, 60, 80]; // y positions for top/mid/bottom lanes
-    const PLAYER_X = 40;
-    const PLAYER_W = 10;
-    const PLAYER_H = 8;
-
-    const MONSTER_W = 14;
-    const MONSTER_H = 12;
-
-    const ITEM_W = 6;
-    const ITEM_H = 6;
-
-    const BASE_SPEED = 1.4; // world scroll speed
-    const SPEED_INC = 0.00008; // small acceleration
-
-    const BALANCE_START = 500;
-    const DRAIN_PER_FRAME_BASE = 0.25; // slower drain so it feels fair
-    const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2;
-
-    const GREEN_MIN = 12;
-    const GREEN_MAX = 22;
-
-    const RED_MIN = 60;
-    const RED_MAX = 90;
-
-    const SADAQAH_COST = 80;
-    const SADAQAH_DURATION_FRAMES = 900; // 15 seconds @60fps
-
-    const KESTRL_DURATION_FRAMES = 600; // 10 seconds
-
-    const INVEST_COST = 200;
-    const INVEST_PAYOFF = 600;
-    const INVEST_DELAY_FRAMES = 600; // 10 seconds
-
-    const MONSTER_START_DISTANCE = 120; // abstract units
-    const MONSTER_GAIN_PER_FRAME = 0.03;
-    const MONSTER_GREEN_PUSH_BACK = 6;
-    const MONSTER_RED_PULL = 10;
-    const MONSTER_LOAN_EXTRA_PULL = 0.12;
-
-    // NEW: rage + glitch constants
-    const MONSTER_RAGE_MULTIPLIER = 2.6;    // how much faster during rage
-    const MONSTER_RAGE_DURATION = 240;      // ~4 seconds
-    const GLITCH_DURATION_FRAMES = 18;      // short but intense
-
-    const FRAME_TIME = 1000 / 60;
-
-    // --- Game state ---
-    let playerLane, balance, drainPerFrame, baseDrainPerFrame;
-    let monsterDistance;
-    let items; // coins, gates, kestrl card, obstacles
-    let investments; // pending dividend timers
-    let speed;
-    let frameCount;
-    let barakahActive, barakahTimer;
-    let kestrlActive, kestrlTimer;
-    let worldBright;
-    let monsterBanished;
-    let loanTaken;
-    let running;
-    let lastTime;
-    let spawnTimer;
-    let toastTimer = 0;
-    let gameOver = false;
-    let hardModeLoan = false; // after loan, one collision = death
-    let fogLevel = 0.4; // background "darkness"
-
-    // NEW: rage + glitch timers
-    let monsterRageTimer = 0;
-    let glitchTimer = 0;
-
-    function resetGame() {
-      playerLane = 1;
-      balance = BALANCE_START;
-      baseDrainPerFrame = DRAIN_PER_FRAME_BASE;
-      drainPerFrame = baseDrainPerFrame;
-      monsterDistance = MONSTER_START_DISTANCE;
-      items = [];
-      investments = [];
-      speed = BASE_SPEED;
-      frameCount = 0;
-      barakahActive = false;
-      barakahTimer = 0;
-      kestrlActive = false;
-      kestrlTimer = 0;
-      worldBright = false;
-      monsterBanished = false;
-      loanTaken = false;
-      running = true;
-      lastTime = performance.now();
-      spawnTimer = 0;
-      toastTimer = 0;
-      gameOver = false;
-      hardModeLoan = false;
-      fogLevel = 0.4;
-      monsterRageTimer = 0;
-      glitchTimer = 0;
-      hideOverlay();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Riba Run – Cutscene, Map & Minigame</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      background: #050711;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
     }
 
-    function showToast(msg) {
-      toast.innerText = msg;
-      toast.style.display = 'block';
-      toastTimer = 120; // show for ~2s
+    /* Containers */
+    #video-container,
+    #map-container,
+    #game-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
 
-    function hideOverlay() {
-      overlay.style.display = 'none';
+    #video-container {
+      background: #000;
     }
 
-    function showOverlay() {
-      overlay.style.display = 'flex';
+    #cutscene {
+      max-width: 100%;
+      max-height: 100%;
+      background: #000;
     }
 
-    function triggerGameOver(reason) {
-      running = false;
-      gameOver = true;
-
-      if (reason === 'balance') {
-        gameOverTitle.innerText = 'Bankruptcy';
-        gameOverMessage.innerText =
-          'Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…';
-      } else if (reason === 'caught') {
-        gameOverTitle.innerText = 'Caught by Riba';
-        gameOverMessage.innerText =
-          'The Riba Monster caught you. Even with shortcuts and quick money, you couldn’t escape its grip.';
-      } else {
-        gameOverTitle.innerText = 'Game Over';
-        gameOverMessage.innerText = 'Your run has ended in the Tunnel of Wants.';
-      }
-
-      showOverlay();
+    #cutscene-ui {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #ddd;
     }
 
-    function takeLoan() {
-      if (!gameOver) return; // safety
-      // Take loan: +£1000, double drain, monster glued close & hard mode
-      balance += 1000;
-      baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER;
-      drainPerFrame = baseDrainPerFrame;
-      monsterDistance = 25; // right behind you
-      loanTaken = true;
-      hardModeLoan = true;
-      gameOver = false;
-      running = true;
-      hideOverlay();
+    #skip-btn {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      background: #111827;
+      color: #f9fafb;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
+    }
+    #skip-btn:hover {
+      background: #1f2937;
     }
 
-    function restartGame() {
-      resetGame();
+    /* Map */
+    #map-container {
+      background: radial-gradient(circle at top, #020617, #020617 50%, #000 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
 
-    btnRestart.addEventListener('click', () => {
-      restartGame();
+    #map-frame {
+      position: relative;
+      width: 90vw;
+      max-width: 1100px;
+      aspect-ratio: 16 / 9;
+      background: #020617;
+      border-radius: 24px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+      overflow: hidden;
+    }
+
+    #world-map {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: saturate(1.1);
+    }
+
+    .map-node {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+    }
+
+    .map-node-inner {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(96, 165, 250, 0.9);
+      box-shadow:
+        0 0 20px rgba(56, 189, 248, 0.7),
+        0 0 40px rgba(37, 99, 235, 0.5);
+      background: radial-gradient(circle at 30% 20%, #e0f2fe, #2563eb 60%, #020617 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ecfeff;
+      font-weight: 700;
+      font-size: 20px;
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+    }
+
+    .map-node:hover .map-node-inner {
+      transform: scale(1.12);
+      box-shadow:
+        0 0 28px rgba(56, 189, 248, 1),
+        0 0 60px rgba(37, 99, 235, 0.9);
+    }
+
+    .map-node-label {
+      position: absolute;
+      top: 100%;
+      margin-top: 6px;
+      width: 140px;
+      text-align: center;
+      font-size: 12px;
+      color: #e5e7eb;
+      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    }
+
+    #map-caption {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    #back-to-map {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(15,23,42,0.9);
+      color: #e5e7eb;
+      cursor: pointer;
+      display: none;
+    }
+    #back-to-map:hover {
+      background: rgba(30,64,175,0.9);
+    }
+
+    /* Game */
+    #game-container {
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 10px;
+    }
+    canvas {
+      border: 2px solid #444;
+      image-rendering: pixelated;
+      background: #000;
+    }
+    #hud {
+      margin-top: 8px;
+      font-size: 14px;
+      text-align: center;
+      line-height: 1.4;
+    }
+    #hud-hint {
+      font-size: 12px;
+      margin-top: 4px;
+      color: #9ca3af;
+    }
+
+    #game-over-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #game-over-box {
+      background: #111827;
+      border: 1px solid #4b5563;
+      padding: 20px 24px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 360px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+    }
+    #game-over-box h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 22px;
+    }
+    #game-over-box p {
+      margin: 4px 0 14px;
+      font-size: 14px;
+      color: #e5e7eb;
+    }
+    .btn {
+      display: inline-block;
+      margin: 4px 6px;
+      padding: 8px 14px;
+      font-size: 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #22c55e;
+      color: #022c22;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: #fef2f2;
+    }
+    .btn-secondary {
+      background: #374151;
+      color: #e5e7eb;
+    }
+    .btn:hover {
+      filter: brightness(1.06);
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CUTSCENE -->
+  <div id="video-container" style="display:flex;">
+    <video id="cutscene" src="cutscene.mp4" autoplay muted playsinline></video>
+    <div id="cutscene-ui">
+      <span>If the video doesn’t start, press play or click “Skip”.</span>
+    </div>
+    <button id="skip-btn">Skip ▶</button>
+  </div>
+
+  <!-- MAP -->
+  <div id="map-container">
+    <button id="back-to-map">← Back to Map</button>
+    <div id="map-frame">
+      <img id="world-map" src="fantasy-world-map.png" alt="Fantasy world map" />
+      <!-- Castle Hub -->
+      <div class="map-node" data-level="1" style="left:18%; top:70%;">
+        <div class="map-node-inner">1</div>
+        <div class="map-node-label">Castle Hub</div>
+      </div>
+      <!-- Forest Trials -->
+      <div class="map-node" data-level="2" style="left:50%; top:55%;">
+        <div class="map-node-inner">2</div>
+        <div class="map-node-label">Forest Trials</div>
+      </div>
+      <!-- Riba Cave -->
+      <div class="map-node" data-level="3" style="left:77%; top:40%;">
+        <div class="map-node-inner">3</div>
+        <div class="map-node-label">Riba Cave</div>
+      </div>
+      <!-- Market Town -->
+      <div class="map-node" data-level="4" style="left:63%; top:78%;">
+        <div class="map-node-inner">4</div>
+        <div class="map-node-label">Market Town</div>
+      </div>
+    </div>
+    <div id="map-caption">
+      Hover a city and click to begin that challenge. Green coins = halal, red coins = riba, blue gates = Kestrel help.
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-container">
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div><strong>Controls:</strong> Arrow Up/Down = change lane &nbsp;|&nbsp; S = Sadaqah &nbsp;|&nbsp; R = Restart</div>
+      <div id="stats"></div>
+      <div id="hud-hint">
+        Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Riba coins (red), Kestrl Card (blue), Investment Gate (yellow)
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER OVERLAY -->
+  <div id="game-over-overlay">
+    <div id="game-over-box">
+      <h2 id="game-over-title">Bankruptcy</h2>
+      <p id="game-over-message">
+        Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…
+      </p>
+      <div style="margin-bottom: 8px;">
+        <button class="btn btn-secondary" id="btn-restart">Accept Bankruptcy (Restart)</button>
+      </div>
+      <div>
+        <button class="btn btn-danger" id="btn-loan">
+          Take Riba Loan (+£1000)
+        </button>
+      </div>
+      <p style="margin-top: 10px; font-size: 11px; color:#facc15;">
+        Taking the loan doubles your debt and interest. One mistake = permanent death.
+      </p>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // --- SIMPLE FLOW BETWEEN CUTSCENE → MAP → GAME ---
+    const videoContainer = document.getElementById('video-container');
+    const mapContainer = document.getElementById('map-container');
+    const gameContainer = document.getElementById('game-container');
+    const cutsceneVideo = document.getElementById('cutscene');
+    const skipBtn = document.getElementById('skip-btn');
+    const backToMapBtn = document.getElementById('back-to-map');
+
+    function showMap() {
+      videoContainer.style.display = 'none';
+      gameContainer.style.display = 'none';
+      mapContainer.style.display = 'flex';
+      backToMapBtn.style.display = 'none';
+    }
+
+    function showGame() {
+      mapContainer.style.display = 'none';
+      videoContainer.style.display = 'none';
+      gameContainer.style.display = 'flex';
+      backToMapBtn.style.display = 'inline-flex';
+    }
+
+    cutsceneVideo.addEventListener('ended', showMap);
+    skipBtn.addEventListener('click', showMap);
+
+    backToMapBtn.addEventListener('click', () => {
+      showMap();
     });
 
-    btnLoan.addEventListener('click', () => {
-      takeLoan();
-    });
-
-    // --- Input handling ---
-    const keys = {};
-    window.addEventListener('keydown', (e) => {
-      keys[e.key] = true;
-
-      if (e.key === 'ArrowUp') {
-        playerLane = Math.max(0, playerLane - 1);
-      } else if (e.key === 'ArrowDown') {
-        playerLane = Math.min(LANES - 1, playerLane + 1);
-      } else if (e.key === 's' || e.key === 'S') {
-        activateSadaqah();
-      } else if (e.key === 'r' || e.key === 'R') {
-        restartGame();
-      }
-    });
-    window.addEventListener('keyup', (e) => {
-      keys[e.key] = false;
-    });
-
-    function randInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    function activateSadaqah() {
-      if (barakahActive) {
-        showToast('Barakah already active.');
-        return;
-      }
-      if (balance < SADAQAH_COST) {
-        showToast('Not enough balance for Sadaqah.');
-        return;
-      }
-      balance -= SADAQAH_COST;
-      barakahActive = true;
-      barakahTimer = SADAQAH_DURATION_FRAMES;
-      fogLevel = 0.1; // world clearer
-      showToast('Sadaqah given. Hidden Barakah activated (2x halal earnings).');
-    }
-
-    function spawnItem() {
-      // Types: 'green', 'red', 'kestrl', 'invest', 'obstacle'
-      const lane = Math.floor(Math.random() * LANES);
-      const x = LOGICAL_WIDTH + 10;
-
-      const roll = Math.random();
-      let type;
-
-      if (roll < 0.65) {
-        // Mostly coins
-        type = Math.random() < 0.8 ? 'green' : 'red'; // 80% halal, 20% riba within coins
-      } else if (roll < 0.8) {
-        type = 'obstacle';
-      } else if (roll < 0.9) {
-        type = 'invest';
-      } else {
-        type = 'kestrl';
-      }
-
-      // During Kestrl card active, block red spawns
-      if (kestrlActive && type === 'red') {
-        type = 'green';
-      }
-
-      items.push({
-        type,
-        x,
-        lane,
-        w: ITEM_W,
-        h: ITEM_H,
+    // clicking any node -> go to game
+    document.querySelectorAll('.map-node').forEach(node => {
+      node.addEventListener('click', () => {
+        showGame();
       });
-    }
+    });
+  </script>
 
-    function update(delta) {
-      if (!running) return;
+  <!-- MINIGAME SCRIPT WITH RIBA RAGE + GLITCH -->
+  <script>
+    (function () {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
 
-      // cap delta to avoid weird jumps
-      const frames = delta / FRAME_TIME;
-      const effectiveFrames = Math.min(frames, 2);
+      const LOGICAL_WIDTH = 200;
+      const LOGICAL_HEIGHT = 112;
+      const SCALE = 4;
+      canvas.width = LOGICAL_WIDTH * SCALE;
+      canvas.height = LOGICAL_HEIGHT * SCALE;
 
-      for (let i = 0; i < effectiveFrames; i++) {
-        logicStep();
-      }
-    }
+      ctx.imageSmoothingEnabled = false;
+      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
 
-    function logicStep() {
-      frameCount++;
+      const statsDiv = document.getElementById('stats');
+      const overlay = document.getElementById('game-over-overlay');
+      const toast = document.getElementById('toast');
+      const btnRestart = document.getElementById('btn-restart');
+      const btnLoan = document.getElementById('btn-loan');
+      const gameOverTitle = document.getElementById('game-over-title');
+      const gameOverMessage = document.getElementById('game-over-message');
 
-      // Drain balance (hidden interest + living costs)
-      balance -= drainPerFrame;
-      if (balance <= 0) {
-        balance = 0;
-        triggerGameOver('balance');
-        return;
-      }
+      const LANES = 3;
+      const laneYs = [40, 60, 80];
+      const PLAYER_X = 40;
+      const PLAYER_W = 10;
+      const PLAYER_H = 8;
 
-      // Speed & spawn pacing
-      speed += SPEED_INC;
-      spawnTimer++;
-      const spawnInterval = Math.max(40, 95 - Math.floor(frameCount / 600)); // slower overall
-      if (spawnTimer >= spawnInterval) {
-        spawnItem();
+      const MONSTER_W = 14;
+      const MONSTER_H = 12;
+
+      const ITEM_W = 6;
+      const ITEM_H = 6;
+
+      const BASE_SPEED = 1.4;
+      const SPEED_INC = 0.00008;
+
+      const BALANCE_START = 500;
+      const DRAIN_PER_FRAME_BASE = 0.25;
+      const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2;
+
+      const GREEN_MIN = 12;
+      const GREEN_MAX = 22;
+
+      const RED_MIN = 60;
+      const RED_MAX = 90;
+
+      const SADAQAH_COST = 80;
+      const SADAQAH_DURATION_FRAMES = 900;
+
+      const KESTRL_DURATION_FRAMES = 600;
+
+      const INVEST_COST = 200;
+      const INVEST_PAYOFF = 600;
+      const INVEST_DELAY_FRAMES = 600;
+
+      const MONSTER_START_DISTANCE = 120;
+      const MONSTER_GAIN_PER_FRAME = 0.03;
+      const MONSTER_GREEN_PUSH_BACK = 6;
+      const MONSTER_RED_PULL = 10;
+      const MONSTER_LOAN_EXTRA_PULL = 0.12;
+
+      const MONSTER_RAGE_MULTIPLIER = 2.6;
+      const MONSTER_RAGE_DURATION = 240;
+      const GLITCH_DURATION_FRAMES = 18;
+
+      const FRAME_TIME = 1000 / 60;
+
+      let playerLane, balance, drainPerFrame, baseDrainPerFrame;
+      let monsterDistance;
+      let items;
+      let investments;
+      let speed;
+      let frameCount;
+      let barakahActive, barakahTimer;
+      let kestrlActive, kestrlTimer;
+      let worldBright;
+      let monsterBanished;
+      let loanTaken;
+      let running;
+      let lastTime;
+      let spawnTimer;
+      let toastTimer = 0;
+      let gameOver = false;
+      let hardModeLoan = false;
+      let fogLevel = 0.4;
+
+      let monsterRageTimer = 0;
+      let glitchTimer = 0;
+
+      function resetGame() {
+        playerLane = 1;
+        balance = BALANCE_START;
+        baseDrainPerFrame = DRAIN_PER_FRAME_BASE;
+        drainPerFrame = baseDrainPerFrame;
+        monsterDistance = MONSTER_START_DISTANCE;
+        items = [];
+        investments = [];
+        speed = BASE_SPEED;
+        frameCount = 0;
+        barakahActive = false;
+        barakahTimer = 0;
+        kestrlActive = false;
+        kestrlTimer = 0;
+        worldBright = false;
+        monsterBanished = false;
+        loanTaken = false;
+        running = true;
+        lastTime = performance.now();
         spawnTimer = 0;
+        toastTimer = 0;
+        gameOver = false;
+        hardModeLoan = false;
+        fogLevel = 0.4;
+        monsterRageTimer = 0;
+        glitchTimer = 0;
+        hideOverlay();
       }
 
-      // Update Sadaqah / Barakah
-      if (barakahActive) {
-        barakahTimer--;
-        if (barakahTimer <= 0) {
-          barakahActive = false;
-          fogLevel = 0.4;
-        }
+      function showToast(msg) {
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        toastTimer = 120;
       }
 
-      // Update Kestrl card effect
-      if (kestrlActive) {
-        kestrlTimer--;
-        if (kestrlTimer <= 0) {
-          kestrlActive = false;
-          worldBright = false;
-          monsterBanished = false;
-        }
+      function hideOverlay() {
+        overlay.style.display = 'none';
+      }
+      function showOverlay() {
+        overlay.style.display = 'flex';
       }
 
-      // Pending investments
-      for (let i = investments.length - 1; i >= 0; i--) {
-        investments[i].timer--;
-        if (investments[i].timer <= 0) {
-          // Only pay if still alive & running
-          if (!gameOver) {
-            balance += INVEST_PAYOFF;
-          }
-          investments.splice(i, 1);
+      function triggerGameOver(reason) {
+        running = false;
+        gameOver = true;
+
+        if (reason === 'balance') {
+          gameOverTitle.innerText = 'Bankruptcy';
+          gameOverMessage.innerText =
+            'Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…';
+        } else if (reason === 'caught') {
+          gameOverTitle.innerText = 'Caught by Riba';
+          gameOverMessage.innerText =
+            'The Riba Monster caught you. Even with shortcuts and quick money, you couldn’t escape its grip.';
+        } else {
+          gameOverTitle.innerText = 'Game Over';
+          gameOverMessage.innerText = 'Your run has ended in the Tunnel of Wants.';
         }
+
+        showOverlay();
       }
 
-      // Monster distance logic
-      if (!monsterBanished) {
-        let gain = MONSTER_GAIN_PER_FRAME;
+      function takeLoan() {
+        if (!gameOver) return;
+        balance += 1000;
+        baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER;
+        drainPerFrame = baseDrainPerFrame;
+        monsterDistance = 25;
+        loanTaken = true;
+        hardModeLoan = true;
+        gameOver = false;
+        running = true;
+        hideOverlay();
+      }
 
-        // NEW: if in rage, chase faster
-        if (monsterRageTimer > 0) {
-          gain *= MONSTER_RAGE_MULTIPLIER;
-          monsterRageTimer--;
+      function restartGame() {
+        resetGame();
+      }
+
+      btnRestart.addEventListener('click', restartGame);
+      btnLoan.addEventListener('click', takeLoan);
+
+      const keys = {};
+      window.addEventListener('keydown', (e) => {
+        keys[e.key] = true;
+        if (e.key === 'ArrowUp') {
+          playerLane = Math.max(0, playerLane - 1);
+        } else if (e.key === 'ArrowDown') {
+          playerLane = Math.min(LANES - 1, playerLane + 1);
+        } else if (e.key === 's' || e.key === 'S') {
+          activateSadaqah();
+        } else if (e.key === 'r' || e.key === 'R') {
+          restartGame();
         }
+      });
+      window.addEventListener('keyup', (e) => {
+        keys[e.key] = false;
+      });
 
-        monsterDistance -= gain;
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
 
-        if (loanTaken) {
-          monsterDistance -= MONSTER_LOAN_EXTRA_PULL;
-        }
-        if (monsterDistance <= 0) {
-          monsterDistance = 0;
-          triggerGameOver('caught');
+      function activateSadaqah() {
+        if (barakahActive) {
+          showToast('Barakah already active.');
           return;
         }
+        if (balance < SADAQAH_COST) {
+          showToast('Not enough balance for Sadaqah.');
+          return;
+        }
+        balance -= SADAQAH_COST;
+        barakahActive = true;
+        barakahTimer = SADAQAH_DURATION_FRAMES;
+        fogLevel = 0.1;
+        showToast('Sadaqah given. Hidden Barakah activated (2x halal earnings).');
       }
 
-      // Move items
-      for (let i = items.length - 1; i >= 0; i--) {
-        const it = items[i];
-        it.x -= speed;
+      function spawnItem() {
+        const lane = Math.floor(Math.random() * LANES);
+        const x = LOGICAL_WIDTH + 10;
 
-        // Remove off-screen
-        if (it.x < -20) {
-          items.splice(i, 1);
-          continue;
+        const roll = Math.random();
+        let type;
+
+        if (roll < 0.65) {
+          type = Math.random() < 0.8 ? 'green' : 'red';
+        } else if (roll < 0.8) {
+          type = 'obstacle';
+        } else if (roll < 0.9) {
+          type = 'invest';
+        } else {
+          type = 'kestrl';
         }
 
-        // Collision with player
-        const py = laneYs[playerLane] - PLAYER_H / 2;
-        const px = PLAYER_X;
-        if (
-          rectOverlap(
-            px,
-            py,
-            PLAYER_W,
-            PLAYER_H,
-            it.x,
-            laneYs[it.lane] - it.h / 2,
-            it.w,
-            it.h
-          )
-        ) {
-          if (it.type === 'green') {
-            const gain = randInt(GREEN_MIN, GREEN_MAX);
-            const realGain = gain * (barakahActive ? 2 : 1);
-            balance += realGain;
-            if (!monsterBanished) {
-              monsterDistance += MONSTER_GREEN_PUSH_BACK;
-            }
-          } else if (it.type === 'red') {
-            const gain = randInt(RED_MIN, RED_MAX);
-            const realGain = gain * (barakahActive ? 2 : 1);
-            balance += realGain;
-            if (!monsterBanished) {
-              monsterDistance -= MONSTER_RED_PULL;
-            }
+        if (kestrlActive && type === 'red') {
+          type = 'green';
+        }
 
-            // NEW: Riba Rage + glitch
-            monsterRageTimer = MONSTER_RAGE_DURATION;
-            glitchTimer = GLITCH_DURATION_FRAMES;
-          } else if (it.type === 'obstacle') {
-            // If monster is active, any obstacle hit is death.
-            if (!monsterBanished) {
-              triggerGameOver('caught');
-              return;
-            }
-            // If monster is banished (Kestrl mode), we just slow down a bit
-            speed = Math.max(BASE_SPEED, speed * 0.9);
-          } else if (it.type === 'invest') {
-            if (balance < INVEST_COST) {
-              showToast('Not enough balance to invest.');
-            } else {
-              balance -= INVEST_COST;
-              investments.push({
-                timer: INVEST_DELAY_FRAMES,
-              });
-              showToast('Investment made. Dividend will arrive soon inshaAllah.');
-            }
-          } else if (it.type === 'kestrl') {
-            kestrlActive = true;
-            kestrlTimer = KESTRL_DURATION_FRAMES;
-            worldBright = true;
-            monsterBanished = true;
-            monsterRageTimer = 0; // clear rage
-            // Convert all reds to greens
-            for (const other of items) {
-              if (other.type === 'red') other.type = 'green';
-            }
-            showToast(
-              'Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.'
-            );
+        items.push({ type, x, lane, w: ITEM_W, h: ITEM_H });
+      }
+
+      function update(delta) {
+        if (!running) return;
+        const frames = delta / FRAME_TIME;
+        const effectiveFrames = Math.min(frames, 2);
+        for (let i = 0; i < effectiveFrames; i++) logicStep();
+      }
+
+      function logicStep() {
+        frameCount++;
+
+        balance -= drainPerFrame;
+        if (balance <= 0) {
+          balance = 0;
+          triggerGameOver('balance');
+          return;
+        }
+
+        speed += SPEED_INC;
+        spawnTimer++;
+        const spawnInterval = Math.max(40, 95 - Math.floor(frameCount / 600));
+        if (spawnTimer >= spawnInterval) {
+          spawnItem();
+          spawnTimer = 0;
+        }
+
+        if (barakahActive) {
+          barakahTimer--;
+          if (barakahTimer <= 0) {
+            barakahActive = false;
+            fogLevel = 0.4;
+          }
+        }
+
+        if (kestrlActive) {
+          kestrlTimer--;
+          if (kestrlTimer <= 0) {
+            kestrlActive = false;
+            worldBright = false;
+            monsterBanished = false;
+          }
+        }
+
+        for (let i = investments.length - 1; i >= 0; i--) {
+          investments[i].timer--;
+          if (investments[i].timer <= 0) {
+            if (!gameOver) balance += INVEST_PAYOFF;
+            investments.splice(i, 1);
+          }
+        }
+
+        if (!monsterBanished) {
+          let gain = MONSTER_GAIN_PER_FRAME;
+          if (monsterRageTimer > 0) {
+            gain *= MONSTER_RAGE_MULTIPLIER;
+            monsterRageTimer--;
+          }
+          monsterDistance -= gain;
+          if (loanTaken) monsterDistance -= MONSTER_LOAN_EXTRA_PULL;
+          if (monsterDistance <= 0) {
+            monsterDistance = 0;
+            triggerGameOver('caught');
+            return;
+          }
+        }
+
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          it.x -= speed;
+
+          if (it.x < -20) {
+            items.splice(i, 1);
+            continue;
           }
 
-          items.splice(i, 1);
+          const py = laneYs[playerLane] - PLAYER_H / 2;
+          const px = PLAYER_X;
+          if (
+            rectOverlap(
+              px,
+              py,
+              PLAYER_W,
+              PLAYER_H,
+              it.x,
+              laneYs[it.lane] - it.h / 2,
+              it.w,
+              it.h
+            )
+          ) {
+            if (it.type === 'green') {
+              const gain = randInt(GREEN_MIN, GREEN_MAX);
+              const realGain = gain * (barakahActive ? 2 : 1);
+              balance += realGain;
+              if (!monsterBanished) monsterDistance += MONSTER_GREEN_PUSH_BACK;
+            } else if (it.type === 'red') {
+              const gain = randInt(RED_MIN, RED_MAX);
+              const realGain = gain * (barakahActive ? 2 : 1);
+              balance += realGain;
+              if (!monsterBanished) monsterDistance -= MONSTER_RED_PULL;
+              monsterRageTimer = MONSTER_RAGE_DURATION;
+              glitchTimer = GLITCH_DURATION_FRAMES;
+            } else if (it.type === 'obstacle') {
+              if (!monsterBanished) {
+                triggerGameOver('caught');
+                return;
+              }
+              speed = Math.max(BASE_SPEED, speed * 0.9);
+            } else if (it.type === 'invest') {
+              if (balance < INVEST_COST) {
+                showToast('Not enough balance to invest.');
+              } else {
+                balance -= INVEST_COST;
+                investments.push({ timer: INVEST_DELAY_FRAMES });
+                showToast('Investment made. Dividend will arrive soon inshaAllah.');
+              }
+            } else if (it.type === 'kestrl') {
+              kestrlActive = true;
+              kestrlTimer = KESTRL_DURATION_FRAMES;
+              worldBright = true;
+              monsterBanished = true;
+              monsterRageTimer = 0;
+              for (const other of items) {
+                if (other.type === 'red') other.type = 'green';
+              }
+              showToast(
+                'Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.'
+              );
+            }
+            items.splice(i, 1);
+          }
+        }
+
+        if (toastTimer > 0) {
+          toastTimer--;
+          if (toastTimer <= 0) toast.style.display = 'none';
+        }
+
+        if (glitchTimer > 0) glitchTimer--;
+      }
+
+      function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+        return (
+          x1 < x2 + w2 &&
+          x1 + w1 > x2 &&
+          y1 < y2 + h2 &&
+          y1 + h1 > y2
+        );
+      }
+
+      function drawBackground() {
+        const grd = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
+        grd.addColorStop(0, `rgba(0,0,0,1)`);
+        grd.addColorStop(1, `rgba(0,0,0,${1 - fogLevel})`);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+        let gridColor;
+        if (glitchTimer > 0) {
+          gridColor = 'rgba(255,80,120,0.55)';
+        } else if (worldBright) {
+          gridColor = 'rgba(120,255,180,0.4)';
+        } else {
+          gridColor = 'rgba(0,255,150,0.25)';
+        }
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 0.5;
+
+        ctx.beginPath();
+        for (let x = 0; x < LOGICAL_WIDTH; x += 10) {
+          ctx.moveTo(x + (frameCount % 10), 0);
+          ctx.lineTo(x + (frameCount % 10), LOGICAL_HEIGHT);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath();
+        for (let y of laneYs) {
+          ctx.moveTo(0, y + 6);
+          ctx.lineTo(LOGICAL_WIDTH, y + 6);
+        }
+        ctx.stroke();
+      }
+
+      function drawMonster() {
+        const maxDist = MONSTER_START_DISTANCE;
+        const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
+        const monsterX = 10 - (1 - t) * 6;
+        const monsterY = laneYs[playerLane] - MONSTER_H / 2;
+
+        if (monsterBanished) {
+          ctx.fillStyle = 'rgba(255,0,0,0.15)';
+        } else {
+          const rageFactor = monsterRageTimer > 0 ? 1.4 : 1;
+          const pulse = 0.4 + 0.3 * Math.sin(frameCount * 0.2 * rageFactor);
+          const alpha = 0.7 + 0.2 * Math.sin(frameCount * 0.4 * rageFactor);
+          ctx.fillStyle = `rgba(${200 + pulse * 55},0,0,${alpha})`;
+        }
+
+        ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
+
+        if (!monsterBanished) {
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 2, 3, 2);
+          ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 6, 3, 2);
         }
       }
 
-      // Toast timer
-      if (toastTimer > 0) {
-        toastTimer--;
-        if (toastTimer <= 0) {
-          toast.style.display = 'none';
+      function drawPlayer() {
+        const px = PLAYER_X;
+        const py = laneYs[playerLane] - PLAYER_H / 2;
+
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(px + PLAYER_W, py + 2, 3, 3);
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(px + PLAYER_W - 3, py + 2, 1, 1);
+
+        ctx.fillStyle = '#1d4ed8';
+        ctx.fillRect(px - 2, py + 2, 2, PLAYER_H - 3);
+      }
+
+      function drawItems() {
+        for (const it of items) {
+          const x = it.x;
+          const y = laneYs[it.lane] - it.h / 2;
+
+          if (it.type === 'green') {
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(x, y, it.w, it.h);
+          } else if (it.type === 'red') {
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(x, y, it.w, it.h);
+          } else if (it.type === 'obstacle') {
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillRect(x, y, it.w, it.h + 2);
+          } else if (it.type === 'invest') {
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(x, y - 2, 2, it.h + 4);
+            ctx.fillRect(x + it.w - 2, y - 2, 2, it.h + 4);
+            ctx.fillRect(x, y - 2, it.w, 2);
+          } else if (it.type === 'kestrl') {
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(x, y, it.w, it.h);
+            ctx.fillStyle = '#0ea5e9';
+            ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
+          }
         }
       }
 
-      // NEW: countdown glitch timer
-      if (glitchTimer > 0) {
-        glitchTimer--;
-      }
-    }
+      function drawHUD() {
+        const barX = 4;
+        const barY = 4;
 
-    function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-      return (
-        x1 < x2 + w2 &&
-        x1 + w1 > x2 &&
-        y1 < y2 + h2 &&
-        y1 + h1 > y2
-      );
-    }
-
-    function drawBackground() {
-      // Tunnel of Wants: dark gradient & scrolling lines
-      const grd = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
-      const baseDark = fogLevel;
-      grd.addColorStop(0, `rgba(0,0,0,1)`);
-      grd.addColorStop(1, `rgba(0,0,0,${1 - baseDark})`);
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
-
-      // Grid lines
-      // NEW: if glitching, tint them reddish
-      let gridColor;
-      if (glitchTimer > 0) {
-        gridColor = 'rgba(255,80,120,0.55)';
-      } else if (worldBright) {
-        gridColor = 'rgba(120,255,180,0.4)';
-      } else {
-        gridColor = 'rgba(0,255,150,0.25)';
-      }
-      ctx.strokeStyle = gridColor;
-      ctx.lineWidth = 0.5;
-
-      // Vertical lines
-      ctx.beginPath();
-      for (let x = 0; x < LOGICAL_WIDTH; x += 10) {
-        ctx.moveTo(x + (frameCount % 10), 0);
-        ctx.lineTo(x + (frameCount % 10), LOGICAL_HEIGHT);
-      }
-      ctx.stroke();
-
-      // Lane lines
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.beginPath();
-      for (let y of laneYs) {
-        ctx.moveTo(0, y + 6);
-        ctx.lineTo(LOGICAL_WIDTH, y + 6);
-      }
-      ctx.stroke();
-    }
-
-    function drawMonster() {
-      // Monster position based on monsterDistance
-      const maxDist = MONSTER_START_DISTANCE;
-      const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-      const monsterX = 10 - (1 - t) * 6; // creeps closer towards player
-      const monsterY = laneYs[playerLane] - MONSTER_H / 2;
-
-      if (monsterBanished) {
-        // faded glyph in background
-        ctx.fillStyle = 'rgba(255,0,0,0.15)';
-      } else {
-        // pulsing red – more intense if raging
-        const rageFactor = monsterRageTimer > 0 ? 1.4 : 1;
-        const pulse = 0.4 + 0.3 * Math.sin(frameCount * 0.2 * rageFactor);
-        const alpha = 0.7 + 0.2 * Math.sin(frameCount * 0.4 * rageFactor);
-        ctx.fillStyle = `rgba(${200 + pulse * 55},0,0,${alpha})`;
-      }
-
-      ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
-
-      if (!monsterBanished) {
-        // teeth
         ctx.fillStyle = '#fff';
-        ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 2, 3, 2);
-        ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 6, 3, 2);
+        ctx.font = '6px monospace';
+        ctx.fillText('£' + Math.max(0, Math.floor(balance)), barX, barY + 6);
+
+        const maxDist = MONSTER_START_DISTANCE;
+        const width = 70;
+        const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
+        const barWidth = width * t;
+
+        ctx.fillStyle = '#4b5563';
+        ctx.fillRect(barX, barY + 8, width, 4);
+
+        ctx.fillStyle = monsterBanished ? '#22c55e' : '#ef4444';
+        ctx.fillRect(barX, barY + 8, barWidth, 4);
+
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '5px monospace';
+        let threatX = barX + width + 4;
+        let threatY = barY + 11;
+        if (glitchTimer > 0) {
+          threatX += (Math.random() - 0.5) * 2;
+          threatY += (Math.random() - 0.5) * 2;
+        }
+        ctx.fillText('THREAT', threatX, threatY);
+
+        const statusParts = [];
+        if (barakahActive) statusParts.push('Barakah x2');
+        if (kestrlActive) statusParts.push('Kestrl Mode');
+        if (loanTaken) statusParts.push('Riba Loan Active');
+        if (monsterRageTimer > 0) statusParts.push('Riba Rage');
+
+        statsDiv.textContent =
+          'Balance: £' +
+          Math.max(0, Math.floor(balance)) +
+          ' | Threat: ' +
+          Math.floor((1 - t) * 100) +
+          '%' +
+          (statusParts.length ? ' | ' + statusParts.join(' · ') : '');
       }
-    }
 
-    function drawPlayer() {
-      const px = PLAYER_X;
-      const py = laneYs[playerLane] - PLAYER_H / 2;
-
-      // body
-      ctx.fillStyle = '#3b82f6'; // blue kestrel suit
-      ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
-
-      // beak
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillRect(px + PLAYER_W, py + 2, 3, 3);
-
-      // eye
-      ctx.fillStyle = '#000';
-      ctx.fillRect(px + PLAYER_W - 3, py + 2, 1, 1);
-
-      // little cape / wings
-      ctx.fillStyle = '#1d4ed8';
-      ctx.fillRect(px - 2, py + 2, 2, PLAYER_H - 3);
-    }
-
-    function drawItems() {
-      for (const it of items) {
-        const x = it.x;
-        const y = laneYs[it.lane] - it.h / 2;
-
-        if (it.type === 'green') {
-          ctx.fillStyle = '#22c55e';
-          ctx.fillRect(x, y, it.w, it.h);
-        } else if (it.type === 'red') {
-          ctx.fillStyle = '#ef4444';
-          ctx.fillRect(x, y, it.w, it.h);
-        } else if (it.type === 'obstacle') {
-          ctx.fillStyle = '#9ca3af';
-          ctx.fillRect(x, y, it.w, it.h + 2);
-        } else if (it.type === 'invest') {
-          // Yellow arch / gate
-          ctx.fillStyle = '#facc15';
-          ctx.fillRect(x, y - 2, 2, it.h + 4);
-          ctx.fillRect(x + it.w - 2, y - 2, 2, it.h + 4);
-          ctx.fillRect(x, y - 2, it.w, 2);
-        } else if (it.type === 'kestrl') {
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(x, y, it.w, it.h);
-          ctx.fillStyle = '#0ea5e9';
-          ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
+      function draw() {
+        if (glitchTimer > 0) {
+          ctx.save();
+          const offsetX = (Math.random() - 0.5) * 3;
+          const offsetY = (Math.random() - 0.5) * 3;
+          ctx.translate(offsetX, offsetY);
+          drawBackground();
+          drawItems();
+          drawMonster();
+          drawPlayer();
+          ctx.restore();
+          drawHUD();
+        } else {
+          drawBackground();
+          drawItems();
+          drawMonster();
+          drawPlayer();
+          drawHUD();
         }
       }
-    }
 
-    function drawHUD() {
-      // Bank balance & threat bar
-      const barX = 4;
-      const barY = 4;
-
-      // Balance text
-      ctx.fillStyle = '#fff';
-      ctx.font = '6px monospace';
-      ctx.fillText('£' + Math.max(0, Math.floor(balance)), barX, barY + 6);
-
-      // Monster distance bar
-      const maxDist = MONSTER_START_DISTANCE;
-      const width = 70;
-      const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-      const barWidth = width * t;
-
-      ctx.fillStyle = '#4b5563';
-      ctx.fillRect(barX, barY + 8, width, 4);
-
-      ctx.fillStyle = monsterBanished ? '#22c55e' : '#ef4444';
-      ctx.fillRect(barX, barY + 8, barWidth, 4);
-
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '5px monospace';
-
-      // NEW: slight jitter on THREAT text when glitching
-      let threatX = barX + width + 4;
-      let threatY = barY + 11;
-      if (glitchTimer > 0) {
-        threatX += (Math.random() - 0.5) * 2;
-        threatY += (Math.random() - 0.5) * 2;
+      function loop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const delta = timestamp - lastTime;
+        lastTime = timestamp;
+        update(delta);
+        draw();
+        requestAnimationFrame(loop);
       }
-      ctx.fillText('THREAT', threatX, threatY);
 
-      // Status flags text in browser HUD
-      const statusParts = [];
-      if (barakahActive) statusParts.push('Barakah x2');
-      if (kestrlActive) statusParts.push('Kestrl Mode');
-      if (loanTaken) statusParts.push('Riba Loan Active');
-      if (monsterRageTimer > 0) statusParts.push('Riba Rage');
-
-      statsDiv.textContent =
-        'Balance: £' +
-        Math.max(0, Math.floor(balance)) +
-        ' | Threat: ' +
-        Math.floor((1 - t) * 100) +
-        '%' +
-        (statusParts.length ? ' | ' + statusParts.join(' · ') : '');
-    }
-
-    function draw() {
-      // NEW: small screen shake when glitching
-      if (glitchTimer > 0) {
-        ctx.save();
-        const offsetX = (Math.random() - 0.5) * 3;
-        const offsetY = (Math.random() - 0.5) * 3;
-        ctx.translate(offsetX, offsetY);
-        drawBackground();
-        drawItems();
-        drawMonster();
-        drawPlayer();
-        ctx.restore();
-        drawHUD();
-      } else {
-        drawBackground();
-        drawItems();
-        drawMonster();
-        drawPlayer();
-        drawHUD();
-      }
-    }
-
-    function loop(timestamp) {
-      if (!lastTime) lastTime = timestamp;
-      const delta = timestamp - lastTime;
-      lastTime = timestamp;
-
-      update(delta);
-      draw();
-
+      investments = [];
+      items = [];
+      resetGame();
       requestAnimationFrame(loop);
-    }
-
-    // Initialise state containers
-    investments = [];
-    items = [];
-
-    resetGame();
-    requestAnimationFrame(loop);
-  })();
-</script>
-
-
-
-
+    })();
+  </script>
+</body>
+</html>
 
 
 
