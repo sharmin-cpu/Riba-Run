@@ -30,7 +30,6 @@
       align-items: center;
       background: #000;
       z-index: 50;
-      flex-direction: column;
     }
 
     #cutscene-video {
@@ -250,7 +249,7 @@
       cursor: pointer;
     }
 
-    .btn-danger  { background: #c53030; color: #fff; }
+    .btn-danger    { background: #c53030; color: #fff; }
     .btn-secondary { background: #2d3748; color: #fff; }
 
     #toast {
@@ -271,20 +270,21 @@
 
   <!-- ========== CUTSCENE SCREEN ========== -->
   <div id="cutscene-screen">
-    <!-- Trailer video, with controls in case autoplay is blocked -->
     <video
       id="cutscene-video"
-      src="cutscene.mp4"
       autoplay
       muted
-      controls
       playsinline
+      controls
       poster="fantasy-world-map.png"
-    ></video>
+    >
+      <source src="cutscene.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
 
     <div id="cutscene-overlay-bar">
       <div id="cutscene-hint">
-        If the video doesn’t start, press play or click “Skip” to go to the map.
+        If the video doesn’t start, press play or click “Skip”.
       </div>
       <button id="skip-cutscene">Skip ▶</button>
     </div>
@@ -347,7 +347,7 @@
           </button>
         </div>
         <p style="margin-top: 10px; font-size: 11px; color:#f6e05e;">
-          Taking the loan doubles your drain rate and glues the Monster to your back. One mistake = permanent death.
+          Taking the loan doubles your debt and interest. One mistake = permanent death.
         </p>
       </div>
     </div>
@@ -370,25 +370,18 @@
       mapScreen.style.display = 'flex';
     }
 
-    // When cutscene ends, go to map
     cutsceneVideo.addEventListener('ended', goToMapScreen);
-
-    // Skip button always works
     skipButton.addEventListener('click', (e) => {
       e.stopPropagation();
       goToMapScreen();
     });
-
-    // If video fails completely, go straight to map
     cutsceneVideo.addEventListener('error', goToMapScreen);
 
-    // If video hasn't started after 6s (e.g. big file / codec issue), show map anyway
+    // If still on black after 8s, just show the map
     setTimeout(() => {
-      const currentTime = cutsceneVideo.currentTime || 0;
-      if (currentTime === 0) {
-        goToMapScreen();
-      }
-    }, 6000);
+      const t = cutsceneVideo.currentTime || 0;
+      if (t === 0) goToMapScreen();
+    }, 8000);
 
     // ========= MAP → GAME =========
     document.querySelectorAll('.area').forEach(area => {
@@ -399,7 +392,7 @@
       });
     });
 
-    /* ========= FULL 2D RIBA RUN GAME (with DEBT + INTEREST) ========= */
+    /* ========= RIBA RUN GAME ========= */
 
     let ribaRunStarted = false;
 
@@ -486,7 +479,6 @@
         let toastTimer = 0;
         let gameOver = false;
         let fogLevel = 0.4;
-
         let debt;
         let lastInterestDrain = 0;
 
@@ -920,8 +912,6 @@
           requestAnimationFrame(loop);
         }
 
-        let items = [];
-        let investments = [];
         resetGame();
         requestAnimationFrame(loop);
       })();
@@ -929,6 +919,7 @@
   </script>
 </body>
 </html>
+
 
 
 
