@@ -39,11 +39,11 @@
       box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
 
-    /* YOUR FANTASY MAP */
+    /* YOUR FANTASY MAP IMAGE */
     .map {
       width: 100%;
       height: 100%;
-      background-image: url("fantasy-world-map.png"); /* <— IMPORTANT */
+      background-image: url("fantasy-world-map.png");
       background-size: cover;
       background-position: center;
       filter: brightness(1.05) contrast(1.08);
@@ -121,10 +121,10 @@
     }
 
     /* positions on your map (tweak if needed) */
-    .area--castle   { top: 72%; left: 22%; }  /* Castle bottom-left */
-    .area--forest   { top: 52%; left: 48%; }  /* Forest middle      */
-    .area--cave     { top: 40%; left: 78%; }  /* Cave right         */
-    .area--villages { top: 76%; left: 69%; }  /* Villages bottom-right */
+    .area--castle   { top: 72%; left: 22%; }
+    .area--forest   { top: 52%; left: 48%; }
+    .area--cave     { top: 40%; left: 78%; }
+    .area--villages { top: 76%; left: 69%; }
 
     /* =========================
        GAME SCREEN
@@ -258,7 +258,7 @@
         </div>
         <div id="stats"></div>
         <div style="font-size: 12px; margin-top: 4px; color:#aaa;">
-          Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Haram coins (red), Kestrl Card (blue), Investment Gate (yellow)
+          Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Riba coins (red), Kestrl Card (blue), Investment Gate (yellow)
         </div>
       </div>
     </div>
@@ -299,7 +299,7 @@
       });
     });
 
-    /* ========= FULL 2D RIBA RUN GAME ========= */
+    /* ========= FULL 2D RIBA RUN GAME (with DEBT + INTEREST) ========= */
     let ribaRunStarted = false;
 
     function startRibaRun() {
@@ -346,11 +346,11 @@
         const SPEED_INC = 0.0001;
 
         const BALANCE_START = 500;
-        const DRAIN_PER_FRAME_BASE = 1; // £1 per frame before loan
-        const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2;
+        const DRAIN_PER_FRAME_BASE = 1; // living costs (non-riba)
+        const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2; // for “take loan on death”
 
-        const GREEN_VALUE = 10;
-        const RED_VALUE = 50;
+        const GREEN_VALUE = 10;  // halal earning
+        const RED_VALUE   = 50;  // riba “loan” amount
 
         const SADAQAH_COST = 100;
         const SADAQAH_DURATION_FRAMES = 900; // 15 seconds @60fps
@@ -369,8 +369,11 @@
 
         const FRAME_TIME = 1000 / 60;
 
+        // NEW: simple interest rate on debt
+        const INTEREST_RATE_PER_FRAME = 0.00025; // 0.025% per frame ≈ 1.5% per second
+
         // --- Game state ---
-        let playerLane, balance, drainPerFrame, baseDrainPerFrame;
+        let playerLane, balance, baseDrainPerFrame, drainPerFrame;
         let monsterDistance;
         let items;       // coins, gates, kestrl card, obstacles
         let investments; // pending dividend timers
@@ -389,9 +392,14 @@
         let hardModeLoan = false; // after loan, one collision = death
         let fogLevel = 0.4;       // background "darkness"
 
+        // NEW: debt + last interest for HUD
+        let debt;
+        let lastInterestDrain = 0;
+
         function resetGame() {
           playerLane = 1;
           balance = BALANCE_START;
+          debt = 0;
           baseDrainPerFrame = DRAIN_PER_FRAME_BASE;
           drainPerFrame = baseDrainPerFrame;
           monsterDistance = MONSTER_START_DISTANCE;
@@ -413,6 +421,7 @@
           gameOver = false;
           hardModeLoan = false;
           fogLevel = 0.4;
+          lastInterestDrain = 0;
           hideOverlay();
         }
 
@@ -441,7 +450,7 @@
           } else if (reason === 'caught') {
             gameOverTitle.innerText = 'Caught by Riba';
             gameOverMessage.innerText =
-              'The Riba Monster caught you. Even with shortcuts and quick money, you couldn’t escape its grip.';
+              'The Riba Monster caught you. The weight of debt finally caught up.';
           } else {
             gameOverTitle.innerText = 'Game Over';
             gameOverMessage.innerText = 'Your run has ended in the Tunnel of Wants.';
@@ -452,16 +461,20 @@
 
         function takeLoan() {
           if (!gameOver) return; // safety
-          // Take loan: +£1000, double drain, monster glued close & hard mode
+
+          // Take loan: +£1000, but this is ALL debt
           balance += 1000;
-          baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER;
-          drainPerFrame = baseDrainPerFrame;
+          debt += 1000;
+
+          baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER; // more stress in life
           monsterDistance = 25; // right behind you
           loanTaken = true;
           hardModeLoan = true;
           gameOver = false;
           running = true;
           hideOverlay();
+
+          showToast('You took a big riba loan. Your debt and interest are now much heavier…');
         }
 
         function restartGame() {
@@ -508,7 +521,7 @@
           barakahActive = true;
           barakahTimer = SADAQAH_DURATION_FRAMES;
           fogLevel = 0.1; // world clearer
-          showToast('Sadaqah given. Hidden Barakah activated (2x real earnings).');
+          showToast('Sadaqah given. Barakah reduces the weight of your burdens.');
         }
 
         function spawnItem() {
@@ -559,13 +572,23 @@
         function logicStep() {
           frameCount++;
 
-          // Drain balance (hidden interest + living costs)
+          // ==== NEW: interest-based drain calculation ====
+          // living costs + interest on debt
+          let interestDrain = debt * INTEREST_RATE_PER_FRAME;
+          if (barakahActive) {
+            interestDrain *= 0.6; // simple barakah effect: slightly soften the interest burden
+          }
+          drainPerFrame = baseDrainPerFrame + interestDrain;
+          lastInterestDrain = interestDrain;
+
+          // Drain balance
           balance -= drainPerFrame;
           if (balance <= 0) {
             balance = 0;
             triggerGameOver('balance');
             return;
           }
+          // ===============================================
 
           // Speed & spawn pacing
           speed += SPEED_INC;
@@ -638,17 +661,22 @@
               it.x, laneYs[it.lane] - it.h / 2, it.w, it.h)) {
 
               if (it.type === 'green') {
+                // PURE HALAL INCOME
                 const realGain = GREEN_VALUE * (barakahActive ? 2 : 1);
                 balance += realGain;
                 if (!monsterBanished) {
                   monsterDistance += MONSTER_GREEN_PUSH_BACK;
                 }
+                showToast('Halal earnings: clean wealth, no debt added.');
               } else if (it.type === 'red') {
+                // RIBA LOAN: you get money, BUT equal amount becomes debt
                 const realGain = RED_VALUE * (barakahActive ? 2 : 1);
                 balance += realGain;
+                debt += realGain; // <-- THIS IS THE KEY IDEA
                 if (!monsterBanished) {
                   monsterDistance -= MONSTER_RED_PULL;
                 }
+                showToast('Riba taken: your balance went up, but so did your debt.');
               } else if (it.type === 'obstacle') {
                 // If monster is active, any obstacle hit is death.
                 if (!monsterBanished) {
@@ -665,7 +693,7 @@
                   investments.push({
                     timer: INVEST_DELAY_FRAMES
                   });
-                  showToast('Investment made. Dividend will arrive soon inshaAllah.');
+                  showToast('Halal investment made. Return will arrive soon inshaAllah.');
                 }
               } else if (it.type === 'kestrl') {
                 kestrlActive = true;
@@ -676,7 +704,7 @@
                 for (const other of items) {
                   if (other.type === 'red') other.type = 'green';
                 }
-                showToast('Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.');
+                showToast('Kestrl Card: Riba purified, haram coins converted to halal.');
               }
 
               items.splice(i, 1);
@@ -835,15 +863,17 @@
           ctx.font = '5px monospace';
           ctx.fillText('THREAT', barX + width + 4, barY + 11);
 
-          // Status flags text in browser HUD
+          // Status flags + debt display in DOM HUD
+          const interestPerSecond = lastInterestDrain * 60;
           const statusParts = [];
-          if (barakahActive) statusParts.push('Barakah x2');
+          if (barakahActive) statusParts.push('Barakah active');
           if (kestrlActive) statusParts.push('Kestrl Mode');
-          if (loanTaken) statusParts.push('Riba Loan Active');
+          if (loanTaken) statusParts.push('Big Riba Loan');
 
           statsDiv.textContent =
             'Balance: £' + Math.max(0, Math.floor(balance)) +
-            ' | Threat: ' + Math.floor((1 - t) * 100) + '%' +
+            ' | Debt: £' + Math.floor(debt) +
+            ' | Interest: £' + Math.floor(interestPerSecond) + '/sec' +
             (statusParts.length ? ' | ' + statusParts.join(' · ') : '');
         }
 
@@ -866,6 +896,8 @@
           requestAnimationFrame(loop);
         }
 
+        let items = [];
+        let investments = [];
         resetGame();
         requestAnimationFrame(loop);
       })();
@@ -873,6 +905,7 @@
   </script>
 </body>
 </html>
+
 
 
 
