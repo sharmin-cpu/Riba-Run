@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <title>Riba Run – 3D Kestrl Edition</title>
+
+  <!-- Tailwind for HUD -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js -->
+  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+  <!-- React + ReactDOM + Babel -->
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <meta charset="UTF-8">
   <title>Riba Run - 2D Pixel Edition</title>
   <style>
@@ -12,7 +24,14 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       height: 100%;
       overflow: hidden;
+      background: #020617;
+      color: #e5e7eb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
     }
+    #three-root {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
     #game-container {
       display: flex;
       flex-direction: column;
@@ -27,6 +46,7 @@
       image-rendering: pixelated;
       background: #000;
     }
+    #hud-root {
     #hud {
       margin-top: 8px;
       font-size: 14px;
@@ -41,7 +61,9 @@
       align-items: center;
       justify-content: center;
       z-index: 10;
+      pointer-events: none;
     }
+    canvas { display:block; }
     #game-over-box {
       background: #1a1a1a;
       border: 2px solid #555;
@@ -94,8 +116,221 @@
       z-index: 20;
     }
   </style>
+
+  <!-- no-op globals so game can start before HUD mounts -->
+  <script>
+    window.updateHUD = function () {};
+    window.showLoanModal = function () {};
+    window.hideLoanModal = function () {};
+    window.acceptBankruptcy = function () {};
+    window.takeLoan = function () {};
+  </script>
 </head>
 <body>
+  <div id="three-root"></div>
+  <div id="hud-root"></div>
+
+  <!-- React HUD -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function GameHUD() {
+      const [state, setState] = useState({
+        balance: 500,
+        score: 0,
+        barakahActive: false,
+        loanTaken: false,
+        showLoanModal: false,
+        gameOver: false,
+        gameOverReason: "",
+        monsterThreat: 0,
+      });
+
+      useEffect(() => {
+        window.updateHUD = (updates) => setState(prev => ({ ...prev, ...updates }));
+        window.showLoanModal = () => setState(prev => ({ ...prev, showLoanModal: true }));
+        window.hideLoanModal = () => setState(prev => ({ ...prev, showLoanModal: false }));
+      }, []);
+
+      const balanceColor =
+        state.balance > 400 ? "text-emerald-300" :
+        state.balance > 200 ? "text-yellow-300" :
+        state.balance > 0   ? "text-red-300" :
+                              "text-red-500";
+
+      const threatPercent = Math.min(100, Math.max(0, state.monsterThreat * 20));
+
+      return (
+        <div className="w-full h-full flex flex-col">
+          <div className="pointer-events-none flex justify-between items-start p-4 gap-4">
+            {/* LEFT */}
+            <div className="space-y-2">
+              <div className="bg-slate-900/70 border border-emerald-500/40 rounded-xl px-4 py-2 shadow-lg shadow-emerald-500/10">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs tracking-[0.2em] text-slate-400 uppercase">
+                    Bank Balance
+                  </span>
+                  <span className={`font-mono text-xl font-semibold ${balanceColor}`}>
+                    £{Math.floor(state.balance)}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-slate-400">
+                  Expenses are draining every frame. Stay halal, stay disciplined.
+                </div>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-700/80 rounded-xl px-4 py-2 shadow shadow-slate-900/60">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs tracking-[0.25em] text-slate-500 uppercase">
+                    Distance
+                  </span>
+                  <span className="font-mono text-lg text-sky-300">
+                    {Math.floor(state.score)} m
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500">
+                  The Tunnel of Wants stretches on…
+                </div>
+              </div>
+            </div>
+
+            {/* CENTRE */}
+            <div className="flex flex-col items-center gap-3 pointer-events-none">
+              <div className="bg-slate-950/70 border border-emerald-500/40 rounded-2xl px-4 py-2 shadow-lg shadow-emerald-500/25 min-w-[260px]">
+                <div className="flex justify-between items-center text-xs text-slate-300 mb-1">
+                  <span className="tracking-[0.25em] uppercase text-emerald-300">
+                    Barakah
+                  </span>
+                  <span className="text-slate-400">
+                    Press <span className="font-mono text-emerald-300">S</span> to give Sadaqah
+                  </span>
+                </div>
+                <div className="relative h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className={
+                      "absolute inset-y-0 left-0 transition-all duration-300 " +
+                      (state.barakahActive
+                        ? "w-full bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500 shadow-[0_0_20px_rgba(52,211,153,0.9)]"
+                        : "w-1/6 bg-slate-700")
+                    }
+                  />
+                </div>
+                <div className="mt-1 text-[11px] text-slate-400">
+                  {state.barakahActive
+                    ? "Hidden blessing: each coin quietly gives more than it shows."
+                    : "Costs £100 now, but eases your path ahead."}
+                </div>
+              </div>
+
+              <div className="bg-slate-950/60 border border-rose-500/40 rounded-2xl px-4 py-2 shadow-lg shadow-rose-500/25 min-w-[260px]">
+                <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
+                  <span className="tracking-[0.25em] uppercase text-rose-300">
+                    Debt Threat
+                  </span>
+                  <span className="font-mono text-xs text-rose-200">
+                    {Math.round(threatPercent)}%
+                  </span>
+                </div>
+                <div className="relative h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 via-yellow-300 to-rose-500"
+                    style={{ width: `${threatPercent}%` }}
+                  />
+                </div>
+                <div className="mt-1 text-[11px] text-slate-400">
+                  Green orbs push the Monster back. Red pyramids feed it.
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT */}
+            <div className="pointer-events-none">
+              <div className="bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-300 shadow shadow-slate-900/80">
+                <div className="font-semibold text-slate-100 mb-1 text-[11px] tracking-[0.22em] uppercase">
+                  Controls
+                </div>
+                <ul className="space-y-0.5 font-mono text-[11px]">
+                  <li>← → : Switch Lanes</li>
+                  <li>↑ / Space : Jump</li>
+                  <li>S : Sadaqah (Barakah boost)</li>
+                  <li>Yellow Arch : Investment Gate</li>
+                  <li>Blue Diamond : Kestrl Card</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Loan Modal */}
+          {state.showLoanModal && (
+            <div className="pointer-events-auto fixed inset-0 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+              <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full mx-4 p-6 shadow-2xl shadow-rose-900/40">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-full bg-rose-500/20 flex items-center justify-center">
+                    <span className="text-rose-400 text-lg">!</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-50">
+                      Balance Depleted
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      The Riba Monster looms over you. What will you choose?
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3 text-sm text-slate-300 mb-5">
+                  <p>
+                    You’ve hit <span className="font-mono text-rose-300">£0</span>.
+                    Many people are tempted to “solve” this with interest-bearing loans.
+                  </p>
+                  <p className="text-slate-400">
+                    In this moment, you have two paths:
+                  </p>
+                  <ul className="list-disc list-inside text-slate-300 text-xs space-y-1">
+                    <li>
+                      <span className="font-semibold text-emerald-300">Accept Bankruptcy</span>: End the run now and walk away from Riba.
+                    </li>
+                    <li>
+                      <span className="font-semibold text-rose-300">Take Riba Loan (+£1000)</span>: Expenses double and the Monster clings to you. One mistake, and it’s over.
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                  <button
+                    onClick={() => window.acceptBankruptcy && window.acceptBankruptcy()}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 rounded-xl border border-emerald-500/80 text-emerald-200 text-sm font-medium bg-emerald-950/40 hover:bg-emerald-900/60 transition"
+                  >
+                    Accept Bankruptcy
+                  </button>
+                  <button
+                    onClick={() => window.takeLoan && window.takeLoan()}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 rounded-xl border border-rose-500/80 text-rose-100 text-sm font-semibold bg-rose-900/60 hover:bg-rose-800/90 transition shadow-lg shadow-rose-900/70"
+                  >
+                    Take Riba Loan (+£1000)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Game Over */}
+          {state.gameOver && (
+            <div className="pointer-events-auto fixed inset-x-0 bottom-10 flex justify-center">
+              <div className="bg-slate-950/90 border border-slate-700 rounded-2xl px-6 py-4 shadow-2xl shadow-slate-900/80 max-w-xl mx-4">
+                <div className="text-sm text-slate-100 font-semibold mb-1">
+                  {state.gameOverReason || "Game Over"}
+                </div>
+                <p className="text-xs text-slate-400 mb-3">
+                  Press <span className="font-mono text-emerald-300">R</span> to restart and try to stay Riba-free.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<GameHUD />, document.getElementById("hud-root"));
+  </script>
   <div id="game-container">
     <canvas id="game" width="800" height="450"></canvas>
     <div id="hud">
@@ -134,12 +369,99 @@
 
   <div id="toast"></div>
 
+  <!-- Three.js Game -->
+  <script type="text/babel">
+    let scene, camera, renderer, clock;
+    let playerGroup, monster;
+    let laneIndex = 1;
+    const lanes = [-4, 0, 4];
+
+    let playerY = 1.25;
+    let velocityY = 0;
+    const gravity = -26;
+
+    let objects = []; // { mesh, type, lane }
+    let investmentTimers = [];
+
+    let speed = 28;
+    let balance = 500;
+    let score = 0;
+    let drainMultiplier = 1;
+    let baseDrainPerFrame = 1.2;
+    let drainAccumulator = 0;
+
+    let threatLevel = 1.5;
+    let monsterZ = 6;
+    let monsterTargetZ = 6;
+
+    let barakahActive = false;
+    let barakahTimeLeft = 0;
+    const barakahMultiplier = 2;
+    const barakahScoreMultiplier = 2;
+
+    let kestrlActive = false;
+    let kestrlTimeLeft = 0;
+
+    let fogDensityBase = 0.03;
+    let fogDensityBarakah = 0.015;
+
+    let lastSpawnTime = 0;
+    let lastGateTime = 0;
+    let lastKestrlTime = 0;
+
+    let isPaused = false;
+    let isGameOver = false;
+    let loanTaken = false;
+
+    const threeRoot = document.getElementById("three-root");
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x020617);
+      scene.fog = new THREE.FogExp2(0x020617, fogDensityBase);
+
+      const aspect = window.innerWidth / window.innerHeight;
+      camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 200);
+      camera.position.set(0, 7, 15);
+      camera.lookAt(0, 2.5, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      threeRoot.appendChild(renderer.domElement);
+
+      const amb = new THREE.AmbientLight(0x334155, 1.2);
+      scene.add(amb);
+
+      const dir = new THREE.DirectionalLight(0x38bdf8, 1.2);
+      dir.position.set(8, 14, 10);
+      scene.add(dir);
+
+      // Ground : three-lane neon road
+      const groundGeo = new THREE.BoxGeometry(16, 0.4, 200);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x020617,
+        emissive: 0x020617,
+        emissiveIntensity: 1.0,
+        metalness: 0.7,
+        roughness: 0.3,
+      });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.position.set(0, 0, -90);
+      scene.add(ground);
+
+      // Neon grid lines
+      const gridMat = new THREE.LineBasicMaterial({ color: 0x0ea5e9, linewidth: 1 });
+      const gridGeo = new THREE.BufferGeometry();
+      const gridVerts = [];
+      for (let z = -180; z <= 20; z += 4) {
+        gridVerts.push(-8, 0.21, z, 8, 0.21, z);
   <script>
     (function() {
       const canvas = document.getElementById('game');
       const ctx = canvas.getContext('2d');
 
-      // Low-res “pixel” canvas
+      // Low-res “pixel” canvas scaling
       const LOGICAL_WIDTH = 200;
       const LOGICAL_HEIGHT = 112;
       const SCALE = 4;
@@ -158,39 +480,39 @@
       const gameOverTitle = document.getElementById('game-over-title');
       const gameOverMessage = document.getElementById('game-over-message');
 
-      // --- Constants ---
+      // --- Game constants ---
       const LANES = 3;
-      const laneYs = [40, 60, 80];
+      const laneYs = [40, 60, 80]; // y positions for top/mid/bottom lanes
       const PLAYER_X = 40;
       const PLAYER_W = 10;
       const PLAYER_H = 8;
 
-      const MONSTER_W = 16;
-      const MONSTER_H = 14;
+      const MONSTER_W = 14;
+      const MONSTER_H = 12;
 
       const ITEM_W = 6;
       const ITEM_H = 6;
 
-      const BASE_SPEED = 1.4;
+      const BASE_SPEED = 1.4;      // world scroll speed
       const SPEED_INC = 0.0001;
 
       const BALANCE_START = 500;
-      const DRAIN_PER_FRAME_BASE = 1;
+      const DRAIN_PER_FRAME_BASE = 1; // £1 per frame before loan
       const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2;
 
       const GREEN_VALUE = 10;
       const RED_VALUE = 50;
 
       const SADAQAH_COST = 100;
-      const SADAQAH_DURATION_FRAMES = 900; // 15s
+      const SADAQAH_DURATION_FRAMES = 900; // 15 seconds @60fps
 
-      const KESTRL_DURATION_FRAMES = 600;  // 10s
+      const KESTRL_DURATION_FRAMES = 600;  // 10 seconds
 
       const INVEST_COST = 200;
       const INVEST_PAYOFF = 600;
-      const INVEST_DELAY_FRAMES = 600;
+      const INVEST_DELAY_FRAMES = 600;     // 10 seconds
 
-      const MONSTER_START_DISTANCE = 120;
+      const MONSTER_START_DISTANCE = 120;  // abstract units
       const MONSTER_GAIN_PER_FRAME = 0.05;
       const MONSTER_GREEN_PUSH_BACK = 6;
       const MONSTER_RED_PULL = 10;
@@ -198,11 +520,11 @@
 
       const FRAME_TIME = 1000 / 60;
 
-      // --- State ---
+      // --- Game state ---
       let playerLane, balance, drainPerFrame, baseDrainPerFrame;
       let monsterDistance;
-      let items;
-      let investments;
+      let items;       // coins, gates, kestrl card, obstacles
+      let investments; // pending dividend timers
       let speed;
       let frameCount;
       let barakahActive, barakahTimer;
@@ -215,8 +537,8 @@
       let spawnTimer;
       let toastTimer = 0;
       let gameOver = false;
-      let hardModeLoan = false;
-      let fogLevel = 0.4;
+      let hardModeLoan = false; // after loan, one collision = death
+      let fogLevel = 0.4;       // background "darkness"
 
       function resetGame() {
         playerLane = 1;
@@ -244,21 +566,93 @@
         fogLevel = 0.4;
         hideOverlay();
       }
+      for (let x = -8; x <= 8; x += 4) {
+        gridVerts.push(x, 0.21, -180, x, 0.21, 20);
 
       function showToast(msg) {
         toast.innerText = msg;
         toast.style.display = 'block';
-        toastTimer = 120;
+        toastTimer = 120; // show for ~2s
       }
+      gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(gridVerts, 3));
+      const grid = new THREE.LineSegments(gridGeo, gridMat);
+      scene.add(grid);
+
+      // Lane separators
+      const laneMat = new THREE.LineBasicMaterial({ color: 0x22c55e });
+      for (let i = 0; i < lanes.length; i++) {
+        const laneX = lanes[i];
+        const g = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(laneX, 0.25, -180),
+          new THREE.Vector3(laneX, 0.25, 20),
+        ]);
+        const line = new THREE.Line(g, laneMat);
+        scene.add(line);
 
       function hideOverlay() {
         overlay.style.display = 'none';
       }
 
+      // Player – neon Kestrl cube + beak
+      const bodyGeo = new THREE.BoxGeometry(1.8, 1.2, 1.4);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x22c55e,
+        emissive: 0x22c55e,
+        emissiveIntensity: 1.6,
+        metalness: 0.6,
+        roughness: 0.25,
+      });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+
+      const beakGeo = new THREE.ConeGeometry(0.35, 0.9, 16);
+      const beakMat = new THREE.MeshStandardMaterial({
+        color: 0xfacc15,
+        emissive: 0xf97316,
+        emissiveIntensity: 1.2,
+        metalness: 0.5,
+        roughness: 0.4,
+      });
+      const beak = new THREE.Mesh(beakGeo, beakMat);
+      beak.rotation.z = -Math.PI / 2;
+      beak.position.set(1.15, 0.1, 0);
+
+      playerGroup = new THREE.Group();
+      playerGroup.add(body);
+      playerGroup.add(beak);
+      playerGroup.position.set(lanes[laneIndex], playerY, 0);
+      scene.add(playerGroup);
+
+      // Monster – big pulsing debt cube clearly visible
+      const monsterGeo = new THREE.BoxGeometry(2.4, 2.4, 2.4);
+      const monsterMat = new THREE.MeshStandardMaterial({
+        color: 0x020617,
+        emissive: 0x7f1d1d,
+        emissiveIntensity: 1.3,
+        metalness: 0.2,
+        roughness: 0.9,
+      });
+      monster = new THREE.Mesh(monsterGeo, monsterMat);
+      monster.position.set(0, 2, monsterZ);
+      scene.add(monster);
+
+      // Floating neon cubes around tunnel walls
+      for (let i = 0; i < 80; i++) {
+        const g = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        const m = new THREE.MeshBasicMaterial({
+          color: Math.random() > 0.5 ? 0x38bdf8 : 0x22c55e,
+        });
+        const cube = new THREE.Mesh(g, m);
+        cube.position.set(
+          (Math.random() - 0.5) * 16,
+          1 + Math.random() * 8,
+          -20 - Math.random() * 170
+        );
+        scene.add(cube);
       function showOverlay() {
         overlay.style.display = 'flex';
       }
 
+      clock = new THREE.Clock();
       function triggerGameOver(reason) {
         running = false;
         gameOver = true;
@@ -276,15 +670,21 @@
           gameOverMessage.innerText = 'Your run has ended in the Tunnel of Wants.';
         }
 
+      window.addEventListener("resize", onWindowResize);
+      window.addEventListener("keydown", onKeyDown);
         showOverlay();
       }
 
+      resetGame();
+      animate();
+    }
       function takeLoan() {
-        if (!gameOver) return;
+        if (!gameOver) return; // safety
+        // Take loan: +£1000, double drain, monster glued close & hard mode
         balance += 1000;
         baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER;
         drainPerFrame = baseDrainPerFrame;
-        monsterDistance = 25;
+        monsterDistance = 25; // right behind you
         loanTaken = true;
         hardModeLoan = true;
         gameOver = false;
@@ -292,14 +692,77 @@
         hideOverlay();
       }
 
+    function resetGame() {
+      balance = 500;
+      score = 0;
+      drainMultiplier = 1;
+      baseDrainPerFrame = 1.2;
+      drainAccumulator = 0;
+
+      threatLevel = 1.5;
+      monsterZ = 6;
+      monsterTargetZ = 6;
+
+      laneIndex = 1;
+      playerY = 1.25;
+      playerGroup.position.set(lanes[laneIndex], playerY, 0);
+      velocityY = 0;
+
+      barakahActive = false;
+      barakahTimeLeft = 0;
+      kestrlActive = false;
+      kestrlTimeLeft = 0;
+      loanTaken = false;
+      isPaused = false;
+      isGameOver = false;
+
+      scene.background = new THREE.Color(0x020617);
+      scene.fog.density = fogDensityBase;
+
+      objects.forEach(o => scene.remove(o.mesh));
+      objects = [];
+      investmentTimers = [];
+
+      lastSpawnTime = 0;
+      lastGateTime = 0;
+      lastKestrlTime = 0;
+      clock.getDelta();
+
+      window.updateHUD({
+        balance,
+        score,
+        barakahActive,
+        loanTaken,
+        gameOver: false,
+        gameOverReason: "",
+        monsterThreat: threatLevel,
+        showLoanModal: false,
       function restartGame() {
         resetGame();
       }
 
-      btnRestart.addEventListener('click', restartGame);
-      btnLoan.addEventListener('click', takeLoan);
+      btnRestart.addEventListener('click', () => {
+        restartGame();
+      });
+    }
 
-      // Input
+    function onWindowResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+      btnLoan.addEventListener('click', () => {
+        takeLoan();
+      });
+
+    function onKeyDown(e) {
+      if (e.code === "ArrowLeft") {
+        if (!isPaused && !isGameOver) {
+          laneIndex = Math.max(0, laneIndex - 1);
+          playerGroup.position.x = lanes[laneIndex];
+      // --- Input handling ---
       const keys = {};
       window.addEventListener('keydown', (e) => {
         keys[e.key] = true;
@@ -313,6 +776,10 @@
         } else if (e.key === 'r' || e.key === 'R') {
           restartGame();
         }
+      } else if (e.code === "ArrowRight") {
+        if (!isPaused && !isGameOver) {
+          laneIndex = Math.min(lanes.length - 1, laneIndex + 1);
+          playerGroup.position.x = lanes[laneIndex];
       });
       window.addEventListener('keyup', (e) => {
         keys[e.key] = false;
@@ -323,18 +790,94 @@
           showToast('Barakah already active.');
           return;
         }
+      } else if (e.code === "ArrowUp" || e.code === "Space") {
+        if (!isPaused && !isGameOver && playerY <= 1.26) {
+          velocityY = 12;
         if (balance < SADAQAH_COST) {
           showToast('Not enough balance for Sadaqah.');
           return;
         }
+      } else if (e.code === "KeyS") {
+        if (!isPaused && !isGameOver) triggerSadaqah();
+      } else if (e.code === "KeyR") {
+        if (isGameOver) resetGame();
+      }
+    }
+
+    function triggerSadaqah() {
+      if (balance >= 100 && !barakahActive) {
+        balance -= 100;
         balance -= SADAQAH_COST;
         barakahActive = true;
+        barakahTimeLeft = 15;
+        scene.fog.density = fogDensityBarakah;
+        window.updateHUD({ balance, barakahActive });
         barakahTimer = SADAQAH_DURATION_FRAMES;
-        fogLevel = 0.1;
+        fogLevel = 0.1; // world clearer
         showToast('Sadaqah given. Hidden Barakah activated (2x real earnings).');
       }
+    }
 
+    function spawnObject(type) {
+      let mesh;
+      const lane = lanes[Math.floor(Math.random() * lanes.length)];
+      const z = -60 - Math.random() * 40;
+
+      if (type === "greenCoin") {
+        const g = new THREE.SphereGeometry(0.7, 16, 16);
+        const m = new THREE.MeshStandardMaterial({
+          color: 0x22c55e,
+          emissive: 0xfacc15,
+          emissiveIntensity: 1.5,
+          metalness: 0.4,
+          roughness: 0.25,
+        });
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 1.6, z);
+      } else if (type === "redCoin") {
+        const g = new THREE.ConeGeometry(0.7, 1.3, 20);
+        const m = new THREE.MeshStandardMaterial({
+          color: 0x991b1b,
+          emissive: 0xef4444,
+          emissiveIntensity: 1.4,
+          metalness: 0.4,
+          roughness: 0.3,
+        });
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 1.6, z);
+      } else if (type === "obstacle") {
+        const g = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+        const m = new THREE.MeshStandardMaterial({
+          color: 0x334155,
+          emissive: 0x0f172a,
+          emissiveIntensity: 1.0,
+          metalness: 0.6,
+          roughness: 0.35,
+        });
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 0.8, z);
+      } else if (type === "investmentGate") {
+        const g = new THREE.TorusGeometry(1.7, 0.18, 16, 32);
+        const m = new THREE.MeshStandardMaterial({
+          color: 0xfacc15,
+          emissive: 0xf59e0b,
+          emissiveIntensity: 1.2,
+          metalness: 0.7,
+          roughness: 0.3,
+        });
+        mesh = new THREE.Mesh(g, m);
+        mesh.rotation.x = Math.PI / 2;
+        mesh.position.set(lane, 1.9, z);
+      } else if (type === "kestrlCard") {
+        const g = new THREE.OctahedronGeometry(0.8);
+        const m = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x22d3ee,
+          emissiveIntensity: 1.6,
+          metalness: 0.6,
+          roughness: 0.2,
       function spawnItem() {
+        // Types: 'green', 'red', 'kestrl', 'invest', 'obstacle'
         const lane = Math.floor(Math.random() * LANES);
         const x = LOGICAL_WIDTH + 10;
 
@@ -342,6 +885,7 @@
         let type;
 
         if (roll < 0.55) {
+          // Mostly coins
           type = Math.random() < 0.6 ? 'green' : 'red';
         } else if (roll < 0.7) {
           type = 'obstacle';
@@ -351,6 +895,11 @@
           type = 'kestrl';
         }
 
+        // During Kestrl card active, block red spawns
+        if (kestrlActive && type === 'red') {
+          type = 'green';
+        }
+
         items.push({
           type,
           x,
@@ -358,22 +907,54 @@
           w: ITEM_W,
           h: ITEM_H
         });
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 2.2, z);
       }
 
+      if (mesh) {
+        scene.add(mesh);
+        objects.push({ mesh, type, lane });
+      }
+    }
       function update(delta) {
         if (!running) return;
 
+    function addBalance(amount) {
+      const mult = barakahActive ? barakahMultiplier : 1;
+      balance += amount * mult;
+    }
+        // cap delta to avoid weird jumps
         const frames = delta / FRAME_TIME;
         const effectiveFrames = Math.min(frames, 2);
+
+    function updateInvestments(dt) {
+      const framesPassed = dt * 60;
+      for (let i = investmentTimers.length - 1; i >= 0; i--) {
+        const inv = investmentTimers[i];
+        inv.framesLeft -= framesPassed;
+        if (inv.framesLeft <= 0 && !inv.paid) {
+          inv.paid = true;
+          addBalance(600);
+          investmentTimers.splice(i, 1);
         for (let i = 0; i < effectiveFrames; i++) {
           logicStep();
         }
       }
+    }
 
+    function updateMonster(dt) {
+      const baseZ = 7;
+      const minZ = 1.8;
+      const maxZ = 14;
       function logicStep() {
         frameCount++;
 
-        // Drain
+      monsterTargetZ = baseZ - threatLevel * 2;
+      monsterTargetZ = Math.min(maxZ, Math.max(minZ, monsterTargetZ));
+
+      if (kestrlActive) monsterTargetZ = 18;
+      if (loanTaken && !kestrlActive) monsterTargetZ = Math.max(2.2, monsterTargetZ - 1.7);
+        // Drain balance (hidden interest + living costs)
         balance -= drainPerFrame;
         if (balance <= 0) {
           balance = 0;
@@ -381,16 +962,22 @@
           return;
         }
 
-        // Speed & spawns
+      monsterZ += (monsterTargetZ - monsterZ) * 3 * dt;
+      monster.position.z = monsterZ;
+        // Speed & spawn pacing
         speed += SPEED_INC;
         spawnTimer++;
-        const spawnInterval = Math.max(30, 80 - Math.floor(frameCount / 600));
+        const spawnInterval = Math.max(30, 80 - Math.floor(frameCount / 600)); // faster over time
         if (spawnTimer >= spawnInterval) {
           spawnItem();
           spawnTimer = 0;
         }
 
-        // Sadaqah
+      const intensity = kestrlActive
+        ? 0.2
+        : 0.6 + Math.min(1.2, threatLevel * 0.25);
+      monster.material.emissiveIntensity = intensity;
+        // Update Sadaqah / Barakah
         if (barakahActive) {
           barakahTimer--;
           if (barakahTimer <= 0) {
@@ -399,7 +986,11 @@
           }
         }
 
-        // Kestrl card
+      if (!isGameOver && !isPaused && monsterZ <= 2.0) {
+        gameOver("Game Over: Consumed by Debt.");
+      }
+    }
+        // Update Kestrl card effect
         if (kestrlActive) {
           kestrlTimer--;
           if (kestrlTimer <= 0) {
@@ -409,16 +1000,52 @@
           }
         }
 
-        // Investments
+    function gameOver(reason) {
+      isGameOver = true;
+      isPaused = true;
+      window.updateHUD({
+        gameOver: true,
+        gameOverReason: reason,
+        showLoanModal: false,
+      });
+    }
+        // Pending investments
         for (let i = investments.length - 1; i >= 0; i--) {
           investments[i].timer--;
           if (investments[i].timer <= 0) {
-            if (!gameOver) balance += INVEST_PAYOFF;
+            // Only pay if still alive & running
+            if (!gameOver) {
+              balance += INVEST_PAYOFF;
+            }
             investments.splice(i, 1);
           }
         }
 
-        // Monster movement
+    window.acceptBankruptcy = function () {
+      if (!isPaused) return;
+      gameOver("You accepted bankruptcy and walked away from Riba.");
+    };
+
+    window.takeLoan = function () {
+      if (!isPaused || isGameOver) return;
+      balance += 1000;
+      drainMultiplier *= 2;
+      loanTaken = true;
+      threatLevel += 2.5;
+      monsterZ = 3;
+      monsterTargetZ = 3;
+      isPaused = false;
+      window.hideLoanModal && window.hideLoanModal();
+      window.updateHUD({ balance, loanTaken, showLoanModal: false });
+    };
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      if (!isPaused && !isGameOver) update(dt);
+      renderer.render(scene, camera);
+    }
+        // Monster distance logic
         if (!monsterBanished) {
           monsterDistance -= MONSTER_GAIN_PER_FRAME;
           if (loanTaken) {
@@ -431,22 +1058,32 @@
           }
         }
 
-        // Items & collisions
+    function update(dt) {
+      const elapsed = clock.elapsedTime;
+        // Move items
         for (let i = items.length - 1; i >= 0; i--) {
           const it = items[i];
           it.x -= speed;
 
+      score += speed * dt * (barakahActive ? barakahScoreMultiplier : 1);
+          // Remove off-screen
           if (it.x < -20) {
             items.splice(i, 1);
             continue;
           }
 
-          const px = PLAYER_X;
+      const frames = dt * 60 * drainMultiplier;
+      drainAccumulator += frames;
+      while (drainAccumulator >= 1) {
+        balance -= baseDrainPerFrame;
+        drainAccumulator -= 1;
+      }
+          // Collision with player
           const py = laneYs[playerLane] - PLAYER_H / 2;
-          const ix = it.x;
-          const iy = laneYs[it.lane] - it.h / 2;
+          const px = PLAYER_X;
+          if (rectOverlap(px, py, PLAYER_W, PLAYER_H,
+            it.x, laneYs[it.lane] - it.h / 2, it.w, it.h)) {
 
-          if (rectOverlap(px, py, PLAYER_W, PLAYER_H, ix, iy, it.w, it.h)) {
             if (it.type === 'green') {
               const realGain = GREEN_VALUE * (barakahActive ? 2 : 1);
               balance += realGain;
@@ -460,17 +1097,21 @@
                 monsterDistance -= MONSTER_RED_PULL;
               }
             } else if (it.type === 'obstacle') {
+              // If monster is active, any obstacle hit is death.
               if (!monsterBanished) {
                 triggerGameOver('caught');
                 return;
               }
+              // If monster is banished (Kestrl mode), we just slow down a bit
               speed = Math.max(BASE_SPEED, speed * 0.9);
             } else if (it.type === 'invest') {
               if (balance < INVEST_COST) {
                 showToast('Not enough balance to invest.');
               } else {
                 balance -= INVEST_COST;
-                investments.push({ timer: INVEST_DELAY_FRAMES });
+                investments.push({
+                  timer: INVEST_DELAY_FRAMES
+                });
                 showToast('Investment made. Dividend will arrive soon inshaAllah.');
               }
             } else if (it.type === 'kestrl') {
@@ -478,24 +1119,41 @@
               kestrlTimer = KESTRL_DURATION_FRAMES;
               worldBright = true;
               monsterBanished = true;
-
-              // Eradicate riba coins: turn all reds to green
+              // Convert all reds to greens
               for (const other of items) {
                 if (other.type === 'red') other.type = 'green';
               }
               showToast('Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.');
             }
 
+      if (barakahActive) {
+        barakahTimeLeft -= dt;
+        if (barakahTimeLeft <= 0) {
+          barakahActive = false;
+          scene.fog.density = fogDensityBase;
             items.splice(i, 1);
           }
         }
+      }
 
+      if (kestrlActive) {
+        kestrlTimeLeft -= dt;
+        if (kestrlTimeLeft <= 0) {
+          kestrlActive = false;
+          scene.background = new THREE.Color(0x020617);
+        // Toast timer
         if (toastTimer > 0) {
           toastTimer--;
-          if (toastTimer <= 0) toast.style.display = 'none';
+          if (toastTimer <= 0) {
+            toast.style.display = 'none';
+          }
         }
       }
 
+      if (balance <= 0 && !isPaused && !isGameOver) {
+        balance = 0;
+        isPaused = true;
+        window.showLoanModal && window.showLoanModal();
       function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
         return (
           x1 < x2 + w2 &&
@@ -505,19 +1163,25 @@
         );
       }
 
-      // --- Drawing ---
-
+      velocityY += gravity * dt;
+      playerY += velocityY * dt;
+      if (playerY <= 1.25) {
+        playerY = 1.25;
+        velocityY = 0;
       function drawBackground() {
+        // Tunnel of Wants: dark gradient & scrolling lines
         const grd = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
         const baseDark = fogLevel;
-        grd.addColorStop(0, 'rgba(0,0,0,1)');
+        grd.addColorStop(0, `rgba(0,0,0,1)`);
         grd.addColorStop(1, `rgba(0,0,0,${1 - baseDark})`);
         ctx.fillStyle = grd;
         ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
+        // Grid lines
         ctx.strokeStyle = worldBright ? 'rgba(120,255,180,0.4)' : 'rgba(0,255,150,0.25)';
         ctx.lineWidth = 0.5;
 
+        // Vertical lines
         ctx.beginPath();
         for (let x = 0; x < LOGICAL_WIDTH; x += 10) {
           ctx.moveTo(x + (frameCount % 10), 0);
@@ -525,6 +1189,7 @@
         }
         ctx.stroke();
 
+        // Lane lines
         ctx.strokeStyle = 'rgba(255,255,255,0.12)';
         ctx.beginPath();
         for (let y of laneYs) {
@@ -533,62 +1198,121 @@
         }
         ctx.stroke();
       }
+      playerGroup.position.y = playerY;
 
+      playerGroup.rotation.z = Math.sin(elapsed * 3) * 0.10;
       function drawMonster() {
+        // Monster position based on monsterDistance
         const maxDist = MONSTER_START_DISTANCE;
         const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-        const monsterX = 8 - (1 - t) * 6;
+        const monsterX = 10 - (1 - t) * 6; // creeps closer towards player
         const monsterY = laneYs[playerLane] - MONSTER_H / 2;
 
-        if (!monsterBanished) {
-          // scary shadow behind
-          ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          ctx.fillRect(monsterX - 1, monsterY + 1, MONSTER_W + 2, MONSTER_H + 2);
-
-          const pulse = 0.4 + 0.3 * Math.sin(frameCount * 0.25);
-          const alpha = 0.8 + 0.15 * Math.sin(frameCount * 0.5);
-          ctx.fillStyle = `rgba(${180 + pulse * 60},0,20,${alpha})`;
-        } else {
+        if (monsterBanished) {
+          // faded glyph in background
           ctx.fillStyle = 'rgba(255,0,0,0.15)';
+        } else {
+          // pulsing red
+          const pulse = 0.4 + 0.3 * Math.sin(frameCount * 0.2);
+          const alpha = 0.7 + 0.2 * Math.sin(frameCount * 0.4);
+          ctx.fillStyle = `rgba(${200 + pulse * 55},0,0,${alpha})`;
         }
 
+      // SPAWNS
+      if (elapsed - lastSpawnTime > 0.6) {
+        const r = Math.random();
+        if (r < 0.45)      spawnObject("greenCoin");
+        else if (r < 0.75) spawnObject("redCoin");
+        else               spawnObject("obstacle");
+        lastSpawnTime = elapsed;
+      }
+      if (elapsed - lastGateTime > 8) {
+        spawnObject("investmentGate");
+        lastGateTime = elapsed;
+      }
+      if (elapsed - lastKestrlTime > 18) {
+        spawnObject("kestrlCard");
+        lastKestrlTime = elapsed;
         ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
 
         if (!monsterBanished) {
-          // glowing eyes
-          ctx.fillStyle = '#000';
-          ctx.fillRect(monsterX + MONSTER_W - 6, monsterY + 3, 2, 2);
-          ctx.fillRect(monsterX + MONSTER_W - 11, monsterY + 3, 2, 2);
-
-          ctx.fillStyle = '#f97316';
-          ctx.fillRect(monsterX + MONSTER_W - 6, monsterY + 3, 1, 1);
-          ctx.fillRect(monsterX + MONSTER_W - 11, monsterY + 3, 1, 1);
-
-          // horns
-          ctx.fillStyle = '#7f1d1d';
-          ctx.fillRect(monsterX + 2, monsterY - 2, 3, 2);
-          ctx.fillRect(monsterX + MONSTER_W - 5, monsterY - 2, 3, 2);
-
           // teeth
           ctx.fillStyle = '#fff';
+          ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 2, 3, 2);
           ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 6, 3, 2);
-          ctx.fillRect(monsterX + MONSTER_W - 8, monsterY + 6, 3, 2);
         }
       }
 
+      // MOVE & COLLIDE
+      for (let i = objects.length - 1; i >= 0; i--) {
+        const o = objects[i];
+        o.mesh.position.z += speed * dt;
       function drawPlayer() {
         const px = PLAYER_X;
         const py = laneYs[playerLane] - PLAYER_H / 2;
 
-        ctx.fillStyle = '#3b82f6';
+        if (o.type === "greenCoin" || o.type === "redCoin" || o.type === "kestrlCard") {
+          o.mesh.rotation.y += 2.5 * dt;
+          o.mesh.rotation.x += 1.2 * dt;
+        }
+        if (o.type === "investmentGate") o.mesh.rotation.z += 2.0 * dt;
+        // body
+        ctx.fillStyle = '#3b82f6'; // blue kestrel suit
         ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
 
+        if (o.mesh.position.z > 18) {
+          scene.remove(o.mesh);
+          objects.splice(i, 1);
+          continue;
+        }
+        // beak
         ctx.fillStyle = '#fbbf24';
         ctx.fillRect(px + PLAYER_W, py + 2, 3, 3);
 
+        if (o.lane === lanes[laneIndex]) {
+          const dz = Math.abs(o.mesh.position.z - playerGroup.position.z);
+          if (dz < 1.3) {
+            if (o.type === "obstacle") {
+              scene.remove(o.mesh);
+              objects.splice(i, 1);
+              gameOver("You tripped over an obstacle and Debt caught you.");
+              continue;
+            } else if (o.type === "greenCoin") {
+              scene.remove(o.mesh); objects.splice(i, 1);
+              addBalance(10);
+              threatLevel = Math.max(0.2, threatLevel - 0.25);
+            } else if (o.type === "redCoin") {
+              scene.remove(o.mesh); objects.splice(i, 1);
+              addBalance(50);
+              threatLevel += 0.6;
+            } else if (o.type === "investmentGate") {
+              scene.remove(o.mesh); objects.splice(i, 1);
+              if (balance >= 200) {
+                balance -= 200;
+                investmentTimers.push({ framesLeft: 600, paid: false });
+              }
+            } else if (o.type === "kestrlCard") {
+              scene.remove(o.mesh); objects.splice(i, 1);
+              kestrlActive = true;
+              kestrlTimeLeft = 10;
+              scene.background = new THREE.Color(0xf9fafb);
+              threatLevel = 0.2;
+              monsterZ = 18;
+              monsterTargetZ = 18;
+              for (const oo of objects) {
+                if (oo.type === "redCoin") {
+                  oo.type = "greenCoin";
+                  oo.mesh.geometry = new THREE.SphereGeometry(0.7, 16, 16);
+                  oo.mesh.material.color.setHex(0x22c55e);
+                  oo.mesh.material.emissive.setHex(0xfacc15);
+                }
+              }
+            }
+        // eye
         ctx.fillStyle = '#000';
         ctx.fillRect(px + PLAYER_W - 3, py + 2, 1, 1);
 
+        // little cape / wings
         ctx.fillStyle = '#1d4ed8';
         ctx.fillRect(px - 2, py + 2, 2, PLAYER_H - 3);
       }
@@ -599,52 +1323,42 @@
           const y = laneYs[it.lane] - it.h / 2;
 
           if (it.type === 'green') {
-            // glow
-            ctx.fillStyle = 'rgba(34,197,94,0.35)';
-            ctx.fillRect(x - 1, y - 1, it.w + 2, it.h + 2);
             ctx.fillStyle = '#22c55e';
             ctx.fillRect(x, y, it.w, it.h);
-            ctx.fillStyle = '#bbf7d0';
-            ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
-
           } else if (it.type === 'red') {
-            ctx.fillStyle = 'rgba(248,113,113,0.35)';
-            ctx.fillRect(x - 1, y - 1, it.w + 2, it.h + 2);
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(x, y, it.w, it.h);
-            ctx.fillStyle = '#fee2e2';
-            ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
-
           } else if (it.type === 'obstacle') {
             ctx.fillStyle = '#9ca3af';
             ctx.fillRect(x, y, it.w, it.h + 2);
-
           } else if (it.type === 'invest') {
+            // Yellow arch / gate
             ctx.fillStyle = '#facc15';
             ctx.fillRect(x, y - 2, 2, it.h + 4);
             ctx.fillRect(x + it.w - 2, y - 2, 2, it.h + 4);
             ctx.fillRect(x, y - 2, it.w, 2);
-
           } else if (it.type === 'kestrl') {
-            // bright glowing Kestrl card
-            ctx.fillStyle = 'rgba(56,189,248,0.45)';
-            ctx.fillRect(x - 1, y - 1, it.w + 2, it.h + 2);
             ctx.fillStyle = '#38bdf8';
             ctx.fillRect(x, y, it.w, it.h);
-            ctx.fillStyle = '#e0f2fe';
+            ctx.fillStyle = '#0ea5e9';
             ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
           }
         }
       }
 
+      updateInvestments(dt);
+      updateMonster(dt);
       function drawHUD() {
+        // Bank balance & threat bar
         const barX = 4;
         const barY = 4;
 
+        // Balance text
         ctx.fillStyle = '#fff';
         ctx.font = '6px monospace';
         ctx.fillText('£' + Math.max(0, Math.floor(balance)), barX, barY + 6);
 
+        // Monster distance bar
         const maxDist = MONSTER_START_DISTANCE;
         const width = 70;
         const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
@@ -652,6 +1366,7 @@
 
         ctx.fillStyle = '#4b5563';
         ctx.fillRect(barX, barY + 8, width, 4);
+
         ctx.fillStyle = monsterBanished ? '#22c55e' : '#ef4444';
         ctx.fillRect(barX, barY + 8, barWidth, 4);
 
@@ -659,6 +1374,7 @@
         ctx.font = '5px monospace';
         ctx.fillText('THREAT', barX + width + 4, barY + 11);
 
+        // Status flags text in browser HUD
         const statusParts = [];
         if (barakahActive) statusParts.push('Barakah x2');
         if (kestrlActive) statusParts.push('Kestrl Mode');
@@ -678,14 +1394,26 @@
         drawHUD();
       }
 
+      camera.position.y = 6.5 + Math.sin(elapsed * 1.4) * 0.25;
+      camera.lookAt(0, 2.2, 0);
       function loop(timestamp) {
         if (!lastTime) lastTime = timestamp;
         const delta = timestamp - lastTime;
         lastTime = timestamp;
 
+      window.updateHUD({
+        balance,
+        score,
+        barakahActive,
+        loanTaken,
+        monsterThreat: threatLevel,
+      });
+    }
         update(delta);
         draw();
 
+    // start
+    initThree();
         requestAnimationFrame(loop);
       }
 
@@ -695,7 +1423,6 @@
   </script>
 </body>
 </html>
-
 
 
 
