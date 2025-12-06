@@ -272,13 +272,12 @@
   <div id="cutscene-screen">
     <video
       id="cutscene-video"
-      autoplay
-      muted
-      playsinline
       controls
+      playsinline
+      preload="auto"
       poster="fantasy-world-map.png"
     >
-      <source src="cutscene.mp4" type="video/mp4" />
+      <source src="./cutscene.mp4">
       Your browser does not support the video tag.
     </video>
 
@@ -365,23 +364,19 @@
     const gameScreen      = document.getElementById('game-screen');
 
     function goToMapScreen() {
-      cutsceneVideo.pause();
+      try { cutsceneVideo.pause(); } catch (e) {}
       cutsceneScreen.style.display = 'none';
       mapScreen.style.display = 'flex';
     }
 
+    // When video finishes, go to map
     cutsceneVideo.addEventListener('ended', goToMapScreen);
+
+    // Manual skip
     skipButton.addEventListener('click', (e) => {
       e.stopPropagation();
       goToMapScreen();
     });
-    cutsceneVideo.addEventListener('error', goToMapScreen);
-
-    // If still on black after 8s, just show the map
-    setTimeout(() => {
-      const t = cutsceneVideo.currentTime || 0;
-      if (t === 0) goToMapScreen();
-    }, 8000);
 
     // ========= MAP → GAME =========
     document.querySelectorAll('.area').forEach(area => {
