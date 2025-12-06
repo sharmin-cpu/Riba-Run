@@ -34,12 +34,10 @@
       z-index: 10;
       pointer-events: none;
     }
-    canvas {
-      display: block;
-    }
+    canvas { display:block; }
   </style>
 
-  <!-- Safe no-op globals so game can start before React finishes mounting -->
+  <!-- no-op globals so game can start before HUD mounts -->
   <script>
     window.updateHUD = function () {};
     window.showLoanModal = function () {};
@@ -52,7 +50,7 @@
   <div id="three-root"></div>
   <div id="hud-root"></div>
 
-  <!-- HUD / React UI -->
+  <!-- React HUD -->
   <script type="text/babel">
     const { useState, useEffect } = React;
 
@@ -61,7 +59,6 @@
         balance: 500,
         score: 0,
         barakahActive: false,
-        fogLevel: 1,
         loanTaken: false,
         showLoanModal: false,
         gameOver: false,
@@ -70,15 +67,9 @@
       });
 
       useEffect(() => {
-        window.updateHUD = (updates) => {
-          setState(prev => ({ ...prev, ...updates }));
-        };
-        window.showLoanModal = () => {
-          setState(prev => ({ ...prev, showLoanModal: true }));
-        };
-        window.hideLoanModal = () => {
-          setState(prev => ({ ...prev, showLoanModal: false }));
-        };
+        window.updateHUD = (updates) => setState(prev => ({ ...prev, ...updates }));
+        window.showLoanModal = () => setState(prev => ({ ...prev, showLoanModal: true }));
+        window.hideLoanModal = () => setState(prev => ({ ...prev, showLoanModal: false }));
       }, []);
 
       const balanceColor =
@@ -91,9 +82,8 @@
 
       return (
         <div className="w-full h-full flex flex-col">
-          {/* TOP HUD BAR */}
           <div className="pointer-events-none flex justify-between items-start p-4 gap-4">
-            {/* LEFT: Balance & Distance */}
+            {/* LEFT */}
             <div className="space-y-2">
               <div className="bg-slate-900/70 border border-emerald-500/40 rounded-xl px-4 py-2 shadow-lg shadow-emerald-500/10">
                 <div className="flex items-center justify-between gap-4">
@@ -124,9 +114,8 @@
               </div>
             </div>
 
-            {/* CENTER: Barakah & Threat */}
+            {/* CENTRE */}
             <div className="flex flex-col items-center gap-3 pointer-events-none">
-              {/* Barakah (Sadaqah) */}
               <div className="bg-slate-950/70 border border-emerald-500/40 rounded-2xl px-4 py-2 shadow-lg shadow-emerald-500/25 min-w-[260px]">
                 <div className="flex justify-between items-center text-xs text-slate-300 mb-1">
                   <span className="tracking-[0.25em] uppercase text-emerald-300">
@@ -153,7 +142,6 @@
                 </div>
               </div>
 
-              {/* Debt Threat */}
               <div className="bg-slate-950/60 border border-rose-500/40 rounded-2xl px-4 py-2 shadow-lg shadow-rose-500/25 min-w-[260px]">
                 <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
                   <span className="tracking-[0.25em] uppercase text-rose-300">
@@ -175,7 +163,7 @@
               </div>
             </div>
 
-            {/* RIGHT: Controls */}
+            {/* RIGHT */}
             <div className="pointer-events-none">
               <div className="bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-300 shadow shadow-slate-900/80">
                 <div className="font-semibold text-slate-100 mb-1 text-[11px] tracking-[0.22em] uppercase">
@@ -192,7 +180,7 @@
             </div>
           </div>
 
-          {/* LOAN MODAL */}
+          {/* Loan Modal */}
           {state.showLoanModal && (
             <div className="pointer-events-auto fixed inset-0 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
               <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full mx-4 p-6 shadow-2xl shadow-rose-900/40">
@@ -211,7 +199,7 @@
                 </div>
                 <div className="space-y-3 text-sm text-slate-300 mb-5">
                   <p>
-                    You’ve hit <span className="font-mono text-rose-300">£0</span>. 
+                    You’ve hit <span className="font-mono text-rose-300">£0</span>.
                     Many people are tempted to “solve” this with interest-bearing loans.
                   </p>
                   <p className="text-slate-400">
@@ -222,7 +210,7 @@
                       <span className="font-semibold text-emerald-300">Accept Bankruptcy</span>: End the run now and walk away from Riba.
                     </li>
                     <li>
-                      <span className="font-semibold text-rose-300">Take Riba Loan (+£1000)</span>: Continue, but expenses double and the Monster clings to you. One mistake, and it’s over.
+                      <span className="font-semibold text-rose-300">Take Riba Loan (+£1000)</span>: Expenses double and the Monster clings to you. One mistake, and it’s over.
                     </li>
                   </ul>
                 </div>
@@ -244,7 +232,7 @@
             </div>
           )}
 
-          {/* GAME OVER BANNER */}
+          {/* Game Over */}
           {state.gameOver && (
             <div className="pointer-events-auto fixed inset-x-0 bottom-10 flex justify-center">
               <div className="bg-slate-950/90 border border-slate-700 rounded-2xl px-6 py-4 shadow-2xl shadow-slate-900/80 max-w-xl mx-4">
@@ -264,30 +252,30 @@
     ReactDOM.render(<GameHUD />, document.getElementById("hud-root"));
   </script>
 
-  <!-- Three.js Game Logic -->
+  <!-- Three.js Game -->
   <script type="text/babel">
     let scene, camera, renderer, clock;
     let playerGroup, monster;
     let laneIndex = 1;
-    const lanes = [-3, 0, 3];
+    const lanes = [-4, 0, 4];
 
-    let playerY = 1;
+    let playerY = 1.25;
     let velocityY = 0;
-    const gravity = -25;
+    const gravity = -26;
 
     let objects = []; // { mesh, type, lane }
-    let investmentTimers = []; // { framesLeft, paid }
+    let investmentTimers = [];
 
-    let speed = 26; // forward
+    let speed = 28;
     let balance = 500;
     let score = 0;
     let drainMultiplier = 1;
-    let baseDrainPerFrame = 1;
+    let baseDrainPerFrame = 1.2;
     let drainAccumulator = 0;
 
     let threatLevel = 1.5;
-    let monsterZ = 8;
-    let monsterTargetZ = 8;
+    let monsterZ = 6;
+    let monsterTargetZ = 6;
 
     let barakahActive = false;
     let barakahTimeLeft = 0;
@@ -297,8 +285,8 @@
     let kestrlActive = false;
     let kestrlTimeLeft = 0;
 
-    let fogDensityBase = 0.035;
-    let fogDensityBarakah = 0.018;
+    let fogDensityBase = 0.03;
+    let fogDensityBarakah = 0.015;
 
     let lastSpawnTime = 0;
     let lastGateTime = 0;
@@ -316,68 +304,83 @@
       scene.fog = new THREE.FogExp2(0x020617, fogDensityBase);
 
       const aspect = window.innerWidth / window.innerHeight;
-      camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 200);
-      camera.position.set(0, 6, 10);
-      camera.lookAt(0, 2, 0);
+      camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 200);
+      camera.position.set(0, 7, 15);
+      camera.lookAt(0, 2.5, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio || 1);
       threeRoot.appendChild(renderer.domElement);
 
-      // Lights
-      const hemi = new THREE.HemisphereLight(0x0f172a, 0x000000, 1.0);
-      scene.add(hemi);
+      const amb = new THREE.AmbientLight(0x334155, 1.2);
+      scene.add(amb);
 
-      const dir = new THREE.DirectionalLight(0x38bdf8, 1.0);
-      dir.position.set(6, 12, 8);
+      const dir = new THREE.DirectionalLight(0x38bdf8, 1.2);
+      dir.position.set(8, 14, 10);
       scene.add(dir);
 
-      // Neon tunnel floor
-      const floorGeo = new THREE.PlaneGeometry(40, 400, 20, 120);
-      const floorMat = new THREE.MeshBasicMaterial({
-        color: 0x0b1120,
-        wireframe: true,
+      // Ground : three-lane neon road
+      const groundGeo = new THREE.BoxGeometry(16, 0.4, 200);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x020617,
+        emissive: 0x020617,
+        emissiveIntensity: 1.0,
+        metalness: 0.7,
+        roughness: 0.3,
       });
-      const floor = new THREE.Mesh(floorGeo, floorMat);
-      floor.rotation.x = -Math.PI / 2;
-      floor.position.z = -180;
-      scene.add(floor);
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.position.set(0, 0, -90);
+      scene.add(ground);
 
-      // Lane lines
+      // Neon grid lines
+      const gridMat = new THREE.LineBasicMaterial({ color: 0x0ea5e9, linewidth: 1 });
+      const gridGeo = new THREE.BufferGeometry();
+      const gridVerts = [];
+      for (let z = -180; z <= 20; z += 4) {
+        gridVerts.push(-8, 0.21, z, 8, 0.21, z);
+      }
+      for (let x = -8; x <= 8; x += 4) {
+        gridVerts.push(x, 0.21, -180, x, 0.21, 20);
+      }
+      gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(gridVerts, 3));
+      const grid = new THREE.LineSegments(gridGeo, gridMat);
+      scene.add(grid);
+
+      // Lane separators
       const laneMat = new THREE.LineBasicMaterial({ color: 0x22c55e });
       for (let i = 0; i < lanes.length; i++) {
         const laneX = lanes[i];
-        const points = [];
-        points.push(new THREE.Vector3(laneX, 0.02, -220));
-        points.push(new THREE.Vector3(laneX, 0.02, 20));
-        const geo = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geo, laneMat);
+        const g = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(laneX, 0.25, -180),
+          new THREE.Vector3(laneX, 0.25, 20),
+        ]);
+        const line = new THREE.Line(g, laneMat);
         scene.add(line);
       }
 
-      // Player (Kestrl-ish bird: body box + beak cone)
-      const bodyGeo = new THREE.BoxGeometry(1.4, 1, 1.2);
+      // Player – neon Kestrl cube + beak
+      const bodyGeo = new THREE.BoxGeometry(1.8, 1.2, 1.4);
       const bodyMat = new THREE.MeshStandardMaterial({
         color: 0x22c55e,
         emissive: 0x22c55e,
-        emissiveIntensity: 1.0,
-        metalness: 0.5,
+        emissiveIntensity: 1.6,
+        metalness: 0.6,
         roughness: 0.25,
       });
       const body = new THREE.Mesh(bodyGeo, bodyMat);
 
-      const beakGeo = new THREE.ConeGeometry(0.25, 0.6, 12);
+      const beakGeo = new THREE.ConeGeometry(0.35, 0.9, 16);
       const beakMat = new THREE.MeshStandardMaterial({
         color: 0xfacc15,
         emissive: 0xf97316,
-        emissiveIntensity: 0.9,
+        emissiveIntensity: 1.2,
         metalness: 0.5,
         roughness: 0.4,
       });
       const beak = new THREE.Mesh(beakGeo, beakMat);
       beak.rotation.z = -Math.PI / 2;
-      beak.position.set(0.9, 0.05, 0);
+      beak.position.set(1.15, 0.1, 0);
 
       playerGroup = new THREE.Group();
       playerGroup.add(body);
@@ -385,30 +388,30 @@
       playerGroup.position.set(lanes[laneIndex], playerY, 0);
       scene.add(playerGroup);
 
-      // Riba Monster (shadow cube)
-      const monsterGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+      // Monster – big pulsing debt cube clearly visible
+      const monsterGeo = new THREE.BoxGeometry(2.4, 2.4, 2.4);
       const monsterMat = new THREE.MeshStandardMaterial({
         color: 0x020617,
         emissive: 0x7f1d1d,
-        emissiveIntensity: 0.5,
+        emissiveIntensity: 1.3,
         metalness: 0.2,
-        roughness: 0.95,
+        roughness: 0.9,
       });
       monster = new THREE.Mesh(monsterGeo, monsterMat);
-      monster.position.set(0, 1.4, monsterZ);
+      monster.position.set(0, 2, monsterZ);
       scene.add(monster);
 
-      // Floating neon cubes in tunnel
-      for (let i = 0; i < 60; i++) {
-        const geo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
-        const mat = new THREE.MeshBasicMaterial({
+      // Floating neon cubes around tunnel walls
+      for (let i = 0; i < 80; i++) {
+        const g = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        const m = new THREE.MeshBasicMaterial({
           color: Math.random() > 0.5 ? 0x38bdf8 : 0x22c55e,
         });
-        const cube = new THREE.Mesh(geo, mat);
+        const cube = new THREE.Mesh(g, m);
         cube.position.set(
-          (Math.random() - 0.5) * 26,
-          0.5 + Math.random() * 7,
-          -Math.random() * 220
+          (Math.random() - 0.5) * 16,
+          1 + Math.random() * 8,
+          -20 - Math.random() * 170
         );
         scene.add(cube);
       }
@@ -426,17 +429,16 @@
       balance = 500;
       score = 0;
       drainMultiplier = 1;
-      baseDrainPerFrame = 1;
+      baseDrainPerFrame = 1.2;
       drainAccumulator = 0;
 
       threatLevel = 1.5;
-      monsterZ = 8;
-      monsterTargetZ = 8;
+      monsterZ = 6;
+      monsterTargetZ = 6;
 
       laneIndex = 1;
-      playerGroup.position.x = lanes[laneIndex];
-      playerY = 1;
-      playerGroup.position.y = playerY;
+      playerY = 1.25;
+      playerGroup.position.set(lanes[laneIndex], playerY, 0);
       velocityY = 0;
 
       barakahActive = false;
@@ -450,7 +452,6 @@
       scene.background = new THREE.Color(0x020617);
       scene.fog.density = fogDensityBase;
 
-      // Clear spawn objects
       objects.forEach(o => scene.remove(o.mesh));
       objects = [];
       investmentTimers = [];
@@ -464,7 +465,6 @@
         balance,
         score,
         barakahActive,
-        fogLevel: 1,
         loanTaken,
         gameOver: false,
         gameOverReason: "",
@@ -493,17 +493,13 @@
           playerGroup.position.x = lanes[laneIndex];
         }
       } else if (e.code === "ArrowUp" || e.code === "Space") {
-        if (!isPaused && !isGameOver && playerY <= 1.01) {
-          velocityY = 11;
+        if (!isPaused && !isGameOver && playerY <= 1.26) {
+          velocityY = 12;
         }
       } else if (e.code === "KeyS") {
-        if (!isPaused && !isGameOver) {
-          triggerSadaqah();
-        }
+        if (!isPaused && !isGameOver) triggerSadaqah();
       } else if (e.code === "KeyR") {
-        if (isGameOver) {
-          resetGame();
-        }
+        if (isGameOver) resetGame();
       }
     }
 
@@ -513,75 +509,71 @@
         barakahActive = true;
         barakahTimeLeft = 15;
         scene.fog.density = fogDensityBarakah;
-        window.updateHUD({
-          balance,
-          barakahActive,
-          fogLevel: 0.3,
-        });
+        window.updateHUD({ balance, barakahActive });
       }
     }
 
     function spawnObject(type) {
       let mesh;
       const lane = lanes[Math.floor(Math.random() * lanes.length)];
-      const z = -80 - Math.random() * 40;
+      const z = -60 - Math.random() * 40;
 
       if (type === "greenCoin") {
-        const geo = new THREE.SphereGeometry(0.45, 16, 16);
-        const mat = new THREE.MeshStandardMaterial({
+        const g = new THREE.SphereGeometry(0.7, 16, 16);
+        const m = new THREE.MeshStandardMaterial({
           color: 0x22c55e,
           emissive: 0xfacc15,
-          emissiveIntensity: 1.3,
-          metalness: 0.3,
+          emissiveIntensity: 1.5,
+          metalness: 0.4,
           roughness: 0.25,
         });
-        mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(lane, 1.2, z);
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 1.6, z);
       } else if (type === "redCoin") {
-        const geo = new THREE.ConeGeometry(0.5, 0.95, 20);
-        const mat = new THREE.MeshStandardMaterial({
+        const g = new THREE.ConeGeometry(0.7, 1.3, 20);
+        const m = new THREE.MeshStandardMaterial({
           color: 0x991b1b,
           emissive: 0xef4444,
-          emissiveIntensity: 1.2,
-          metalness: 0.3,
+          emissiveIntensity: 1.4,
+          metalness: 0.4,
           roughness: 0.3,
         });
-        mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(lane, 1.2, z);
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 1.6, z);
       } else if (type === "obstacle") {
-        const geo = new THREE.BoxGeometry(1.2, 1.4, 1.2);
-        const mat = new THREE.MeshStandardMaterial({
+        const g = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+        const m = new THREE.MeshStandardMaterial({
           color: 0x334155,
           emissive: 0x0f172a,
-          emissiveIntensity: 0.8,
+          emissiveIntensity: 1.0,
           metalness: 0.6,
-          roughness: 0.4,
+          roughness: 0.35,
         });
-        mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(lane, 0.7, z);
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 0.8, z);
       } else if (type === "investmentGate") {
-        const geo = new THREE.TorusGeometry(1.4, 0.13, 12, 32);
-        const mat = new THREE.MeshStandardMaterial({
+        const g = new THREE.TorusGeometry(1.7, 0.18, 16, 32);
+        const m = new THREE.MeshStandardMaterial({
           color: 0xfacc15,
           emissive: 0xf59e0b,
-          emissiveIntensity: 1.1,
+          emissiveIntensity: 1.2,
           metalness: 0.7,
           roughness: 0.3,
         });
-        mesh = new THREE.Mesh(geo, mat);
+        mesh = new THREE.Mesh(g, m);
         mesh.rotation.x = Math.PI / 2;
-        mesh.position.set(lane, 1.5, z);
+        mesh.position.set(lane, 1.9, z);
       } else if (type === "kestrlCard") {
-        const geo = new THREE.OctahedronGeometry(0.6);
-        const mat = new THREE.MeshStandardMaterial({
+        const g = new THREE.OctahedronGeometry(0.8);
+        const m = new THREE.MeshStandardMaterial({
           color: 0x38bdf8,
           emissive: 0x22d3ee,
-          emissiveIntensity: 1.4,
+          emissiveIntensity: 1.6,
           metalness: 0.6,
           roughness: 0.2,
         });
-        mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(lane, 2, z);
+        mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lane, 2.2, z);
       }
 
       if (mesh) {
@@ -590,9 +582,9 @@
       }
     }
 
-    function addBalance(baseAmount) {
-      const multiplier = barakahActive ? barakahMultiplier : 1;
-      balance += baseAmount * multiplier;
+    function addBalance(amount) {
+      const mult = barakahActive ? barakahMultiplier : 1;
+      balance += amount * mult;
     }
 
     function updateInvestments(dt) {
@@ -609,30 +601,25 @@
     }
 
     function updateMonster(dt) {
-      const baseZ = 10;
-      const minZ = 1.5;
-      const maxZ = 15;
+      const baseZ = 7;
+      const minZ = 1.8;
+      const maxZ = 14;
 
       monsterTargetZ = baseZ - threatLevel * 2;
       monsterTargetZ = Math.min(maxZ, Math.max(minZ, monsterTargetZ));
 
-      if (kestrlActive) {
-        monsterTargetZ = 18;
-      }
-
-      if (loanTaken && !kestrlActive) {
-        monsterTargetZ = Math.max(2, monsterTargetZ - 1.5);
-      }
+      if (kestrlActive) monsterTargetZ = 18;
+      if (loanTaken && !kestrlActive) monsterTargetZ = Math.max(2.2, monsterTargetZ - 1.7);
 
       monsterZ += (monsterTargetZ - monsterZ) * 3 * dt;
       monster.position.z = monsterZ;
 
       const intensity = kestrlActive
-        ? 0.15
-        : 0.4 + Math.min(1.3, threatLevel * 0.25);
+        ? 0.2
+        : 0.6 + Math.min(1.2, threatLevel * 0.25);
       monster.material.emissiveIntensity = intensity;
 
-      if (!isGameOver && !isPaused && monsterZ <= 1.3) {
+      if (!isGameOver && !isPaused && monsterZ <= 2.0) {
         gameOver("Game Over: Consumed by Debt.");
       }
     }
@@ -647,44 +634,36 @@
       });
     }
 
-    window.acceptBankruptcy = function() {
+    window.acceptBankruptcy = function () {
       if (!isPaused) return;
       gameOver("You accepted bankruptcy and walked away from Riba.");
     };
 
-    window.takeLoan = function() {
+    window.takeLoan = function () {
       if (!isPaused || isGameOver) return;
       balance += 1000;
       drainMultiplier *= 2;
       loanTaken = true;
       threatLevel += 2.5;
-      monsterZ = 2;
-      monsterTargetZ = 2;
+      monsterZ = 3;
+      monsterTargetZ = 3;
       isPaused = false;
       window.hideLoanModal && window.hideLoanModal();
-      window.updateHUD({
-        balance,
-        loanTaken,
-        showLoanModal: false,
-      });
+      window.updateHUD({ balance, loanTaken, showLoanModal: false });
     };
 
     function animate() {
       requestAnimationFrame(animate);
       const dt = clock.getDelta();
-      if (!isPaused && !isGameOver) {
-        update(dt);
-      }
+      if (!isPaused && !isGameOver) update(dt);
       renderer.render(scene, camera);
     }
 
     function update(dt) {
       const elapsed = clock.elapsedTime;
 
-      // Distance (score)
       score += speed * dt * (barakahActive ? barakahScoreMultiplier : 1);
 
-      // Expense drain
       const frames = dt * 60 * drainMultiplier;
       drainAccumulator += frames;
       while (drainAccumulator >= 1) {
@@ -692,7 +671,6 @@
         drainAccumulator -= 1;
       }
 
-      // Barakah timer
       if (barakahActive) {
         barakahTimeLeft -= dt;
         if (barakahTimeLeft <= 0) {
@@ -701,7 +679,6 @@
         }
       }
 
-      // Kestrl Card timer
       if (kestrlActive) {
         kestrlTimeLeft -= dt;
         if (kestrlTimeLeft <= 0) {
@@ -710,35 +687,28 @@
         }
       }
 
-      // Bankruptcy check
       if (balance <= 0 && !isPaused && !isGameOver) {
         balance = 0;
         isPaused = true;
         window.showLoanModal && window.showLoanModal();
       }
 
-      // Jump physics
       velocityY += gravity * dt;
       playerY += velocityY * dt;
-      if (playerY <= 1) {
-        playerY = 1;
+      if (playerY <= 1.25) {
+        playerY = 1.25;
         velocityY = 0;
       }
       playerGroup.position.y = playerY;
 
-      // Subtle bobbing to feel alive
-      playerGroup.rotation.z = Math.sin(elapsed * 4) * 0.06;
+      playerGroup.rotation.z = Math.sin(elapsed * 3) * 0.10;
 
-      // Spawns
+      // SPAWNS
       if (elapsed - lastSpawnTime > 0.6) {
         const r = Math.random();
-        if (r < 0.45) {
-          spawnObject("greenCoin");
-        } else if (r < 0.75) {
-          spawnObject("redCoin");
-        } else {
-          spawnObject("obstacle");
-        }
+        if (r < 0.45)      spawnObject("greenCoin");
+        else if (r < 0.75) spawnObject("redCoin");
+        else               spawnObject("obstacle");
         lastSpawnTime = elapsed;
       }
       if (elapsed - lastGateTime > 8) {
@@ -750,20 +720,18 @@
         lastKestrlTime = elapsed;
       }
 
-      // Move objects & collisions
+      // MOVE & COLLIDE
       for (let i = objects.length - 1; i >= 0; i--) {
         const o = objects[i];
         o.mesh.position.z += speed * dt;
 
         if (o.type === "greenCoin" || o.type === "redCoin" || o.type === "kestrlCard") {
-          o.mesh.rotation.y += 2.4 * dt;
-          o.mesh.rotation.x += 0.8 * dt;
+          o.mesh.rotation.y += 2.5 * dt;
+          o.mesh.rotation.x += 1.2 * dt;
         }
-        if (o.type === "investmentGate") {
-          o.mesh.rotation.z += 1.8 * dt;
-        }
+        if (o.type === "investmentGate") o.mesh.rotation.z += 2.0 * dt;
 
-        if (o.mesh.position.z > 12) {
+        if (o.mesh.position.z > 18) {
           scene.remove(o.mesh);
           objects.splice(i, 1);
           continue;
@@ -771,46 +739,38 @@
 
         if (o.lane === lanes[laneIndex]) {
           const dz = Math.abs(o.mesh.position.z - playerGroup.position.z);
-          if (dz < 0.9) {
+          if (dz < 1.3) {
             if (o.type === "obstacle") {
               scene.remove(o.mesh);
               objects.splice(i, 1);
-              gameOver("You stumbled over an obstacle and Debt caught you.");
+              gameOver("You tripped over an obstacle and Debt caught you.");
               continue;
             } else if (o.type === "greenCoin") {
-              scene.remove(o.mesh);
-              objects.splice(i, 1);
+              scene.remove(o.mesh); objects.splice(i, 1);
               addBalance(10);
               threatLevel = Math.max(0.2, threatLevel - 0.25);
             } else if (o.type === "redCoin") {
-              scene.remove(o.mesh);
-              objects.splice(i, 1);
+              scene.remove(o.mesh); objects.splice(i, 1);
               addBalance(50);
-              threatLevel += 0.5;
+              threatLevel += 0.6;
             } else if (o.type === "investmentGate") {
-              scene.remove(o.mesh);
-              objects.splice(i, 1);
+              scene.remove(o.mesh); objects.splice(i, 1);
               if (balance >= 200) {
                 balance -= 200;
                 investmentTimers.push({ framesLeft: 600, paid: false });
               }
             } else if (o.type === "kestrlCard") {
-              scene.remove(o.mesh);
-              objects.splice(i, 1);
-
+              scene.remove(o.mesh); objects.splice(i, 1);
               kestrlActive = true;
               kestrlTimeLeft = 10;
               scene.background = new THREE.Color(0xf9fafb);
-
               threatLevel = 0.2;
               monsterZ = 18;
               monsterTargetZ = 18;
-
-              // Turn all existing red → green
               for (const oo of objects) {
                 if (oo.type === "redCoin") {
                   oo.type = "greenCoin";
-                  oo.mesh.geometry = new THREE.SphereGeometry(0.45, 16, 16);
+                  oo.mesh.geometry = new THREE.SphereGeometry(0.7, 16, 16);
                   oo.mesh.material.color.setHex(0x22c55e);
                   oo.mesh.material.emissive.setHex(0xfacc15);
                 }
@@ -820,32 +780,27 @@
         }
       }
 
-      // Investments
       updateInvestments(dt);
-
-      // Monster
       updateMonster(dt);
 
-      // Camera motion
-      camera.position.y = 5.7 + Math.sin(elapsed * 1.6) * 0.18;
+      camera.position.y = 6.5 + Math.sin(elapsed * 1.4) * 0.25;
       camera.lookAt(0, 2.2, 0);
 
-      // HUD
       window.updateHUD({
         balance,
         score,
         barakahActive,
-        fogLevel: barakahActive ? 0.3 : 1,
         loanTaken,
         monsterThreat: threatLevel,
       });
     }
 
-    // Kick off
+    // start
     initThree();
   </script>
 </body>
 </html>
+
 
 
 
