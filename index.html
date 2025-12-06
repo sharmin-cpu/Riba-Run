@@ -39,15 +39,17 @@
       box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
 
+    /* your actual fantasy map image */
     .map {
       width: 100%;
       height: 100%;
-      background-image: url("img/fantasy-world-map.png"); /* your map */
+      background-image: url("img:fantasy-world-map.png");
       background-size: cover;
       background-position: center;
       filter: brightness(1.05) contrast(1.08);
     }
 
+    /* glowing clickable areas */
     .area {
       position: absolute;
       width: 70px;
@@ -69,32 +71,15 @@
       font-size: 20px;
       text-shadow: 0 0 6px #020617;
 
-      transition:
-        transform 0.18s ease-out,
-        box-shadow 0.18s ease-out,
-        background 0.18s ease-out,
-        filter 0.18s ease-out;
-
+      transition: all 0.18s ease-out;
       animation: pulse 2.2s infinite;
       z-index: 2;
     }
 
     @keyframes pulse {
-      0% {
-        box-shadow:
-          0 0 0 0 rgba(56,189,248,0.7),
-          0 0 35px rgba(56,189,248,0.3);
-      }
-      70% {
-        box-shadow:
-          0 0 0 18px rgba(56,189,248,0),
-          0 0 55px rgba(56,189,248,0.6);
-      }
-      100% {
-        box-shadow:
-          0 0 0 0 rgba(56,189,248,0),
-          0 0 35px rgba(56,189,248,0.3);
-      }
+      0%   { box-shadow: 0 0 0 0 rgba(56,189,248,0.7); }
+      70%  { box-shadow: 0 0 0 18px rgba(56,189,248,0); }
+      100% { box-shadow: 0 0 0 0 rgba(56,189,248,0); }
     }
 
     .area:hover {
@@ -103,7 +88,6 @@
       box-shadow:
         0 0 0 8px rgba(56,189,248,0.45),
         0 0 60px rgba(56,189,248,1);
-      filter: brightness(1.1);
     }
 
     .area span {
@@ -118,19 +102,18 @@
       pointer-events: none;
     }
 
-    /* positions on your map (tweak if needed) */
-    .area--castle   { top: 72%; left: 22%; }  /* bottom-left castle */
-    .area--forest   { top: 52%; left: 48%; }  /* centre forest      */
-    .area--cave     { top: 40%; left: 78%; }  /* right cave         */
-    .area--villages { top: 76%; left: 69%; }  /* bottom-right towns */
+    /* positions on your map */
+    .area--castle   { top: 72%; left: 22%; }
+    .area--forest   { top: 52%; left: 48%; }
+    .area--cave     { top: 40%; left: 78%; }
+    .area--villages { top: 76%; left: 69%; }
 
     /* =========================
        GAME SCREEN
        ========================= */
     #game-screen {
-      display: none; /* shown after clicking map */
+      display: none;
       height: 100vh;
-      display: flex;
       justify-content: center;
       align-items: center;
       background: #111;
@@ -140,13 +123,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
       padding-top: 10px;
-      box-sizing: border-box;
+      height: 100vh;
     }
 
-    #game-wrapper canvas {
+    canvas {
       border: 2px solid #444;
       image-rendering: pixelated;
       background: #000;
@@ -172,37 +153,11 @@
     #game-over-box {
       background: #1a1a1a;
       border: 2px solid #555;
-      padding: 20px 24px;
+      padding: 20px;
       border-radius: 8px;
       text-align: center;
       max-width: 360px;
     }
-
-    #game-over-box h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 20px;
-    }
-
-    #game-over-box p {
-      margin: 4px 0 14px;
-      font-size: 14px;
-      color: #ddd;
-    }
-
-    .btn {
-      display: inline-block;
-      margin: 4px 6px;
-      padding: 8px 14px;
-      font-size: 14px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-primary { background: #1f9d55; color: #fff; }
-    .btn-danger  { background: #c53030; color: #fff; }
-    .btn-secondary { background: #2d3748; color: #fff; }
 
     #toast {
       position: fixed;
@@ -212,82 +167,59 @@
       background: rgba(0,0,0,0.85);
       padding: 8px 12px;
       border-radius: 4px;
-      font-size: 12px;
       display: none;
       z-index: 20;
     }
   </style>
 </head>
+
 <body>
 
-  <!-- ========== MAP SCREEN ========== -->
+  <!-- =======================
+       MAP SCREEN
+       ======================= -->
   <div id="map-screen">
     <div class="map-container">
       <div class="map"></div>
 
-      <!-- all 4 currently start the same minigame; you can change this later -->
-      <div class="area area--castle"   data-level="castle">
-        1
-        <span>Castle Hub</span>
-      </div>
-      <div class="area area--forest"   data-level="forest">
-        2
-        <span>Forest Trials</span>
-      </div>
-      <div class="area area--cave"     data-level="cave">
-        3
-        <span>Riba Cave</span>
-      </div>
-      <div class="area area--villages" data-level="villages">
-        4
-        <span>Market Town</span>
-      </div>
+      <div class="area area--castle">1 <span>Castle Hub</span></div>
+      <div class="area area--forest">2 <span>Forest Trials</span></div>
+      <div class="area area--cave">3 <span>Riba Cave</span></div>
+      <div class="area area--villages">4 <span>Market Town</span></div>
     </div>
   </div>
 
-  <!-- ========== GAME SCREEN (2D RIBA RUN) ========== -->
+
+  <!-- =======================
+       GAME SCREEN
+       ======================= -->
   <div id="game-screen">
     <div id="game-wrapper">
-      <canvas id="game"></canvas>
+      <canvas id="game" width="800" height="450"></canvas>
       <div id="hud">
-        <div>
-          <strong>Controls:</strong>
-          Arrow Up/Down = change lane &nbsp;|&nbsp;
-          S = Sadaqah &nbsp;|&nbsp;
-          R = Restart
-        </div>
+        <strong>Controls:</strong> Arrow keys | S = Sadaqah | R = Restart
         <div id="stats"></div>
-        <div style="font-size: 12px; margin-top: 4px; color:#aaa;">
-          Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Haram coins (red), Kestrl Card (blue), Investment Gate (yellow)
-        </div>
       </div>
     </div>
 
     <div id="game-over-overlay">
       <div id="game-over-box">
-        <h2 id="game-over-title">Bankruptcy</h2>
-        <p id="game-over-message">
-          Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…
-        </p>
-        <div style="margin-bottom: 8px;">
-          <button class="btn btn-secondary" id="btn-restart">Accept Bankruptcy (Restart)</button>
-        </div>
-        <div>
-          <button class="btn btn-danger" id="btn-loan">
-            Take Riba Loan (+£1000)
-          </button>
-        </div>
-        <p style="margin-top: 10px; font-size: 11px; color:#f6e05e;">
-          Taking the loan doubles your drain rate and glues the Monster to your back. One mistake = permanent death.
-        </p>
+        <h2 id="game-over-title"></h2>
+        <p id="game-over-message"></p>
+        <button class="btn-secondary" id="btn-restart">Restart</button>
+        <button class="btn-danger" id="btn-loan">Take Riba Loan</button>
       </div>
     </div>
   </div>
 
   <div id="toast"></div>
 
+
+  <!-- ================================================================
+       FULL RIBA RUN GAME IMPLEMENTATION (ENTIRE CODE MERGED IN)
+       ================================================================ -->
   <script>
-    // ========= MAP → GAME TRANSITION =========
+    /* MAP → GAME TRANSITION */
     const mapScreen  = document.getElementById('map-screen');
     const gameScreen = document.getElementById('game-screen');
 
@@ -295,22 +227,25 @@
       area.addEventListener('click', () => {
         mapScreen.style.display = 'none';
         gameScreen.style.display = 'flex';
-        startRibaRun(); // launch the minigame
+        startRibaRun();
       });
     });
 
-    // ========= YOUR 2D RIBA RUN GAME CODE (wrapped in a function) =========
-    let ribaRunStarted = false;
+    /* ============================
+       FULL GAME CODE STARTS HERE
+       ============================ */
+
+    let ribaStarted = false;
 
     function startRibaRun() {
-      if (ribaRunStarted) return; // prevent starting twice
-      ribaRunStarted = true;
+      if (ribaStarted) return;
+      ribaStarted = true;
 
+      /* Your entire 2D Riba Run minigame */
       (function() {
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
 
-        // Low-res “pixel” canvas scaling
         const LOGICAL_WIDTH = 200;
         const LOGICAL_HEIGHT = 112;
         const SCALE = 4;
@@ -329,9 +264,8 @@
         const gameOverTitle = document.getElementById('game-over-title');
         const gameOverMessage = document.getElementById('game-over-message');
 
-        // --- Game constants ---
         const LANES = 3;
-        const laneYs = [40, 60, 80]; // y positions for top/mid/bottom lanes
+        const laneYs = [40, 60, 80];
         const PLAYER_X = 40;
         const PLAYER_W = 10;
         const PLAYER_H = 8;
@@ -342,26 +276,26 @@
         const ITEM_W = 6;
         const ITEM_H = 6;
 
-        const BASE_SPEED = 1.4;      // world scroll speed
+        const BASE_SPEED = 1.4;
         const SPEED_INC = 0.0001;
 
         const BALANCE_START = 500;
-        const DRAIN_PER_FRAME_BASE = 1; // £1 per frame before loan
+        const DRAIN_PER_FRAME_BASE = 1;
         const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2;
 
         const GREEN_VALUE = 10;
         const RED_VALUE = 50;
 
         const SADAQAH_COST = 100;
-        const SADAQAH_DURATION_FRAMES = 900; // 15 seconds @60fps
+        const SADAQAH_DURATION_FRAMES = 900;
 
-        const KESTRL_DURATION_FRAMES = 600;  // 10 seconds
+        const KESTRL_DURATION_FRAMES = 600;
 
         const INVEST_COST = 200;
         const INVEST_PAYOFF = 600;
-        const INVEST_DELAY_FRAMES = 600;     // 10 seconds
+        const INVEST_DELAY_FRAMES = 600;
 
-        const MONSTER_START_DISTANCE = 120;  // abstract units
+        const MONSTER_START_DISTANCE = 120;
         const MONSTER_GAIN_PER_FRAME = 0.05;
         const MONSTER_GREEN_PUSH_BACK = 6;
         const MONSTER_RED_PULL = 10;
@@ -369,11 +303,10 @@
 
         const FRAME_TIME = 1000 / 60;
 
-        // --- Game state ---
         let playerLane, balance, drainPerFrame, baseDrainPerFrame;
         let monsterDistance;
-        let items;       // coins, gates, kestrl card, obstacles
-        let investments; // pending dividend timers
+        let items;
+        let investments;
         let speed;
         let frameCount;
         let barakahActive, barakahTimer;
@@ -386,8 +319,8 @@
         let spawnTimer;
         let toastTimer = 0;
         let gameOver = false;
-        let hardModeLoan = false; // after loan, one collision = death
-        let fogLevel = 0.4;       // background "darkness"
+        let hardModeLoan = false;
+        let fogLevel = 0.4;
 
         function resetGame() {
           playerLane = 1;
@@ -413,21 +346,13 @@
           gameOver = false;
           hardModeLoan = false;
           fogLevel = 0.4;
-          hideOverlay();
+          overlay.style.display = 'none';
         }
 
         function showToast(msg) {
           toast.innerText = msg;
           toast.style.display = 'block';
-          toastTimer = 120; // show for ~2s
-        }
-
-        function hideOverlay() {
-          overlay.style.display = 'none';
-        }
-
-        function showOverlay() {
-          overlay.style.display = 'flex';
+          toastTimer = 120;
         }
 
         function triggerGameOver(reason) {
@@ -437,45 +362,32 @@
           if (reason === 'balance') {
             gameOverTitle.innerText = 'Bankruptcy';
             gameOverMessage.innerText =
-              'Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…';
+              'Your balance hit £0. The Riba Monster is looming over you.';
           } else if (reason === 'caught') {
             gameOverTitle.innerText = 'Caught by Riba';
             gameOverMessage.innerText =
-              'The Riba Monster caught you. Even with shortcuts and quick money, you couldn’t escape its grip.';
-          } else {
-            gameOverTitle.innerText = 'Game Over';
-            gameOverMessage.innerText = 'Your run has ended in the Tunnel of Wants.';
+              'The Riba Monster caught you.';
           }
 
-          showOverlay();
+          overlay.style.display = 'flex';
         }
 
         function takeLoan() {
-          if (!gameOver) return; // safety
+          if (!gameOver) return;
           balance += 1000;
           baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER;
           drainPerFrame = baseDrainPerFrame;
-          monsterDistance = 25; // right behind you
+          monsterDistance = 25;
           loanTaken = true;
           hardModeLoan = true;
           gameOver = false;
           running = true;
-          hideOverlay();
+          overlay.style.display = 'none';
         }
 
-        function restartGame() {
-          resetGame();
-        }
+        btnRestart.addEventListener('click', resetGame);
+        btnLoan.addEventListener('click', takeLoan);
 
-        btnRestart.addEventListener('click', () => {
-          restartGame();
-        });
-
-        btnLoan.addEventListener('click', () => {
-          takeLoan();
-        });
-
-        // --- Input handling ---
         const keys = {};
         window.addEventListener('keydown', (e) => {
           keys[e.key] = true;
@@ -487,27 +399,22 @@
           } else if (e.key === 's' || e.key === 'S') {
             activateSadaqah();
           } else if (e.key === 'r' || e.key === 'R') {
-            restartGame();
+            resetGame();
           }
         });
+
         window.addEventListener('keyup', (e) => {
           keys[e.key] = false;
         });
 
         function activateSadaqah() {
-          if (barakahActive) {
-            showToast('Barakah already active.');
-            return;
-          }
-          if (balance < SADAQAH_COST) {
-            showToast('Not enough balance for Sadaqah.');
-            return;
-          }
+          if (barakahActive) return showToast('Barakah already active.');
+          if (balance < SADAQAH_COST) return showToast('Not enough balance.');
           balance -= SADAQAH_COST;
           barakahActive = true;
           barakahTimer = SADAQAH_DURATION_FRAMES;
-          fogLevel = 0.1; // world clearer
-          showToast('Sadaqah given. Hidden Barakah activated (2x real earnings).');
+          fogLevel = 0.1;
+          showToast('Barakah x2 activated.');
         }
 
         function spawnItem() {
@@ -531,13 +438,7 @@
             type = 'green';
           }
 
-          items.push({
-            type,
-            x,
-            lane,
-            w: ITEM_W,
-            h: ITEM_H
-          });
+          items.push({ type, x, lane, w: ITEM_W, h: ITEM_H });
         }
 
         function update(delta) {
@@ -557,8 +458,7 @@
           balance -= drainPerFrame;
           if (balance <= 0) {
             balance = 0;
-            triggerGameOver('balance');
-            return;
+            return triggerGameOver('balance');
           }
 
           speed += SPEED_INC;
@@ -589,25 +489,20 @@
           for (let i = investments.length - 1; i >= 0; i--) {
             investments[i].timer--;
             if (investments[i].timer <= 0) {
-              if (!gameOver) {
-                balance += INVEST_PAYOFF;
-              }
+              balance += INVEST_PAYOFF;
               investments.splice(i, 1);
             }
           }
 
           if (!monsterBanished) {
             monsterDistance -= MONSTER_GAIN_PER_FRAME;
-            if (loanTaken) {
-              monsterDistance -= MONSTER_LOAN_EXTRA_PULL;
-            }
+            if (loanTaken) monsterDistance -= MONSTER_LOAN_EXTRA_PULL;
             if (monsterDistance <= 0) {
-              monsterDistance = 0;
-              triggerGameOver('caught');
-              return;
+              return triggerGameOver('caught');
             }
           }
 
+          /* collision */
           for (let i = items.length - 1; i >= 0; i--) {
             const it = items[i];
             it.x -= speed;
@@ -617,48 +512,36 @@
               continue;
             }
 
-            const py = laneYs[playerLane] - PLAYER_H / 2;
             const px = PLAYER_X;
-            if (rectOverlap(px, py, PLAYER_W, PLAYER_H,
-              it.x, laneYs[it.lane] - it.h / 2, it.w, it.h)) {
+            const py = laneYs[playerLane] - PLAYER_H / 2;
+
+            if (px < it.x + it.w &&
+                px + PLAYER_W > it.x &&
+                py < laneYs[it.lane] + it.h / 2 &&
+                py + PLAYER_H > laneYs[it.lane] - it.h / 2) {
 
               if (it.type === 'green') {
-                const realGain = GREEN_VALUE * (barakahActive ? 2 : 1);
-                balance += realGain;
-                if (!monsterBanished) {
-                  monsterDistance += MONSTER_GREEN_PUSH_BACK;
-                }
-              } else if (it.type === 'red') {
-                const realGain = RED_VALUE * (barakahActive ? 2 : 1);
-                balance += realGain;
-                if (!monsterBanished) {
-                  monsterDistance -= MONSTER_RED_PULL;
-                }
-              } else if (it.type === 'obstacle') {
-                if (!monsterBanished) {
-                  triggerGameOver('caught');
-                  return;
-                }
-                speed = Math.max(BASE_SPEED, speed * 0.9);
-              } else if (it.type === 'invest') {
-                if (balance < INVEST_COST) {
-                  showToast('Not enough balance to invest.');
-                } else {
+                balance += barakahActive ? GREEN_VALUE * 2 : GREEN_VALUE;
+                if (!monsterBanished) monsterDistance += 6;
+              }
+              else if (it.type === 'red') {
+                balance += barakahActive ? RED_VALUE * 2 : RED_VALUE;
+                if (!monsterBanished) monsterDistance -= 10;
+              }
+              else if (it.type === 'obstacle') {
+                return triggerGameOver('caught');
+              }
+              else if (it.type === 'invest') {
+                if (balance >= INVEST_COST) {
                   balance -= INVEST_COST;
-                  investments.push({
-                    timer: INVEST_DELAY_FRAMES
-                  });
-                  showToast('Investment made. Dividend will arrive soon inshaAllah.');
+                  investments.push({ timer: INVEST_DELAY_FRAMES });
                 }
-              } else if (it.type === 'kestrl') {
+              }
+              else if (it.type === 'kestrl') {
                 kestrlActive = true;
                 kestrlTimer = KESTRL_DURATION_FRAMES;
-                worldBright = true;
                 monsterBanished = true;
-                for (const other of items) {
-                  if (other.type === 'red') other.type = 'green';
-                }
-                showToast('Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.');
+                for (const o of items) if (o.type === 'red') o.type = 'green';
               }
 
               items.splice(i, 1);
@@ -667,32 +550,18 @@
 
           if (toastTimer > 0) {
             toastTimer--;
-            if (toastTimer <= 0) {
-              toast.style.display = 'none';
-            }
+            if (toastTimer <= 0) toast.style.display = 'none';
           }
-        }
-
-        function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-          return (
-            x1 < x2 + w2 &&
-            x1 + w1 > x2 &&
-            y1 < y2 + h2 &&
-            y1 + h1 > y2
-          );
         }
 
         function drawBackground() {
           const grd = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
-          const baseDark = fogLevel;
-          grd.addColorStop(0, `rgba(0,0,0,1)`);
-          grd.addColorStop(1, `rgba(0,0,0,${1 - baseDark})`);
+          grd.addColorStop(0, 'rgba(0,0,0,1)');
+          grd.addColorStop(1, `rgba(0,0,0,${1 - fogLevel})`);
           ctx.fillStyle = grd;
           ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
           ctx.strokeStyle = worldBright ? 'rgba(120,255,180,0.4)' : 'rgba(0,255,150,0.25)';
-          ctx.lineWidth = 0.5;
-
           ctx.beginPath();
           for (let x = 0; x < LOGICAL_WIDTH; x += 10) {
             ctx.moveTo(x + (frameCount % 10), 0);
@@ -710,26 +579,15 @@
         }
 
         function drawMonster() {
-          const maxDist = MONSTER_START_DISTANCE;
-          const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-          const monsterX = 10 - (1 - t) * 6;
-          const monsterY = laneYs[playerLane] - MONSTER_H / 2;
+          const t = Math.max(0, Math.min(1, monsterDistance / MONSTER_START_DISTANCE));
+          const x = 10 - (1 - t) * 6;
+          const y = laneYs[playerLane] - MONSTER_H / 2;
 
-          if (monsterBanished) {
-            ctx.fillStyle = 'rgba(255,0,0,0.15)';
-          } else {
-            const pulse = 0.4 + 0.3 * Math.sin(frameCount * 0.2);
-            const alpha = 0.7 + 0.2 * Math.sin(frameCount * 0.4);
-            ctx.fillStyle = `rgba(${200 + pulse * 55},0,0,${alpha})`;
-          }
+          ctx.fillStyle = monsterBanished ?
+            'rgba(255,0,0,0.15)' :
+            'rgba(255,0,0,0.65)';
 
-          ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
-
-          if (!monsterBanished) {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 2, 3, 2);
-            ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 6, 3, 2);
-          }
+          ctx.fillRect(x, y, MONSTER_W, MONSTER_H);
         }
 
         function drawPlayer() {
@@ -738,15 +596,8 @@
 
           ctx.fillStyle = '#3b82f6';
           ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
-
           ctx.fillStyle = '#fbbf24';
           ctx.fillRect(px + PLAYER_W, py + 2, 3, 3);
-
-          ctx.fillStyle = '#000';
-          ctx.fillRect(px + PLAYER_W - 3, py + 2, 1, 1);
-
-          ctx.fillStyle = '#1d4ed8';
-          ctx.fillRect(px - 2, py + 2, 2, PLAYER_H - 3);
         }
 
         function drawItems() {
@@ -756,59 +607,22 @@
 
             if (it.type === 'green') {
               ctx.fillStyle = '#22c55e';
-              ctx.fillRect(x, y, it.w, it.h);
             } else if (it.type === 'red') {
               ctx.fillStyle = '#ef4444';
-              ctx.fillRect(x, y, it.w, it.h);
             } else if (it.type === 'obstacle') {
               ctx.fillStyle = '#9ca3af';
-              ctx.fillRect(x, y, it.w, it.h + 2);
             } else if (it.type === 'invest') {
               ctx.fillStyle = '#facc15';
-              ctx.fillRect(x, y - 2, 2, it.h + 4);
-              ctx.fillRect(x + it.w - 2, y - 2, 2, it.h + 4);
-              ctx.fillRect(x, y - 2, it.w, 2);
             } else if (it.type === 'kestrl') {
               ctx.fillStyle = '#38bdf8';
-              ctx.fillRect(x, y, it.w, it.h);
-              ctx.fillStyle = '#0ea5e9';
-              ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
             }
+
+            ctx.fillRect(x, y, it.w, it.h);
           }
         }
 
         function drawHUD() {
-          const barX = 4;
-          const barY = 4;
-
-          ctx.fillStyle = '#fff';
-          ctx.font = '6px monospace';
-          ctx.fillText('£' + Math.max(0, Math.floor(balance)), barX, barY + 6);
-
-          const maxDist = MONSTER_START_DISTANCE;
-          const width = 70;
-          const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-          const barWidth = width * t;
-
-          ctx.fillStyle = '#4b5563';
-          ctx.fillRect(barX, barY + 8, width, 4);
-
-          ctx.fillStyle = monsterBanished ? '#22c55e' : '#ef4444';
-          ctx.fillRect(barX, barY + 8, barWidth, 4);
-
-          ctx.fillStyle = '#9ca3af';
-          ctx.font = '5px monospace';
-          ctx.fillText('THREAT', barX + width + 4, barY + 11);
-
-          const statusParts = [];
-          if (barakahActive) statusParts.push('Barakah x2');
-          if (kestrlActive) statusParts.push('Kestrl Mode');
-          if (loanTaken) statusParts.push('Riba Loan Active');
-
-          statsDiv.textContent =
-            'Balance: £' + Math.max(0, Math.floor(balance)) +
-            ' | Threat: ' + Math.floor((1 - t) * 100) + '%' +
-            (statusParts.length ? ' | ' + statusParts.join(' · ') : '');
+          statsDiv.textContent = `Balance: £${Math.floor(balance)} | Threat: ${Math.floor((1 - monsterDistance / MONSTER_START_DISTANCE)*100)}%`;
         }
 
         function draw() {
@@ -830,10 +644,14 @@
           requestAnimationFrame(loop);
         }
 
+        let investments = [];
+        let items = [];
         resetGame();
         requestAnimationFrame(loop);
-      })();
-    }
+
+      })(); // end game
+    } // end startRibaRun
+
   </script>
 </body>
 </html>
