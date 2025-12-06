@@ -38,6 +38,15 @@
       display: block;
     }
   </style>
+
+  <!-- Safe no-op globals so game can start before React finishes mounting -->
+  <script>
+    window.updateHUD = function () {};
+    window.showLoanModal = function () {};
+    window.hideLoanModal = function () {};
+    window.acceptBankruptcy = function () {};
+    window.takeLoan = function () {};
+  </script>
 </head>
 <body>
   <div id="three-root"></div>
@@ -86,7 +95,7 @@
           <div className="pointer-events-none flex justify-between items-start p-4 gap-4">
             {/* LEFT: Balance & Distance */}
             <div className="space-y-2">
-              <div className="bg-slate-900/70 border border-slate-700/80 rounded-xl px-4 py-2 shadow-lg shadow-emerald-500/10">
+              <div className="bg-slate-900/70 border border-emerald-500/40 rounded-xl px-4 py-2 shadow-lg shadow-emerald-500/10">
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-xs tracking-[0.2em] text-slate-400 uppercase">
                     Bank Balance
@@ -258,7 +267,7 @@
   <!-- Three.js Game Logic -->
   <script type="text/babel">
     let scene, camera, renderer, clock;
-    let player, monster;
+    let playerGroup, monster;
     let laneIndex = 1;
     const lanes = [-3, 0, 3];
 
@@ -288,8 +297,8 @@
     let kestrlActive = false;
     let kestrlTimeLeft = 0;
 
-    let fogDensityBase = 0.06;
-    let fogDensityBarakah = 0.02;
+    let fogDensityBase = 0.035;
+    let fogDensityBarakah = 0.018;
 
     let lastSpawnTime = 0;
     let lastGateTime = 0;
@@ -317,17 +326,17 @@
       threeRoot.appendChild(renderer.domElement);
 
       // Lights
-      const hemi = new THREE.HemisphereLight(0x0f172a, 0x000000, 0.9);
+      const hemi = new THREE.HemisphereLight(0x0f172a, 0x000000, 1.0);
       scene.add(hemi);
 
-      const dir = new THREE.DirectionalLight(0x38bdf8, 0.9);
-      dir.position.set(6, 10, 6);
+      const dir = new THREE.DirectionalLight(0x38bdf8, 1.0);
+      dir.position.set(6, 12, 8);
       scene.add(dir);
 
-      // Cyber tunnel floor
+      // Neon tunnel floor
       const floorGeo = new THREE.PlaneGeometry(40, 400, 20, 120);
       const floorMat = new THREE.MeshBasicMaterial({
-        color: 0x020617,
+        color: 0x0b1120,
         wireframe: true,
       });
       const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -335,55 +344,71 @@
       floor.position.z = -180;
       scene.add(floor);
 
-      // Neon lane lines
+      // Lane lines
       const laneMat = new THREE.LineBasicMaterial({ color: 0x22c55e });
       for (let i = 0; i < lanes.length; i++) {
         const laneX = lanes[i];
         const points = [];
-        points.push(new THREE.Vector3(laneX, 0.01, -200));
-        points.push(new THREE.Vector3(laneX, 0.01, 20));
+        points.push(new THREE.Vector3(laneX, 0.02, -220));
+        points.push(new THREE.Vector3(laneX, 0.02, 20));
         const geo = new THREE.BufferGeometry().setFromPoints(points);
         const line = new THREE.Line(geo, laneMat);
         scene.add(line);
       }
 
-      // Player (Kestrl cube)
-      const playerGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-      const playerMat = new THREE.MeshStandardMaterial({
+      // Player (Kestrl-ish bird: body box + beak cone)
+      const bodyGeo = new THREE.BoxGeometry(1.4, 1, 1.2);
+      const bodyMat = new THREE.MeshStandardMaterial({
         color: 0x22c55e,
         emissive: 0x22c55e,
-        emissiveIntensity: 0.8,
-        metalness: 0.4,
-        roughness: 0.3,
+        emissiveIntensity: 1.0,
+        metalness: 0.5,
+        roughness: 0.25,
       });
-      player = new THREE.Mesh(playerGeo, playerMat);
-      player.position.set(lanes[laneIndex], playerY, 0);
-      scene.add(player);
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
 
-      // Monster (shadow cube)
-      const monsterGeo = new THREE.BoxGeometry(1.7, 1.7, 1.7);
+      const beakGeo = new THREE.ConeGeometry(0.25, 0.6, 12);
+      const beakMat = new THREE.MeshStandardMaterial({
+        color: 0xfacc15,
+        emissive: 0xf97316,
+        emissiveIntensity: 0.9,
+        metalness: 0.5,
+        roughness: 0.4,
+      });
+      const beak = new THREE.Mesh(beakGeo, beakMat);
+      beak.rotation.z = -Math.PI / 2;
+      beak.position.set(0.9, 0.05, 0);
+
+      playerGroup = new THREE.Group();
+      playerGroup.add(body);
+      playerGroup.add(beak);
+      playerGroup.position.set(lanes[laneIndex], playerY, 0);
+      scene.add(playerGroup);
+
+      // Riba Monster (shadow cube)
+      const monsterGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
       const monsterMat = new THREE.MeshStandardMaterial({
         color: 0x020617,
         emissive: 0x7f1d1d,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.5,
         metalness: 0.2,
-        roughness: 0.9,
+        roughness: 0.95,
       });
       monster = new THREE.Mesh(monsterGeo, monsterMat);
-      monster.position.set(0, 1.3, monsterZ);
+      monster.position.set(0, 1.4, monsterZ);
       scene.add(monster);
 
-      // Floating neon cubes (environment)
-      for (let i = 0; i < 40; i++) {
-        const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+      // Floating neon cubes in tunnel
+      for (let i = 0; i < 60; i++) {
+        const geo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
         const mat = new THREE.MeshBasicMaterial({
           color: Math.random() > 0.5 ? 0x38bdf8 : 0x22c55e,
         });
         const cube = new THREE.Mesh(geo, mat);
         cube.position.set(
-          (Math.random() - 0.5) * 20,
-          0.2 + Math.random() * 6,
-          -Math.random() * 200
+          (Math.random() - 0.5) * 26,
+          0.5 + Math.random() * 7,
+          -Math.random() * 220
         );
         scene.add(cube);
       }
@@ -409,9 +434,9 @@
       monsterTargetZ = 8;
 
       laneIndex = 1;
-      player.position.x = lanes[laneIndex];
+      playerGroup.position.x = lanes[laneIndex];
       playerY = 1;
-      player.position.y = playerY;
+      playerGroup.position.y = playerY;
       velocityY = 0;
 
       barakahActive = false;
@@ -425,7 +450,7 @@
       scene.background = new THREE.Color(0x020617);
       scene.fog.density = fogDensityBase;
 
-      // Clear objects
+      // Clear spawn objects
       objects.forEach(o => scene.remove(o.mesh));
       objects = [];
       investmentTimers = [];
@@ -435,7 +460,7 @@
       lastKestrlTime = 0;
       clock.getDelta();
 
-      updateHUD({
+      window.updateHUD({
         balance,
         score,
         barakahActive,
@@ -460,12 +485,12 @@
       if (e.code === "ArrowLeft") {
         if (!isPaused && !isGameOver) {
           laneIndex = Math.max(0, laneIndex - 1);
-          player.position.x = lanes[laneIndex];
+          playerGroup.position.x = lanes[laneIndex];
         }
       } else if (e.code === "ArrowRight") {
         if (!isPaused && !isGameOver) {
           laneIndex = Math.min(lanes.length - 1, laneIndex + 1);
-          player.position.x = lanes[laneIndex];
+          playerGroup.position.x = lanes[laneIndex];
         }
       } else if (e.code === "ArrowUp" || e.code === "Space") {
         if (!isPaused && !isGameOver && playerY <= 1.01) {
@@ -488,7 +513,7 @@
         barakahActive = true;
         barakahTimeLeft = 15;
         scene.fog.density = fogDensityBarakah;
-        updateHUD({
+        window.updateHUD({
           balance,
           barakahActive,
           fogLevel: 0.3,
@@ -506,7 +531,7 @@
         const mat = new THREE.MeshStandardMaterial({
           color: 0x22c55e,
           emissive: 0xfacc15,
-          emissiveIntensity: 1.2,
+          emissiveIntensity: 1.3,
           metalness: 0.3,
           roughness: 0.25,
         });
@@ -517,23 +542,23 @@
         const mat = new THREE.MeshStandardMaterial({
           color: 0x991b1b,
           emissive: 0xef4444,
-          emissiveIntensity: 1.1,
+          emissiveIntensity: 1.2,
           metalness: 0.3,
           roughness: 0.3,
         });
         mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(lane, 1.2, z);
       } else if (type === "obstacle") {
-        const geo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+        const geo = new THREE.BoxGeometry(1.2, 1.4, 1.2);
         const mat = new THREE.MeshStandardMaterial({
           color: 0x334155,
-          emissive: 0x020617,
+          emissive: 0x0f172a,
           emissiveIntensity: 0.8,
           metalness: 0.6,
           roughness: 0.4,
         });
         mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(lane, 0.6, z);
+        mesh.position.set(lane, 0.7, z);
       } else if (type === "investmentGate") {
         const geo = new THREE.TorusGeometry(1.4, 0.13, 12, 32);
         const mat = new THREE.MeshStandardMaterial({
@@ -551,7 +576,7 @@
         const mat = new THREE.MeshStandardMaterial({
           color: 0x38bdf8,
           emissive: 0x22d3ee,
-          emissiveIntensity: 1.3,
+          emissiveIntensity: 1.4,
           metalness: 0.6,
           roughness: 0.2,
         });
@@ -577,7 +602,7 @@
         inv.framesLeft -= framesPassed;
         if (inv.framesLeft <= 0 && !inv.paid) {
           inv.paid = true;
-          addBalance(600); // hidden barakah handled in addBalance
+          addBalance(600);
           investmentTimers.splice(i, 1);
         }
       }
@@ -595,7 +620,6 @@
         monsterTargetZ = 18;
       }
 
-      // If loan taken, monster wants to be closer overall
       if (loanTaken && !kestrlActive) {
         monsterTargetZ = Math.max(2, monsterTargetZ - 1.5);
       }
@@ -603,13 +627,11 @@
       monsterZ += (monsterTargetZ - monsterZ) * 3 * dt;
       monster.position.z = monsterZ;
 
-      // Pulsing emissive based on threat
       const intensity = kestrlActive
-        ? 0.1
-        : 0.3 + Math.min(1.2, threatLevel * 0.25);
+        ? 0.15
+        : 0.4 + Math.min(1.3, threatLevel * 0.25);
       monster.material.emissiveIntensity = intensity;
 
-      // Monster catch
       if (!isGameOver && !isPaused && monsterZ <= 1.3) {
         gameOver("Game Over: Consumed by Debt.");
       }
@@ -618,7 +640,7 @@
     function gameOver(reason) {
       isGameOver = true;
       isPaused = true;
-      updateHUD({
+      window.updateHUD({
         gameOver: true,
         gameOverReason: reason,
         showLoanModal: false,
@@ -640,7 +662,7 @@
       monsterTargetZ = 2;
       isPaused = false;
       window.hideLoanModal && window.hideLoanModal();
-      updateHUD({
+      window.updateHUD({
         balance,
         loanTaken,
         showLoanModal: false,
@@ -662,7 +684,7 @@
       // Distance (score)
       score += speed * dt * (barakahActive ? barakahScoreMultiplier : 1);
 
-      // Expense drain: -£1 per frame (approx 60fps)
+      // Expense drain
       const frames = dt * 60 * drainMultiplier;
       drainAccumulator += frames;
       while (drainAccumulator >= 1) {
@@ -702,9 +724,12 @@
         playerY = 1;
         velocityY = 0;
       }
-      player.position.y = playerY;
+      playerGroup.position.y = playerY;
 
-      // Spawn objects
+      // Subtle bobbing to feel alive
+      playerGroup.rotation.z = Math.sin(elapsed * 4) * 0.06;
+
+      // Spawns
       if (elapsed - lastSpawnTime > 0.6) {
         const r = Math.random();
         if (r < 0.45) {
@@ -731,7 +756,8 @@
         o.mesh.position.z += speed * dt;
 
         if (o.type === "greenCoin" || o.type === "redCoin" || o.type === "kestrlCard") {
-          o.mesh.rotation.y += 2.2 * dt;
+          o.mesh.rotation.y += 2.4 * dt;
+          o.mesh.rotation.x += 0.8 * dt;
         }
         if (o.type === "investmentGate") {
           o.mesh.rotation.z += 1.8 * dt;
@@ -743,9 +769,8 @@
           continue;
         }
 
-        // Lane + z-distance collision
         if (o.lane === lanes[laneIndex]) {
-          const dz = Math.abs(o.mesh.position.z - player.position.z);
+          const dz = Math.abs(o.mesh.position.z - playerGroup.position.z);
           if (dz < 0.9) {
             if (o.type === "obstacle") {
               scene.remove(o.mesh);
@@ -767,7 +792,7 @@
               objects.splice(i, 1);
               if (balance >= 200) {
                 balance -= 200;
-                investmentTimers.push({ framesLeft: 600, paid: false }); // ~10s at 60fps
+                investmentTimers.push({ framesLeft: 600, paid: false });
               }
             } else if (o.type === "kestrlCard") {
               scene.remove(o.mesh);
@@ -777,12 +802,11 @@
               kestrlTimeLeft = 10;
               scene.background = new THREE.Color(0xf9fafb);
 
-              // Clean slate: monster back + threat reset
               threatLevel = 0.2;
               monsterZ = 18;
               monsterTargetZ = 18;
 
-              // Flip all existing red → green
+              // Turn all existing red → green
               for (const oo of objects) {
                 if (oo.type === "redCoin") {
                   oo.type = "greenCoin";
@@ -802,12 +826,12 @@
       // Monster
       updateMonster(dt);
 
-      // Subtle camera motion
-      camera.position.y = 5.5 + Math.sin(elapsed * 1.6) * 0.12;
-      camera.lookAt(0, 2, 0);
+      // Camera motion
+      camera.position.y = 5.7 + Math.sin(elapsed * 1.6) * 0.18;
+      camera.lookAt(0, 2.2, 0);
 
       // HUD
-      updateHUD({
+      window.updateHUD({
         balance,
         score,
         barakahActive,
@@ -822,6 +846,7 @@
   </script>
 </body>
 </html>
+
 
 
 
