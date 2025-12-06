@@ -30,45 +30,49 @@
       align-items: center;
       background: #000;
       z-index: 50;
+      flex-direction: column;
     }
 
     #cutscene-video {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      background: #000;
+    }
+
+    #cutscene-overlay-bar {
+      position: absolute;
+      bottom: 16px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      pointer-events: none;
+      font-size: 13px;
+      color: #e5e7eb;
+      text-shadow: 0 0 6px #000;
+    }
+
+    #cutscene-hint {
+      opacity: 0.9;
     }
 
     #skip-cutscene {
-      position: absolute;
-      bottom: 24px;
-      right: 24px;
+      pointer-events: auto;
       padding: 8px 14px;
-      background: rgba(15,23,42,0.85);
+      background: rgba(15,23,42,0.9);
       border-radius: 999px;
       border: 1px solid rgba(248,250,252,0.3);
       color: #f9fafb;
       font-size: 13px;
       cursor: pointer;
       backdrop-filter: blur(6px);
-      z-index: 60;
     }
 
     #skip-cutscene:hover {
       background: rgba(15,23,42,1);
-    }
-
-    #tap-to-start {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      font-size: 20px;
-      font-weight: 600;
-      color: #e5f4ff;
-      text-shadow: 0 0 10px #000;
-      z-index: 55;
     }
 
     /* =========================
@@ -267,17 +271,23 @@
 
   <!-- ========== CUTSCENE SCREEN ========== -->
   <div id="cutscene-screen">
-    <!-- Your trailer -->
+    <!-- Trailer video, with controls in case autoplay is blocked -->
     <video
       id="cutscene-video"
       src="cutscene.mp4"
+      autoplay
       muted
+      controls
       playsinline
       poster="fantasy-world-map.png"
     ></video>
 
-    <div id="tap-to-start">Click to start story</div>
-    <button id="skip-cutscene">Skip ▶</button>
+    <div id="cutscene-overlay-bar">
+      <div id="cutscene-hint">
+        If the video doesn’t start, press play or click “Skip” to go to the map.
+      </div>
+      <button id="skip-cutscene">Skip ▶</button>
+    </div>
   </div>
 
   <!-- ========== MAP SCREEN ========== -->
@@ -346,14 +356,13 @@
   <div id="toast"></div>
 
   <script>
-    /* ========= CUTSCENE → MAP → GAME FLOW ========= */
+    /* ========= CUTSCENE → MAP ========= */
+
     const cutsceneScreen  = document.getElementById('cutscene-screen');
     const cutsceneVideo   = document.getElementById('cutscene-video');
-    const skipCutsceneBtn = document.getElementById('skip-cutscene');
-    const tapToStart      = document.getElementById('tap-to-start');
-
-    const mapScreen  = document.getElementById('map-screen');
-    const gameScreen = document.getElementById('game-screen');
+    const skipButton      = document.getElementById('skip-cutscene');
+    const mapScreen       = document.getElementById('map-screen');
+    const gameScreen      = document.getElementById('game-screen');
 
     function goToMapScreen() {
       cutsceneVideo.pause();
@@ -361,41 +370,27 @@
       mapScreen.style.display = 'flex';
     }
 
-    let cutsceneStarted = false;
-
-    function startCutscenePlayback() {
-      if (cutsceneStarted) return;
-      cutsceneVideo.play()
-        .then(() => {
-          cutsceneStarted = true;
-          tapToStart.style.display = 'none';
-        })
-        .catch(() => {
-          // if it still fails, leave the "Click to start story" text on
-        });
-    }
-
-    // Click anywhere on cutscene (except Skip) to start video
-    cutsceneScreen.addEventListener('click', (e) => {
-      if (e.target === skipCutsceneBtn) return;
-      startCutscenePlayback();
-    });
-
-    // When video finishes, go to map
+    // When cutscene ends, go to map
     cutsceneVideo.addEventListener('ended', goToMapScreen);
 
-    // Skip button → go straight to map
-    skipCutsceneBtn.addEventListener('click', (e) => {
+    // Skip button always works
+    skipButton.addEventListener('click', (e) => {
       e.stopPropagation();
       goToMapScreen();
     });
 
-    // If the browser allows autoplay, try straight away as a bonus
-    window.addEventListener('load', () => {
-      startCutscenePlayback();
-    });
+    // If video fails completely, go straight to map
+    cutsceneVideo.addEventListener('error', goToMapScreen);
 
-    // Clicking on map areas → go to game
+    // If video hasn't started after 6s (e.g. big file / codec issue), show map anyway
+    setTimeout(() => {
+      const currentTime = cutsceneVideo.currentTime || 0;
+      if (currentTime === 0) {
+        goToMapScreen();
+      }
+    }, 6000);
+
+    // ========= MAP → GAME =========
     document.querySelectorAll('.area').forEach(area => {
       area.addEventListener('click', () => {
         mapScreen.style.display = 'none';
@@ -405,6 +400,7 @@
     });
 
     /* ========= FULL 2D RIBA RUN GAME (with DEBT + INTEREST) ========= */
+
     let ribaRunStarted = false;
 
     function startRibaRun() {
@@ -574,13 +570,8 @@
           resetGame();
         }
 
-        btnRestart.addEventListener('click', () => {
-          restartGame();
-        });
-
-        btnLoan.addEventListener('click', () => {
-          takeLoan();
-        });
+        btnRestart.addEventListener('click', restartGame);
+        btnLoan.addEventListener('click', takeLoan);
 
         const keys = {};
         window.addEventListener('keydown', (e) => {
@@ -938,6 +929,7 @@
   </script>
 </body>
 </html>
+
 
 
 
