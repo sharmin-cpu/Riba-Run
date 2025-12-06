@@ -9,191 +9,206 @@
       margin: 0;
       padding: 0;
     }
+
     html, body {
       height: 100%;
       width: 100%;
-      background: #050711;
-      color: #fff;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
       overflow: hidden;
     }
 
-    /* Containers */
-    #video-container,
-    #map-container,
-    #game-container {
-      position: absolute;
-      inset: 0;
-      display: none;
+    body {
+      display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    #video-container {
-      background: #000;
+    /* Generic screens */
+    .screen {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #020617 0%, #020617 40%, #000 100%);
     }
 
-    #cutscene {
-      max-width: 100%;
-      max-height: 100%;
-      background: #000;
-    }
-
-    #cutscene-ui {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      right: 16px;
+    .screen.active {
       display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      color: #ddd;
+    }
+
+    /* CUTSCENE */
+    #cutscene-screen {
+      background: #000;
+    }
+
+    #cutscene-wrapper {
+      position: relative;
+      max-width: 1000px;
+      width: 100%;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+    }
+
+    #cutscene-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+
+    #cutscene-overlay-text {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      font-size: 13px;
+      color: #e5e7eb;
+      text-shadow: 0 0 4px #000;
+      background: linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0));
+      padding: 6px 10px;
+      border-radius: 999px;
     }
 
     #skip-btn {
       position: absolute;
-      right: 16px;
-      bottom: 16px;
-      padding: 8px 16px;
+      right: 20px;
+      bottom: 20px;
+      padding: 8px 18px;
+      font-size: 14px;
       border-radius: 999px;
-      border: none;
-      background: #111827;
-      color: #f9fafb;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: radial-gradient(circle at top left, #0ea5e9, #020617);
+      color: #e5e7eb;
       cursor: pointer;
-      font-size: 13px;
       display: flex;
       align-items: center;
-      gap: 4px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
+      gap: 6px;
+      box-shadow: 0 12px 40px rgba(15,118,110,0.7);
     }
+
+    #skip-btn span {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
     #skip-btn:hover {
-      background: #1f2937;
+      transform: translateY(-1px);
+      box-shadow: 0 18px 60px rgba(14,165,233,0.9);
     }
 
-    /* Map */
-    #map-container {
-      background: radial-gradient(circle at top, #020617, #020617 50%, #000 100%);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    #map-frame {
+    /* MAP SCREEN */
+    #map-screen-inner {
       position: relative;
-      width: 90vw;
       max-width: 1100px;
+      width: 96%;
       aspect-ratio: 16 / 9;
-      background: #020617;
-      border-radius: 24px;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+      border-radius: 26px;
       overflow: hidden;
+      box-shadow: 0 22px 80px rgba(15,23,42,0.95);
+      background: #020617;
     }
 
-    #world-map {
+    #map-bg {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      filter: saturate(1.1);
     }
 
-    .map-node {
+    .city-node {
       position: absolute;
-      width: 70px;
-      height: 70px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
+      border: 2px solid rgba(96,165,250,0.9);
+      background: radial-gradient(circle at 30% 20%, #38bdf8 0%, #0f172a 55%, #020617 100%);
+      box-shadow:
+        0 0 12px rgba(56,189,248,0.9),
+        0 0 40px rgba(8,47,73,0.9);
       display: flex;
       align-items: center;
       justify-content: center;
+      color: #e5e7eb;
+      font-size: 18px;
       cursor: pointer;
-      transform: translate(-50%, -50%);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     }
 
-    .map-node-inner {
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      border: 2px solid rgba(96, 165, 250, 0.9);
+    .city-node:hover {
+      transform: translateY(-2px) scale(1.05);
       box-shadow:
-        0 0 20px rgba(56, 189, 248, 0.7),
-        0 0 40px rgba(37, 99, 235, 0.5);
-      background: radial-gradient(circle at 30% 20%, #e0f2fe, #2563eb 60%, #020617 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ecfeff;
-      font-weight: 700;
-      font-size: 20px;
-      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+        0 0 16px rgba(96,165,250,1),
+        0 0 60px rgba(8,47,73,1);
+      border-color: #e0f2fe;
     }
 
-    .map-node:hover .map-node-inner {
-      transform: scale(1.12);
-      box-shadow:
-        0 0 28px rgba(56, 189, 248, 1),
-        0 0 60px rgba(37, 99, 235, 0.9);
-    }
-
-    .map-node-label {
+    .city-label {
       position: absolute;
-      top: 100%;
-      margin-top: 6px;
-      width: 140px;
+      width: 120px;
       text-align: center;
-      font-size: 12px;
+      font-size: 13px;
       color: #e5e7eb;
-      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+      text-shadow: 0 0 8px rgba(15,23,42,0.9);
     }
 
-    #map-caption {
-      margin-top: 16px;
-      font-size: 14px;
-      color: #9ca3af;
-    }
-
-    #back-to-map {
+    #map-title {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      padding: 6px 12px;
-      font-size: 12px;
-      border-radius: 999px;
-      border: none;
-      background: rgba(15,23,42,0.9);
+      left: 24px;
+      top: 18px;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: #e5e7eb;
-      cursor: pointer;
-      display: none;
-    }
-    #back-to-map:hover {
-      background: rgba(30,64,175,0.9);
+      text-shadow: 0 0 10px rgba(15,23,42,0.9);
+      background: radial-gradient(circle at left, rgba(15,23,42,0.9), transparent);
+      padding: 6px 10px;
+      border-radius: 999px;
     }
 
-    /* Game */
+    /* GAME SCREEN & HUD */
+    #game-screen {
+      flex-direction: column;
+      gap: 8px;
+    }
+
     #game-container {
+      display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding-top: 10px;
     }
+
     canvas {
-      border: 2px solid #444;
+      border: 2px solid #111827;
       image-rendering: pixelated;
       background: #000;
+      border-radius: 10px;
+      box-shadow: 0 18px 55px rgba(15,23,42,0.95);
     }
+
     #hud {
       margin-top: 8px;
       font-size: 14px;
       text-align: center;
       line-height: 1.4;
-    }
-    #hud-hint {
-      font-size: 12px;
-      margin-top: 4px;
-      color: #9ca3af;
+      color: #e5e7eb;
     }
 
+    #stats {
+      margin-top: 4px;
+    }
+
+    #hud small {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    /* GAME-OVER OVERLAY */
     #game-over-overlay {
       position: fixed;
       inset: 0;
@@ -201,27 +216,32 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 10;
+      z-index: 20;
     }
+
     #game-over-box {
-      background: #111827;
-      border: 1px solid #4b5563;
+      background: #020617;
+      border-radius: 14px;
       padding: 20px 24px;
-      border-radius: 12px;
-      text-align: center;
+      border: 1px solid #4b5563;
       max-width: 360px;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 55px rgba(15,23,42,0.9);
     }
+
     #game-over-box h2 {
       margin-top: 0;
       margin-bottom: 8px;
       font-size: 22px;
     }
+
     #game-over-box p {
       margin: 4px 0 14px;
       font-size: 14px;
       color: #e5e7eb;
     }
+
     .btn {
       display: inline-block;
       margin: 4px 6px;
@@ -231,20 +251,20 @@
       border: none;
       cursor: pointer;
     }
+
     .btn-primary {
-      background: #22c55e;
-      color: #022c22;
+      background: #16a34a;
+      color: white;
     }
+
     .btn-danger {
-      background: #ef4444;
-      color: #fef2f2;
+      background: #dc2626;
+      color: white;
     }
+
     .btn-secondary {
-      background: #374151;
-      color: #e5e7eb;
-    }
-    .btn:hover {
-      filter: brightness(1.06);
+      background: #1f2937;
+      color: white;
     }
 
     #toast {
@@ -252,65 +272,109 @@
       bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.85);
+      background: rgba(15,23,42,0.95);
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 999px;
       font-size: 12px;
       display: none;
-      z-index: 20;
+      z-index: 30;
+      border: 1px solid rgba(148,163,184,0.6);
+      color: #e5e7eb;
     }
   </style>
 </head>
 <body>
 
-  <!-- CUTSCENE -->
-  <div id="video-container" style="display:flex;">
-    <video id="cutscene" src="cutscene.mp4" autoplay muted playsinline></video>
-    <div id="cutscene-ui">
-      <span>If the video doesn’t start, press play or click “Skip”.</span>
+  <!-- 1) CUTSCENE SCREEN -->
+  <div id="cutscene-screen" class="screen active">
+    <div id="cutscene-wrapper">
+      <video
+        id="cutscene-video"
+        src="cutscene.mp4"
+        autoplay
+        muted
+        playsinline
+      ></video>
+
+      <div id="cutscene-overlay-text">
+        If the video doesn’t start, press play or click “Skip”.
+      </div>
+
+      <button id="skip-btn">
+        Skip
+        <span>▶</span>
+      </button>
     </div>
-    <button id="skip-btn">Skip ▶</button>
   </div>
 
-  <!-- MAP -->
-  <div id="map-container">
-    <button id="back-to-map">← Back to Map</button>
-    <div id="map-frame">
-      <img id="world-map" src="fantasy-world-map.png" alt="Fantasy world map" />
+  <!-- 2) MAP SCREEN -->
+  <div id="map-screen" class="screen">
+    <div id="map-screen-inner">
+      <img id="map-bg" src="fantasy-world-map.png" alt="Fantasy world map" />
+      <div id="map-title">Choose your route</div>
+
       <!-- Castle Hub -->
-      <div class="map-node" data-level="1" style="left:18%; top:70%;">
-        <div class="map-node-inner">1</div>
-        <div class="map-node-label">Castle Hub</div>
-      </div>
+      <div
+        class="city-node"
+        style="left: 20%; top: 72%;"
+        data-level="Castle Hub"
+      >1</div>
+      <div
+        class="city-label"
+        style="left: 14%; top: 83%;"
+      >Castle Hub</div>
+
       <!-- Forest Trials -->
-      <div class="map-node" data-level="2" style="left:50%; top:55%;">
-        <div class="map-node-inner">2</div>
-        <div class="map-node-label">Forest Trials</div>
-      </div>
+      <div
+        class="city-node"
+        style="left: 48%; top: 48%;"
+        data-level="Forest Trials"
+      >2</div>
+      <div
+        class="city-label"
+        style="left: 42%; top: 59%;"
+      >Forest Trials</div>
+
       <!-- Riba Cave -->
-      <div class="map-node" data-level="3" style="left:77%; top:40%;">
-        <div class="map-node-inner">3</div>
-        <div class="map-node-label">Riba Cave</div>
-      </div>
+      <div
+        class="city-node"
+        style="left: 74%; top: 40%;"
+        data-level="Riba Cave"
+      >3</div>
+      <div
+        class="city-label"
+        style="left: 68%; top: 51%;"
+      >Riba Cave</div>
+
       <!-- Market Town -->
-      <div class="map-node" data-level="4" style="left:63%; top:78%;">
-        <div class="map-node-inner">4</div>
-        <div class="map-node-label">Market Town</div>
-      </div>
-    </div>
-    <div id="map-caption">
-      Hover a city and click to begin that challenge. Green coins = halal, red coins = riba, blue gates = Kestrel help.
+      <div
+        class="city-node"
+        style="left: 64%; top: 76%;"
+        data-level="Market Town"
+      >4</div>
+      <div
+        class="city-label"
+        style="left: 59%; top: 87%;"
+      >Market Town</div>
     </div>
   </div>
 
-  <!-- GAME -->
-  <div id="game-container">
-    <canvas id="game"></canvas>
-    <div id="hud">
-      <div><strong>Controls:</strong> Arrow Up/Down = change lane &nbsp;|&nbsp; S = Sadaqah &nbsp;|&nbsp; R = Restart</div>
-      <div id="stats"></div>
-      <div id="hud-hint">
-        Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Riba coins (red), Kestrl Card (blue), Investment Gate (yellow)
+  <!-- 3) GAME SCREEN -->
+  <div id="game-screen" class="screen">
+    <div id="game-container">
+      <canvas id="game" width="800" height="450"></canvas>
+      <div id="hud">
+        <div>
+          <strong>Controls:</strong>
+          Arrow Up / Arrow Down = change lane &nbsp;|&nbsp;
+          S = Sadaqah &nbsp;|&nbsp;
+          R = Restart
+        </div>
+        <div id="stats"></div>
+        <small>
+          Riba Run 2D · Kestrel vs Riba Monster ·
+          Halal coins (green), Riba coins (red), Kestrl Card (blue), Investment Gate (yellow)
+        </small>
       </div>
     </div>
   </div>
@@ -326,9 +390,7 @@
         <button class="btn btn-secondary" id="btn-restart">Accept Bankruptcy (Restart)</button>
       </div>
       <div>
-        <button class="btn btn-danger" id="btn-loan">
-          Take Riba Loan (+£1000)
-        </button>
+        <button class="btn btn-danger" id="btn-loan">Take Riba Loan (+£1000)</button>
       </div>
       <p style="margin-top: 10px; font-size: 11px; color:#facc15;">
         Taking the loan doubles your debt and interest. One mistake = permanent death.
@@ -336,55 +398,54 @@
     </div>
   </div>
 
+  <!-- TOAST -->
   <div id="toast"></div>
 
+  <!-- NAVIGATION + GAME LOGIC -->
   <script>
-    // --- SIMPLE FLOW BETWEEN CUTSCENE → MAP → GAME ---
-    const videoContainer = document.getElementById('video-container');
-    const mapContainer = document.getElementById('map-container');
-    const gameContainer = document.getElementById('game-container');
-    const cutsceneVideo = document.getElementById('cutscene');
-    const skipBtn = document.getElementById('skip-btn');
-    const backToMapBtn = document.getElementById('back-to-map');
+    // ---------- SCREEN NAVIGATION (cutscene -> map -> game) ----------
 
-    function showMap() {
-      videoContainer.style.display = 'none';
-      gameContainer.style.display = 'none';
-      mapContainer.style.display = 'flex';
-      backToMapBtn.style.display = 'none';
+    const cutsceneScreen = document.getElementById('cutscene-screen');
+    const cutsceneVideo  = document.getElementById('cutscene-video');
+    const skipBtn        = document.getElementById('skip-btn');
+    const mapScreen      = document.getElementById('map-screen');
+    const gameScreen     = document.getElementById('game-screen');
+
+    function showScreen(screenEl) {
+      [cutsceneScreen, mapScreen, gameScreen].forEach(el => {
+        el.classList.remove('active');
+      });
+      screenEl.classList.add('active');
     }
 
-    function showGame() {
-      mapContainer.style.display = 'none';
-      videoContainer.style.display = 'none';
-      gameContainer.style.display = 'flex';
-      backToMapBtn.style.display = 'inline-flex';
+    function goToMap() {
+      showScreen(mapScreen);
+      try { cutsceneVideo.pause(); } catch(e) {}
     }
 
-    cutsceneVideo.addEventListener('ended', showMap);
-    skipBtn.addEventListener('click', showMap);
+    cutsceneVideo.addEventListener('ended', goToMap);
+    skipBtn.addEventListener('click', goToMap);
 
-    backToMapBtn.addEventListener('click', () => {
-      showMap();
-    });
-
-    // clicking any node -> go to game
-    document.querySelectorAll('.map-node').forEach(node => {
+    // Map city click -> start minigame
+    document.querySelectorAll('.city-node').forEach(node => {
       node.addEventListener('click', () => {
-        showGame();
+        const levelName = node.getAttribute('data-level') || 'Tunnel of Wants';
+        showScreen(gameScreen);
+        if (window.RibaRun && typeof window.RibaRun.start === 'function') {
+          window.RibaRun.start(levelName);
+        }
       });
     });
-  </script>
 
-  <!-- MINIGAME SCRIPT WITH RIBA RAGE + GLITCH -->
-  <script>
-    (function () {
+    // ---------- RIBA RUN GAME MODULE (sprites + riba glitch) ----------
+    window.RibaRun = (function () {
       const canvas = document.getElementById('game');
       const ctx = canvas.getContext('2d');
 
       const LOGICAL_WIDTH = 200;
       const LOGICAL_HEIGHT = 112;
       const SCALE = 4;
+
       canvas.width = LOGICAL_WIDTH * SCALE;
       canvas.height = LOGICAL_HEIGHT * SCALE;
 
@@ -399,32 +460,38 @@
       const gameOverTitle = document.getElementById('game-over-title');
       const gameOverMessage = document.getElementById('game-over-message');
 
+      // Sprites
+      const monsterImg = new Image();
+      monsterImg.src = 'ribamonster.png';
+
+      const playerImg = new Image();
+      playerImg.src = 'kestrlman.png';
+
+      const playerPowerImg = new Image();
+      playerPowerImg.src = 'kestrlpowerup.png';
+
       const LANES = 3;
       const laneYs = [40, 60, 80];
       const PLAYER_X = 40;
-      const PLAYER_W = 10;
-      const PLAYER_H = 8;
+      const PLAYER_W = 16;
+      const PLAYER_H = 12;
 
-      const MONSTER_W = 14;
-      const MONSTER_H = 12;
+      const MONSTER_W = 20;
+      const MONSTER_H = 18;
 
       const ITEM_W = 6;
       const ITEM_H = 6;
 
-      const BASE_SPEED = 1.4;
-      const SPEED_INC = 0.00008;
+      const BASE_SPEED = 1.3;
+      const SPEED_INC = 0.00005;
 
       const BALANCE_START = 500;
-      const DRAIN_PER_FRAME_BASE = 0.25;
-      const DRAIN_PER_FRAME_LOAN_MULTIPLIER = 2;
+      const DRAIN_PER_FRAME_BASE = 0.3;
 
-      const GREEN_MIN = 12;
-      const GREEN_MAX = 22;
+      const GREEN_VALUE = 10;
+      const RED_VALUE = 50;
 
-      const RED_MIN = 60;
-      const RED_MAX = 90;
-
-      const SADAQAH_COST = 80;
+      const SADAQAH_COST = 100;
       const SADAQAH_DURATION_FRAMES = 900;
 
       const KESTRL_DURATION_FRAMES = 600;
@@ -434,15 +501,12 @@
       const INVEST_DELAY_FRAMES = 600;
 
       const MONSTER_START_DISTANCE = 120;
-      const MONSTER_GAIN_PER_FRAME = 0.03;
-      const MONSTER_GREEN_PUSH_BACK = 6;
-      const MONSTER_RED_PULL = 10;
+      const MONSTER_GAIN_PER_FRAME = 0.04;
+      const MONSTER_GREEN_PUSH_BACK = 5;
+      const MONSTER_RED_PULL = 14;
       const MONSTER_LOAN_EXTRA_PULL = 0.12;
 
-      const MONSTER_RAGE_MULTIPLIER = 2.6;
-      const MONSTER_RAGE_DURATION = 240;
-      const GLITCH_DURATION_FRAMES = 18;
-
+      const GLITCH_FRAMES = 10;
       const FRAME_TIME = 1000 / 60;
 
       let playerLane, balance, drainPerFrame, baseDrainPerFrame;
@@ -456,16 +520,15 @@
       let worldBright;
       let monsterBanished;
       let loanTaken;
-      let running;
+      let running = false;
       let lastTime;
       let spawnTimer;
       let toastTimer = 0;
       let gameOver = false;
       let hardModeLoan = false;
       let fogLevel = 0.4;
-
-      let monsterRageTimer = 0;
-      let glitchTimer = 0;
+      let glitchFrames = 0;
+      let currentLevel = '';
 
       function resetGame() {
         playerLane = 1;
@@ -484,15 +547,14 @@
         worldBright = false;
         monsterBanished = false;
         loanTaken = false;
-        running = true;
+        running = false;
         lastTime = performance.now();
         spawnTimer = 0;
         toastTimer = 0;
         gameOver = false;
         hardModeLoan = false;
         fogLevel = 0.4;
-        monsterRageTimer = 0;
-        glitchTimer = 0;
+        glitchFrames = 0;
         hideOverlay();
       }
 
@@ -505,6 +567,7 @@
       function hideOverlay() {
         overlay.style.display = 'none';
       }
+
       function showOverlay() {
         overlay.style.display = 'flex';
       }
@@ -532,7 +595,7 @@
       function takeLoan() {
         if (!gameOver) return;
         balance += 1000;
-        baseDrainPerFrame *= DRAIN_PER_FRAME_LOAN_MULTIPLIER;
+        baseDrainPerFrame *= 2;
         drainPerFrame = baseDrainPerFrame;
         monsterDistance = 25;
         loanTaken = true;
@@ -544,11 +607,13 @@
 
       function restartGame() {
         resetGame();
+        running = true;
       }
 
       btnRestart.addEventListener('click', restartGame);
       btnLoan.addEventListener('click', takeLoan);
 
+      // Input
       const keys = {};
       window.addEventListener('keydown', (e) => {
         keys[e.key] = true;
@@ -562,13 +627,10 @@
           restartGame();
         }
       });
+
       window.addEventListener('keyup', (e) => {
         keys[e.key] = false;
       });
-
-      function randInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
 
       function activateSadaqah() {
         if (barakahActive) {
@@ -583,7 +645,7 @@
         barakahActive = true;
         barakahTimer = SADAQAH_DURATION_FRAMES;
         fogLevel = 0.1;
-        showToast('Sadaqah given. Hidden Barakah activated (2x halal earnings).');
+        showToast('Sadaqah given. Hidden Barakah activated (2x real earnings).');
       }
 
       function spawnItem() {
@@ -593,28 +655,29 @@
         const roll = Math.random();
         let type;
 
-        if (roll < 0.65) {
-          type = Math.random() < 0.8 ? 'green' : 'red';
-        } else if (roll < 0.8) {
+        if (roll < 0.55) {
+          type = Math.random() < 0.65 ? 'green' : 'red';
+        } else if (roll < 0.7) {
           type = 'obstacle';
-        } else if (roll < 0.9) {
+        } else if (roll < 0.84) {
           type = 'invest';
         } else {
           type = 'kestrl';
         }
 
-        if (kestrlActive && type === 'red') {
-          type = 'green';
-        }
-
+        if (kestrlActive && type === 'red') type = 'green';
         items.push({ type, x, lane, w: ITEM_W, h: ITEM_H });
       }
 
       function update(delta) {
         if (!running) return;
+
         const frames = delta / FRAME_TIME;
         const effectiveFrames = Math.min(frames, 2);
-        for (let i = 0; i < effectiveFrames; i++) logicStep();
+
+        for (let i = 0; i < effectiveFrames; i++) {
+          logicStep();
+        }
       }
 
       function logicStep() {
@@ -628,8 +691,9 @@
         }
 
         speed += SPEED_INC;
+
         spawnTimer++;
-        const spawnInterval = Math.max(40, 95 - Math.floor(frameCount / 600));
+        const spawnInterval = Math.max(35, 95 - Math.floor(frameCount / 600));
         if (spawnTimer >= spawnInterval) {
           spawnItem();
           spawnTimer = 0;
@@ -661,12 +725,7 @@
         }
 
         if (!monsterBanished) {
-          let gain = MONSTER_GAIN_PER_FRAME;
-          if (monsterRageTimer > 0) {
-            gain *= MONSTER_RAGE_MULTIPLIER;
-            monsterRageTimer--;
-          }
-          monsterDistance -= gain;
+          monsterDistance -= MONSTER_GAIN_PER_FRAME;
           if (loanTaken) monsterDistance -= MONSTER_LOAN_EXTRA_PULL;
           if (monsterDistance <= 0) {
             monsterDistance = 0;
@@ -686,36 +745,29 @@
 
           const py = laneYs[playerLane] - PLAYER_H / 2;
           const px = PLAYER_X;
-          if (
-            rectOverlap(
-              px,
-              py,
-              PLAYER_W,
-              PLAYER_H,
-              it.x,
-              laneYs[it.lane] - it.h / 2,
-              it.w,
-              it.h
-            )
-          ) {
+
+          if (rectOverlap(
+            px, py, PLAYER_W, PLAYER_H,
+            it.x, laneYs[it.lane] - it.h / 2, it.w, it.h
+          )) {
             if (it.type === 'green') {
-              const gain = randInt(GREEN_MIN, GREEN_MAX);
-              const realGain = gain * (barakahActive ? 2 : 1);
-              balance += realGain;
+              const gain = GREEN_VALUE * (barakahActive ? 2 : 1);
+              balance += gain;
               if (!monsterBanished) monsterDistance += MONSTER_GREEN_PUSH_BACK;
+
             } else if (it.type === 'red') {
-              const gain = randInt(RED_MIN, RED_MAX);
-              const realGain = gain * (barakahActive ? 2 : 1);
-              balance += realGain;
+              const gain = RED_VALUE * (barakahActive ? 2 : 1);
+              balance += gain;
               if (!monsterBanished) monsterDistance -= MONSTER_RED_PULL;
-              monsterRageTimer = MONSTER_RAGE_DURATION;
-              glitchTimer = GLITCH_DURATION_FRAMES;
+              glitchFrames = GLITCH_FRAMES;
+
             } else if (it.type === 'obstacle') {
               if (!monsterBanished) {
                 triggerGameOver('caught');
                 return;
               }
               speed = Math.max(BASE_SPEED, speed * 0.9);
+
             } else if (it.type === 'invest') {
               if (balance < INVEST_COST) {
                 showToast('Not enough balance to invest.');
@@ -724,19 +776,18 @@
                 investments.push({ timer: INVEST_DELAY_FRAMES });
                 showToast('Investment made. Dividend will arrive soon inshaAllah.');
               }
+
             } else if (it.type === 'kestrl') {
               kestrlActive = true;
               kestrlTimer = KESTRL_DURATION_FRAMES;
               worldBright = true;
               monsterBanished = true;
-              monsterRageTimer = 0;
               for (const other of items) {
                 if (other.type === 'red') other.type = 'green';
               }
-              showToast(
-                'Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.'
-              );
+              showToast('Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.');
             }
+
             items.splice(i, 1);
           }
         }
@@ -745,8 +796,6 @@
           toastTimer--;
           if (toastTimer <= 0) toast.style.display = 'none';
         }
-
-        if (glitchTimer > 0) glitchTimer--;
       }
 
       function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
@@ -765,17 +814,10 @@
         ctx.fillStyle = grd;
         ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-        let gridColor;
-        if (glitchTimer > 0) {
-          gridColor = 'rgba(255,80,120,0.55)';
-        } else if (worldBright) {
-          gridColor = 'rgba(120,255,180,0.4)';
-        } else {
-          gridColor = 'rgba(0,255,150,0.25)';
-        }
-        ctx.strokeStyle = gridColor;
+        ctx.strokeStyle = worldBright
+          ? 'rgba(120,255,180,0.4)'
+          : 'rgba(0,255,150,0.25)';
         ctx.lineWidth = 0.5;
-
         ctx.beginPath();
         for (let x = 0; x < LOGICAL_WIDTH; x += 10) {
           ctx.moveTo(x + (frameCount % 10), 0);
@@ -795,24 +837,25 @@
       function drawMonster() {
         const maxDist = MONSTER_START_DISTANCE;
         const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-        const monsterX = 10 - (1 - t) * 6;
+        const monsterX = 8 - (1 - t) * 6;
         const monsterY = laneYs[playerLane] - MONSTER_H / 2;
 
         if (monsterBanished) {
-          ctx.fillStyle = 'rgba(255,0,0,0.15)';
+          if (monsterImg.complete) {
+            ctx.globalAlpha = 0.2;
+            ctx.drawImage(monsterImg, monsterX, monsterY, MONSTER_W, MONSTER_H);
+            ctx.globalAlpha = 1;
+          } else {
+            ctx.fillStyle = 'rgba(255,0,0,0.15)';
+            ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
+          }
         } else {
-          const rageFactor = monsterRageTimer > 0 ? 1.4 : 1;
-          const pulse = 0.4 + 0.3 * Math.sin(frameCount * 0.2 * rageFactor);
-          const alpha = 0.7 + 0.2 * Math.sin(frameCount * 0.4 * rageFactor);
-          ctx.fillStyle = `rgba(${200 + pulse * 55},0,0,${alpha})`;
-        }
-
-        ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
-
-        if (!monsterBanished) {
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 2, 3, 2);
-          ctx.fillRect(monsterX + MONSTER_W - 4, monsterY + 6, 3, 2);
+          if (monsterImg.complete) {
+            ctx.drawImage(monsterImg, monsterX, monsterY, MONSTER_W, MONSTER_H);
+          } else {
+            ctx.fillStyle = '#7f1d1d';
+            ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
+          }
         }
       }
 
@@ -820,17 +863,13 @@
         const px = PLAYER_X;
         const py = laneYs[playerLane] - PLAYER_H / 2;
 
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
-
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(px + PLAYER_W, py + 2, 3, 3);
-
-        ctx.fillStyle = '#000';
-        ctx.fillRect(px + PLAYER_W - 3, py + 2, 1, 1);
-
-        ctx.fillStyle = '#1d4ed8';
-        ctx.fillRect(px - 2, py + 2, 2, PLAYER_H - 3);
+        const img = kestrlActive ? playerPowerImg : playerImg;
+        if (img.complete) {
+          ctx.drawImage(img, px, py, PLAYER_W, PLAYER_H);
+        } else {
+          ctx.fillStyle = kestrlActive ? '#22c55e' : '#3b82f6';
+          ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
+        }
       }
 
       function drawItems() {
@@ -882,47 +921,30 @@
 
         ctx.fillStyle = '#9ca3af';
         ctx.font = '5px monospace';
-        let threatX = barX + width + 4;
-        let threatY = barY + 11;
-        if (glitchTimer > 0) {
-          threatX += (Math.random() - 0.5) * 2;
-          threatY += (Math.random() - 0.5) * 2;
-        }
-        ctx.fillText('THREAT', threatX, threatY);
+        ctx.fillText('THREAT', barX + width + 4, barY + 11);
 
         const statusParts = [];
+        if (currentLevel) statusParts.push('Route: ' + currentLevel);
+        statusParts.push('Balance £' + Math.max(0, Math.floor(balance)));
+        statusParts.push('Threat ' + Math.floor((1 - t) * 100) + '%');
         if (barakahActive) statusParts.push('Barakah x2');
         if (kestrlActive) statusParts.push('Kestrl Mode');
         if (loanTaken) statusParts.push('Riba Loan Active');
-        if (monsterRageTimer > 0) statusParts.push('Riba Rage');
 
-        statsDiv.textContent =
-          'Balance: £' +
-          Math.max(0, Math.floor(balance)) +
-          ' | Threat: ' +
-          Math.floor((1 - t) * 100) +
-          '%' +
-          (statusParts.length ? ' | ' + statusParts.join(' · ') : '');
+        statsDiv.textContent = statusParts.join(' · ');
       }
 
       function draw() {
-        if (glitchTimer > 0) {
-          ctx.save();
-          const offsetX = (Math.random() - 0.5) * 3;
-          const offsetY = (Math.random() - 0.5) * 3;
-          ctx.translate(offsetX, offsetY);
-          drawBackground();
-          drawItems();
-          drawMonster();
-          drawPlayer();
-          ctx.restore();
-          drawHUD();
-        } else {
-          drawBackground();
-          drawItems();
-          drawMonster();
-          drawPlayer();
-          drawHUD();
+        drawBackground();
+        drawItems();
+        drawMonster();
+        drawPlayer();
+        drawHUD();
+
+        if (glitchFrames > 0) {
+          ctx.fillStyle = 'rgba(255,0,0,0.18)';
+          ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+          glitchFrames--;
         }
       }
 
@@ -930,15 +952,24 @@
         if (!lastTime) lastTime = timestamp;
         const delta = timestamp - lastTime;
         lastTime = timestamp;
+
         update(delta);
         draw();
+
         requestAnimationFrame(loop);
       }
 
-      investments = [];
-      items = [];
       resetGame();
       requestAnimationFrame(loop);
+
+      // public API
+      return {
+        start(levelName) {
+          currentLevel = levelName || 'Tunnel of Wants';
+          resetGame();
+          running = true;
+        }
+      };
     })();
   </script>
 </body>
