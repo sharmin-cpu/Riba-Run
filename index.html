@@ -4,28 +4,19 @@
   <meta charset="UTF-8" />
   <title>Riba Run – Cutscene, Map & Minigame</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
-      width: 100%;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #020617;
-      color: #e5e7eb;
+      color: #f9fafb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       overflow: hidden;
     }
-
     body {
       display: flex;
       align-items: center;
       justify-content: center;
     }
-
-    /* Generic screens */
     .screen {
       position: relative;
       width: 100vw;
@@ -33,182 +24,167 @@
       display: none;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at top, #020617 0%, #020617 40%, #000 100%);
+      background: radial-gradient(circle at top, #020617, #020617 30%, #000 70%);
+      color: #fff;
     }
+    .screen.active { display: flex; }
 
-    .screen.active {
-      display: flex;
-    }
-
-    /* CUTSCENE */
+    /* Cutscene */
     #cutscene-screen {
       background: #000;
+      flex-direction: column;
     }
-
     #cutscene-wrapper {
       position: relative;
-      max-width: 1000px;
       width: 100%;
+      max-width: 1280px;
       aspect-ratio: 16/9;
-      overflow: hidden;
-      border-radius: 18px;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.8);
-    }
-
-    #cutscene-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
       background: #000;
     }
-
-    #cutscene-overlay-text {
-      position: absolute;
-      left: 16px;
-      bottom: 16px;
-      font-size: 13px;
-      color: #e5e7eb;
-      text-shadow: 0 0 4px #000;
-      background: linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0));
-      padding: 6px 10px;
-      border-radius: 999px;
+    #cutscene {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
     }
-
-    #skip-btn {
+    #cutscene-overlay {
       position: absolute;
-      right: 20px;
-      bottom: 20px;
-      padding: 8px 18px;
-      font-size: 14px;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(0,0,0,0.2), rgba(0,0,0,0.85));
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    #cutscene-overlay span {
+      padding: 10px 18px;
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.4);
-      background: radial-gradient(circle at top left, #0ea5e9, #020617);
+      border: 1px solid rgba(248,250,252,0.3);
+      background: rgba(15,23,42,0.9);
+      box-shadow: 0 0 18px rgba(59,130,246,0.5);
+    }
+    #skip-cutscene {
+      position: absolute;
+      right: 24px;
+      bottom: 24px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(15,23,42,0.9);
       color: #e5e7eb;
+      font-size: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 12px 40px rgba(15,118,110,0.7);
     }
 
-    #skip-btn span {
-      font-size: 12px;
-      opacity: 0.85;
+    /* Map */
+    #map-screen {
+      padding: 24px;
+      flex-direction: column;
+      gap: 16px;
     }
-
-    #skip-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 18px 60px rgba(14,165,233,0.9);
-    }
-
-    /* MAP SCREEN */
-    #map-screen-inner {
+    #map-frame {
       position: relative;
-      max-width: 1100px;
-      width: 96%;
-      aspect-ratio: 16 / 9;
-      border-radius: 26px;
+      width: min(1200px, 90vw);
+      aspect-ratio: 16/9;
+      border-radius: 22px;
       overflow: hidden;
-      box-shadow: 0 22px 80px rgba(15,23,42,0.95);
       background: #020617;
+      box-shadow: 0 32px 80px rgba(15,23,42,0.9);
     }
-
-    #map-bg {
+    #world-map {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
-
-    .city-node {
+    .city-dot {
       position: absolute;
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      border: 2px solid rgba(96,165,250,0.9);
-      background: radial-gradient(circle at 30% 20%, #38bdf8 0%, #0f172a 55%, #020617 100%);
-      box-shadow:
-        0 0 12px rgba(56,189,248,0.9),
-        0 0 40px rgba(8,47,73,0.9);
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
+      border: 2px solid rgba(56,189,248,0.8);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #e5e7eb;
-      font-size: 18px;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      box-shadow: 0 0 30px rgba(56,189,248,0.7);
+      background: radial-gradient(circle at center, rgba(56,189,248,0.45), rgba(15,23,42,0.9));
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
-
-    .city-node:hover {
-      transform: translateY(-2px) scale(1.05);
-      box-shadow:
-        0 0 16px rgba(96,165,250,1),
-        0 0 60px rgba(8,47,73,1);
-      border-color: #e0f2fe;
+    .city-dot:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: 0 0 42px rgba(59,130,246,0.95);
+      border-color: rgba(59,130,246,1);
     }
-
+    .city-inner {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 1px solid rgba(248,250,252,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 20px;
+      background: radial-gradient(circle at top, #38bdf8, #0f172a);
+      text-shadow: 0 0 6px rgba(15,23,42,0.8);
+    }
     .city-label {
       position: absolute;
-      width: 120px;
-      text-align: center;
+      top: 100%;
+      left: 50%;
+      transform: translate(-50%, 8px);
       font-size: 13px;
-      color: #e5e7eb;
-      text-shadow: 0 0 8px rgba(15,23,42,0.9);
+      font-weight: 600;
+      white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    }
+    /* City positions */
+    #city-castle { left: 20%; top: 70%; transform: translate(-50%, -50%); }
+    #city-forest { left: 50%; top: 55%; transform: translate(-50%, -50%); }
+    #city-cave   { left: 73%; top: 42%; transform: translate(-50%, -50%); }
+    #city-market { left: 65%; top: 78%; transform: translate(-50%, -50%); }
+
+    #map-caption {
+      font-size: 14px;
+      color: #9ca3af;
+      text-align: center;
     }
 
-    #map-title {
-      position: absolute;
-      left: 24px;
-      top: 18px;
-      font-size: 18px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #e5e7eb;
-      text-shadow: 0 0 10px rgba(15,23,42,0.9);
-      background: radial-gradient(circle at left, rgba(15,23,42,0.9), transparent);
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
-
-    /* GAME SCREEN & HUD */
+    /* Game */
     #game-screen {
       flex-direction: column;
       gap: 8px;
     }
-
     #game-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
+      height: 100vh;
+      padding-top: 12px;
     }
-
-    canvas {
-      border: 2px solid #111827;
-      image-rendering: pixelated;
+    canvas#game {
+      border-radius: 18px;
+      border: 2px solid rgba(15,23,42,0.9);
       background: #000;
-      border-radius: 10px;
-      box-shadow: 0 18px 55px rgba(15,23,42,0.95);
+      image-rendering: pixelated;
+      box-shadow: 0 28px 70px rgba(15,23,42,0.9);
     }
-
     #hud {
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 14px;
       text-align: center;
       line-height: 1.4;
-      color: #e5e7eb;
     }
+    #hud small { color: #9ca3af; }
 
-    #stats {
-      margin-top: 4px;
-    }
-
-    #hud small {
-      color: #9ca3af;
-      font-size: 12px;
-    }
-
-    /* GAME-OVER OVERLAY */
     #game-over-overlay {
       position: fixed;
       inset: 0;
@@ -218,30 +194,24 @@
       justify-content: center;
       z-index: 20;
     }
-
     #game-over-box {
       background: #020617;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 20px 24px;
-      border: 1px solid #4b5563;
+      border: 1px solid rgba(148,163,184,0.6);
       max-width: 360px;
-      width: 90%;
+      box-shadow: 0 24px 60px rgba(15,23,42,0.95);
       text-align: center;
-      box-shadow: 0 20px 55px rgba(15,23,42,0.9);
     }
-
     #game-over-box h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-size: 22px;
     }
-
     #game-over-box p {
-      margin: 4px 0 14px;
       font-size: 14px;
       color: #e5e7eb;
+      margin-bottom: 10px;
     }
-
     .btn {
       display: inline-block;
       margin: 4px 6px;
@@ -251,21 +221,9 @@
       border: none;
       cursor: pointer;
     }
-
-    .btn-primary {
-      background: #16a34a;
-      color: white;
-    }
-
-    .btn-danger {
-      background: #dc2626;
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #1f2937;
-      color: white;
-    }
+    .btn-primary { background: #22c55e; color: #022c22; }
+    .btn-danger  { background: #ef4444; color: #fee2e2; }
+    .btn-secondary { background: #1f2937; color: #e5e7eb; }
 
     #toast {
       position: fixed;
@@ -273,113 +231,79 @@
       left: 50%;
       transform: translateX(-50%);
       background: rgba(15,23,42,0.95);
-      padding: 8px 12px;
-      border-radius: 999px;
+      color: #e5e7eb;
       font-size: 12px;
+      padding: 7px 11px;
+      border-radius: 999px;
       display: none;
       z-index: 30;
       border: 1px solid rgba(148,163,184,0.6);
-      color: #e5e7eb;
+    }
+
+    #route-label {
+      font-weight: 600;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
 
-  <!-- 1) CUTSCENE SCREEN -->
+  <!-- CUTSCENE -->
   <div id="cutscene-screen" class="screen active">
     <div id="cutscene-wrapper">
-      <video
-        id="cutscene-video"
-        src="cutscene.mp4"
-        autoplay
-        muted
-        playsinline
-      ></video>
-
-      <div id="cutscene-overlay-text">
-        If the video doesn’t start, press play or click “Skip”.
+      <video id="cutscene" src="cutscene.mp4" preload="auto" playsinline></video>
+      <div id="cutscene-overlay">
+        <span>Click to play story</span>
       </div>
-
-      <button id="skip-btn">
-        Skip
-        <span>▶</span>
-      </button>
+      <button id="skip-cutscene">Skip ▶</button>
     </div>
   </div>
 
-  <!-- 2) MAP SCREEN -->
+  <!-- MAP -->
   <div id="map-screen" class="screen">
-    <div id="map-screen-inner">
-      <img id="map-bg" src="fantasy-world-map.png" alt="Fantasy world map" />
-      <div id="map-title">Choose your route</div>
-
-      <!-- Castle Hub -->
-      <div
-        class="city-node"
-        style="left: 20%; top: 72%;"
-        data-level="Castle Hub"
-      >1</div>
-      <div
-        class="city-label"
-        style="left: 14%; top: 83%;"
-      >Castle Hub</div>
-
-      <!-- Forest Trials -->
-      <div
-        class="city-node"
-        style="left: 48%; top: 48%;"
-        data-level="Forest Trials"
-      >2</div>
-      <div
-        class="city-label"
-        style="left: 42%; top: 59%;"
-      >Forest Trials</div>
-
-      <!-- Riba Cave -->
-      <div
-        class="city-node"
-        style="left: 74%; top: 40%;"
-        data-level="Riba Cave"
-      >3</div>
-      <div
-        class="city-label"
-        style="left: 68%; top: 51%;"
-      >Riba Cave</div>
-
-      <!-- Market Town -->
-      <div
-        class="city-node"
-        style="left: 64%; top: 76%;"
-        data-level="Market Town"
-      >4</div>
-      <div
-        class="city-label"
-        style="left: 59%; top: 87%;"
-      >Market Town</div>
+    <div id="map-frame">
+      <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
+      <!-- Cities -->
+      <div id="city-castle" class="city-dot" data-route="Castle Hub">
+        <div class="city-inner">1</div>
+        <div class="city-label">Castle Hub</div>
+      </div>
+      <div id="city-forest" class="city-dot" data-route="Forest Trials">
+        <div class="city-inner">2</div>
+        <div class="city-label">Forest Trials</div>
+      </div>
+      <div id="city-cave" class="city-dot" data-route="Riba Cave">
+        <div class="city-inner">3</div>
+        <div class="city-label">Riba Cave</div>
+      </div>
+      <div id="city-market" class="city-dot" data-route="Market Town">
+        <div class="city-inner">4</div>
+        <div class="city-label">Market Town</div>
+      </div>
+    </div>
+    <div id="map-caption">
+      Hover a glowing city to see its name. Click to start that route.<br/>
+      <small>Each route plays the same core minigame – but you can role-play different financial journeys.</small>
     </div>
   </div>
 
-  <!-- 3) GAME SCREEN -->
+  <!-- GAME -->
   <div id="game-screen" class="screen">
     <div id="game-container">
       <canvas id="game" width="800" height="450"></canvas>
       <div id="hud">
-        <div>
-          <strong>Controls:</strong>
-          Arrow Up / Arrow Down = change lane &nbsp;|&nbsp;
-          S = Sadaqah &nbsp;|&nbsp;
-          R = Restart
-        </div>
+        <div><strong>Controls:</strong> Arrow Up/Down = change lane &nbsp;|&nbsp; S = Sadaqah &nbsp;|&nbsp; R = Restart</div>
+        <div id="route-label"></div>
         <div id="stats"></div>
         <small>
-          Riba Run 2D · Kestrel vs Riba Monster ·
-          Halal coins (green), Riba coins (red), Kestrl Card (blue), Investment Gate (yellow)
+          Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Riba coins (red),
+          Kestrl Card (blue), Investment Gate (yellow)
         </small>
       </div>
     </div>
   </div>
 
-  <!-- GAME OVER OVERLAY -->
+  <!-- GAME OVER -->
   <div id="game-over-overlay">
     <div id="game-over-box">
       <h2 id="game-over-title">Bankruptcy</h2>
@@ -390,268 +314,286 @@
         <button class="btn btn-secondary" id="btn-restart">Accept Bankruptcy (Restart)</button>
       </div>
       <div>
-        <button class="btn btn-danger" id="btn-loan">Take Riba Loan (+£1000)</button>
+        <button class="btn btn-danger" id="btn-loan">
+          Take Riba Loan (+£1000)
+        </button>
       </div>
       <p style="margin-top: 10px; font-size: 11px; color:#facc15;">
-        Taking the loan doubles your debt and interest. One mistake = permanent death.
+        Taking the loan doubles your drain and pulls the Riba Monster close. One mistake = permanent death.
       </p>
     </div>
   </div>
 
-  <!-- TOAST -->
   <div id="toast"></div>
 
-  <!-- NAVIGATION + GAME LOGIC -->
   <script>
-    // ---------- SCREEN NAVIGATION (cutscene -> map -> game) ----------
-
+    /* ---------- SCREEN MANAGEMENT ---------- */
     const cutsceneScreen = document.getElementById('cutscene-screen');
-    const cutsceneVideo  = document.getElementById('cutscene-video');
-    const skipBtn        = document.getElementById('skip-btn');
-    const mapScreen      = document.getElementById('map-screen');
-    const gameScreen     = document.getElementById('game-screen');
+    const mapScreen = document.getElementById('map-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const cutsceneVideo = document.getElementById('cutscene');
+    const cutsceneOverlay = document.getElementById('cutscene-overlay');
+    const skipBtn = document.getElementById('skip-cutscene');
+    const routeLabel = document.getElementById('route-label');
 
-    function showScreen(screenEl) {
-      [cutsceneScreen, mapScreen, gameScreen].forEach(el => {
-        el.classList.remove('active');
-      });
-      screenEl.classList.add('active');
+    function showScreen(screen) {
+      [cutsceneScreen, mapScreen, gameScreen].forEach(s => s.classList.remove('active'));
+      screen.classList.add('active');
     }
 
-    function goToMap() {
+    function startMap() {
       showScreen(mapScreen);
       try { cutsceneVideo.pause(); } catch(e) {}
     }
 
-    cutsceneVideo.addEventListener('ended', goToMap);
-    skipBtn.addEventListener('click', goToMap);
-
-    // Map city click -> start minigame
-    document.querySelectorAll('.city-node').forEach(node => {
-      node.addEventListener('click', () => {
-        const levelName = node.getAttribute('data-level') || 'Tunnel of Wants';
-        showScreen(gameScreen);
-        if (window.RibaRun && typeof window.RibaRun.start === 'function') {
-          window.RibaRun.start(levelName);
-        }
+    cutsceneOverlay.addEventListener('click', () => {
+      cutsceneOverlay.style.display = 'none';
+      cutsceneVideo.currentTime = 0;
+      cutsceneVideo.muted = false;
+      cutsceneVideo.play().catch(() => {
+        // if autoplay with sound fails, show overlay again
+        cutsceneOverlay.style.display = 'flex';
       });
     });
 
-    // ---------- RIBA RUN GAME MODULE (sprites + riba glitch) ----------
-    window.RibaRun = (function () {
-      const canvas = document.getElementById('game');
-      const ctx = canvas.getContext('2d');
+    skipBtn.addEventListener('click', startMap);
+    cutsceneVideo.addEventListener('ended', startMap);
 
-      const LOGICAL_WIDTH = 200;
-      const LOGICAL_HEIGHT = 112;
-      const SCALE = 4;
-
-      canvas.width = LOGICAL_WIDTH * SCALE;
-      canvas.height = LOGICAL_HEIGHT * SCALE;
-
-      ctx.imageSmoothingEnabled = false;
-      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-
-      const statsDiv = document.getElementById('stats');
-      const overlay = document.getElementById('game-over-overlay');
-      const toast = document.getElementById('toast');
-      const btnRestart = document.getElementById('btn-restart');
-      const btnLoan = document.getElementById('btn-loan');
-      const gameOverTitle = document.getElementById('game-over-title');
-      const gameOverMessage = document.getElementById('game-over-message');
-
-      // Sprites
-      const monsterImg = new Image();
-      monsterImg.src = 'ribamonster.png';
-
-      const playerImg = new Image();
-      playerImg.src = 'kestrlman.png';
-
-      const playerPowerImg = new Image();
-      playerPowerImg.src = 'kestrlpowerup.png';
-
-      const LANES = 3;
-      const laneYs = [40, 60, 80];
-      const PLAYER_X = 40;
-      const PLAYER_W = 16;
-      const PLAYER_H = 12;
-
-      const MONSTER_W = 20;
-      const MONSTER_H = 18;
-
-      const ITEM_W = 6;
-      const ITEM_H = 6;
-
-      const BASE_SPEED = 1.3;
-      const SPEED_INC = 0.00005;
-
-      const BALANCE_START = 500;
-      const DRAIN_PER_FRAME_BASE = 0.3;
-
-      const GREEN_VALUE = 10;
-      const RED_VALUE = 50;
-
-      const SADAQAH_COST = 100;
-      const SADAQAH_DURATION_FRAMES = 900;
-
-      const KESTRL_DURATION_FRAMES = 600;
-
-      const INVEST_COST = 200;
-      const INVEST_PAYOFF = 600;
-      const INVEST_DELAY_FRAMES = 600;
-
-      const MONSTER_START_DISTANCE = 120;
-      const MONSTER_GAIN_PER_FRAME = 0.04;
-      const MONSTER_GREEN_PUSH_BACK = 5;
-      const MONSTER_RED_PULL = 14;
-      const MONSTER_LOAN_EXTRA_PULL = 0.12;
-
-      const GLITCH_FRAMES = 10;
-      const FRAME_TIME = 1000 / 60;
-
-      let playerLane, balance, drainPerFrame, baseDrainPerFrame;
-      let monsterDistance;
-      let items;
-      let investments;
-      let speed;
-      let frameCount;
-      let barakahActive, barakahTimer;
-      let kestrlActive, kestrlTimer;
-      let worldBright;
-      let monsterBanished;
-      let loanTaken;
-      let running = false;
-      let lastTime;
-      let spawnTimer;
-      let toastTimer = 0;
-      let gameOver = false;
-      let hardModeLoan = false;
-      let fogLevel = 0.4;
-      let glitchFrames = 0;
-      let currentLevel = '';
-
-      function resetGame() {
-        playerLane = 1;
-        balance = BALANCE_START;
-        baseDrainPerFrame = DRAIN_PER_FRAME_BASE;
-        drainPerFrame = baseDrainPerFrame;
-        monsterDistance = MONSTER_START_DISTANCE;
-        items = [];
-        investments = [];
-        speed = BASE_SPEED;
-        frameCount = 0;
-        barakahActive = false;
-        barakahTimer = 0;
-        kestrlActive = false;
-        kestrlTimer = 0;
-        worldBright = false;
-        monsterBanished = false;
-        loanTaken = false;
-        running = false;
-        lastTime = performance.now();
-        spawnTimer = 0;
-        toastTimer = 0;
-        gameOver = false;
-        hardModeLoan = false;
-        fogLevel = 0.4;
-        glitchFrames = 0;
-        hideOverlay();
-      }
-
-      function showToast(msg) {
-        toast.innerText = msg;
-        toast.style.display = 'block';
-        toastTimer = 120;
-      }
-
-      function hideOverlay() {
-        overlay.style.display = 'none';
-      }
-
-      function showOverlay() {
-        overlay.style.display = 'flex';
-      }
-
-      function triggerGameOver(reason) {
-        running = false;
-        gameOver = true;
-
-        if (reason === 'balance') {
-          gameOverTitle.innerText = 'Bankruptcy';
-          gameOverMessage.innerText =
-            'Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…';
-        } else if (reason === 'caught') {
-          gameOverTitle.innerText = 'Caught by Riba';
-          gameOverMessage.innerText =
-            'The Riba Monster caught you. Even with shortcuts and quick money, you couldn’t escape its grip.';
-        } else {
-          gameOverTitle.innerText = 'Game Over';
-          gameOverMessage.innerText = 'Your run has ended in the Tunnel of Wants.';
-        }
-
-        showOverlay();
-      }
-
-      function takeLoan() {
-        if (!gameOver) return;
-        balance += 1000;
-        baseDrainPerFrame *= 2;
-        drainPerFrame = baseDrainPerFrame;
-        monsterDistance = 25;
-        loanTaken = true;
-        hardModeLoan = true;
-        gameOver = false;
-        running = true;
-        hideOverlay();
-      }
-
-      function restartGame() {
-        resetGame();
-        running = true;
-      }
-
-      btnRestart.addEventListener('click', restartGame);
-      btnLoan.addEventListener('click', takeLoan);
-
-      // Input
-      const keys = {};
-      window.addEventListener('keydown', (e) => {
-        keys[e.key] = true;
-        if (e.key === 'ArrowUp') {
-          playerLane = Math.max(0, playerLane - 1);
-        } else if (e.key === 'ArrowDown') {
-          playerLane = Math.min(LANES - 1, playerLane + 1);
-        } else if (e.key === 's' || e.key === 'S') {
-          activateSadaqah();
-        } else if (e.key === 'r' || e.key === 'R') {
-          restartGame();
-        }
+    document.querySelectorAll('.city-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const route = dot.dataset.route || "Unknown Route";
+        routeLabel.textContent = "Route: " + route;
+        showScreen(gameScreen);
+        game.start(route);
       });
+    });
 
-      window.addEventListener('keyup', (e) => {
-        keys[e.key] = false;
-      });
+    /* ---------- GAME LOGIC ---------- */
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
 
-      function activateSadaqah() {
-        if (barakahActive) {
-          showToast('Barakah already active.');
+    const LOGICAL_WIDTH = 200;
+    const LOGICAL_HEIGHT = 112;
+    const SCALE = 4; // 200 x 112 -> 800 x 448 (approx)
+    canvas.width = LOGICAL_WIDTH * SCALE;
+    canvas.height = LOGICAL_HEIGHT * SCALE;
+    ctx.imageSmoothingEnabled = false;
+    ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+
+    const statsDiv = document.getElementById('stats');
+    const overlay = document.getElementById('game-over-overlay');
+    const toast = document.getElementById('toast');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnLoan = document.getElementById('btn-loan');
+    const gameOverTitle = document.getElementById('game-over-title');
+    const gameOverMessage = document.getElementById('game-over-message');
+
+    const LANES = 3;
+    const laneYs = [40, 60, 80];
+    const PLAYER_X = 40;
+
+    const BASE_SPEED = 1.35;
+    const SPEED_INC = 0.00008;
+
+    const BALANCE_START = 500;
+    const DRAIN_BASE = 0.30; // much slower drain now
+
+    const GREEN_VALUE = 15;
+    const RED_VALUE = 50;
+
+    const SADAQAH_COST = 80;
+    const SADAQAH_DURATION = 900; // ~15s
+
+    const KESTRL_DURATION = 600;  // ~10s
+
+    const INVEST_COST = 200;
+    const INVEST_PAYOFF = 600;
+    const INVEST_DELAY = 600;
+
+    const MONSTER_START_DIST = 120;
+    const MONSTER_GAIN = 0.028;
+    const MONSTER_GREEN_PUSH = 7;
+    const MONSTER_RED_PULL = 12;
+    const MONSTER_LOAN_PULL = 0.12;
+
+    const FRAME_TIME = 1000 / 60;
+
+    // Images
+    const bgImg = new Image();
+    bgImg.src = 'background.png';
+
+    const kestrelImg = new Image();
+    kestrelImg.src = 'Kestrlman.png';
+
+    const kestrelPowerImg = new Image();
+    kestrelPowerImg.src = 'Kestrlpowerup.png';
+
+    const monsterImg = new Image();
+    monsterImg.src = 'Ribamonster.png';
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      game.toastTimer = 120;
+    }
+
+    function showOverlay() { overlay.style.display = 'flex'; }
+    function hideOverlay() { overlay.style.display = 'none'; }
+
+    const game = {
+      running: false,
+      routeName: "Castle Hub",
+      lastTime: 0,
+      frameCount: 0,
+      speed: BASE_SPEED,
+      spawnTimer: 0,
+      items: [],
+      investments: [],
+      playerLane: 1,
+      balance: BALANCE_START,
+      debt: 0,
+      drainPerFrame: DRAIN_BASE,
+      monsterDistance: MONSTER_START_DIST,
+      barakahActive: false,
+      barakahTimer: 0,
+      kestrlActive: false,
+      kestrlTimer: 0,
+      monsterBanished: false,
+      loanTaken: false,
+      hardModeLoan: false,
+      toastTimer: 0,
+      gameOver: false,
+      glitchTimer: 0,
+      fogLevel: 0.4,
+
+      start(route) {
+        this.routeName = route || "Castle Hub";
+        this.reset();
+        requestAnimationFrame(this.loop.bind(this));
+      },
+
+      reset() {
+        this.playerLane = 1;
+        this.balance = BALANCE_START;
+        this.debt = 0;
+        this.drainPerFrame = DRAIN_BASE;
+        this.monsterDistance = MONSTER_START_DIST;
+        this.items = [];
+        this.investments = [];
+        this.speed = BASE_SPEED;
+        this.frameCount = 0;
+        this.spawnTimer = 0;
+        this.barakahActive = false;
+        this.barakahTimer = 0;
+        this.kestrlActive = false;
+        this.kestrlTimer = 0;
+        this.monsterBanished = false;
+        this.loanTaken = false;
+        this.hardModeLoan = false;
+        this.toastTimer = 0;
+        this.gameOver = false;
+        this.glitchTimer = 0;
+        this.fogLevel = 0.2;
+        this.running = true;
+        this.lastTime = performance.now();
+        hideOverlay();
+      },
+
+      loop(timestamp) {
+        if (!this.running) return;
+        const delta = timestamp - this.lastTime;
+        this.lastTime = timestamp;
+        const frames = Math.min(2, delta / FRAME_TIME);
+        for (let i = 0; i < frames; i++) this.logicStep();
+        this.draw();
+        requestAnimationFrame(this.loop.bind(this));
+      },
+
+      logicStep() {
+        if (!this.running) return;
+        this.frameCount++;
+
+        // Balance drain (living costs + hidden inflation)
+        this.balance -= this.drainPerFrame;
+        if (this.balance <= 0) {
+          this.balance = 0;
+          this.triggerGameOver('balance');
           return;
         }
-        if (balance < SADAQAH_COST) {
-          showToast('Not enough balance for Sadaqah.');
-          return;
-        }
-        balance -= SADAQAH_COST;
-        barakahActive = true;
-        barakahTimer = SADAQAH_DURATION_FRAMES;
-        fogLevel = 0.1;
-        showToast('Sadaqah given. Hidden Barakah activated (2x real earnings).');
-      }
 
-      function spawnItem() {
+        // World speed & spawn pacing
+        this.speed += SPEED_INC;
+        this.spawnTimer++;
+        const spawnInterval = Math.max(40, 90 - Math.floor(this.frameCount / 900));
+        if (this.spawnTimer >= spawnInterval) {
+          this.spawnItem();
+          this.spawnTimer = 0;
+        }
+
+        // Sadaqah & Barakah
+        if (this.barakahActive) {
+          this.barakahTimer--;
+          if (this.barakahTimer <= 0) {
+            this.barakahActive = false;
+          }
+        }
+
+        // Kestrl Card mode
+        if (this.kestrlActive) {
+          this.kestrlTimer--;
+          if (this.kestrlTimer <= 0) {
+            this.kestrlActive = false;
+            this.monsterBanished = false;
+          }
+        }
+
+        // Investments
+        for (let i = this.investments.length - 1; i >= 0; i--) {
+          const inv = this.investments[i];
+          inv.timer--;
+          if (inv.timer <= 0) {
+            if (!this.gameOver) this.balance += INVEST_PAYOFF;
+            this.investments.splice(i, 1);
+          }
+        }
+
+        // Monster distance
+        if (!this.monsterBanished) {
+          this.monsterDistance -= MONSTER_GAIN;
+          if (this.loanTaken) this.monsterDistance -= MONSTER_LOAN_PULL;
+          if (this.monsterDistance <= 0) {
+            this.monsterDistance = 0;
+            this.triggerGameOver('caught');
+            return;
+          }
+        }
+
+        // Items movement & collisions
+        for (let i = this.items.length - 1; i >= 0; i--) {
+          const it = this.items[i];
+          it.x -= this.speed;
+          if (it.x < -20) {
+            this.items.splice(i, 1);
+            continue;
+          }
+          const px = PLAYER_X;
+          const py = laneYs[this.playerLane];
+          if (this.hit(px, py, 10, 10, it.x, laneYs[it.lane], it)) {
+            this.resolveCollision(it);
+            this.items.splice(i, 1);
+          }
+        }
+
+        if (this.glitchTimer > 0) this.glitchTimer--;
+        if (this.toastTimer > 0) {
+          this.toastTimer--;
+          if (this.toastTimer <= 0) toast.style.display = 'none';
+        }
+      },
+
+      spawnItem() {
         const lane = Math.floor(Math.random() * LANES);
         const x = LOGICAL_WIDTH + 10;
-
         const roll = Math.random();
         let type;
 
@@ -665,315 +607,254 @@
           type = 'kestrl';
         }
 
-        if (kestrlActive && type === 'red') type = 'green';
-        items.push({ type, x, lane, w: ITEM_W, h: ITEM_H });
-      }
+        if (this.kestrlActive && type === 'red') type = 'green';
 
-      function update(delta) {
-        if (!running) return;
+        this.items.push({ type, lane, x });
+      },
 
-        const frames = delta / FRAME_TIME;
-        const effectiveFrames = Math.min(frames, 2);
+      hit(px, py, pw, ph, ix, iy, item) {
+        const w = 6, h = 6;
+        return (
+          px < ix + w &&
+          px + pw > ix &&
+          py - ph / 2 < iy + h / 2 &&
+          py + ph / 2 > iy - h / 2
+        );
+      },
 
-        for (let i = 0; i < effectiveFrames; i++) {
-          logicStep();
-        }
-      }
-
-      function logicStep() {
-        frameCount++;
-
-        balance -= drainPerFrame;
-        if (balance <= 0) {
-          balance = 0;
-          triggerGameOver('balance');
-          return;
-        }
-
-        speed += SPEED_INC;
-
-        spawnTimer++;
-        const spawnInterval = Math.max(35, 95 - Math.floor(frameCount / 600));
-        if (spawnTimer >= spawnInterval) {
-          spawnItem();
-          spawnTimer = 0;
-        }
-
-        if (barakahActive) {
-          barakahTimer--;
-          if (barakahTimer <= 0) {
-            barakahActive = false;
-            fogLevel = 0.4;
+      resolveCollision(it) {
+        if (it.type === 'green') {
+          const gain = GREEN_VALUE * (this.barakahActive ? 2 : 1);
+          this.balance += gain;
+          if (!this.monsterBanished) this.monsterDistance += MONSTER_GREEN_PUSH;
+        } else if (it.type === 'red') {
+          const gain = RED_VALUE * (this.barakahActive ? 2 : 1);
+          this.balance += gain;
+          if (!this.monsterBanished) {
+            this.monsterDistance -= MONSTER_RED_PULL;
+            this.glitchTimer = 22; // short glitch
           }
-        }
-
-        if (kestrlActive) {
-          kestrlTimer--;
-          if (kestrlTimer <= 0) {
-            kestrlActive = false;
-            worldBright = false;
-            monsterBanished = false;
-          }
-        }
-
-        for (let i = investments.length - 1; i >= 0; i--) {
-          investments[i].timer--;
-          if (investments[i].timer <= 0) {
-            if (!gameOver) balance += INVEST_PAYOFF;
-            investments.splice(i, 1);
-          }
-        }
-
-        if (!monsterBanished) {
-          monsterDistance -= MONSTER_GAIN_PER_FRAME;
-          if (loanTaken) monsterDistance -= MONSTER_LOAN_EXTRA_PULL;
-          if (monsterDistance <= 0) {
-            monsterDistance = 0;
-            triggerGameOver('caught');
+        } else if (it.type === 'obstacle') {
+          if (!this.monsterBanished) {
+            this.triggerGameOver('caught');
             return;
           }
-        }
-
-        for (let i = items.length - 1; i >= 0; i--) {
-          const it = items[i];
-          it.x -= speed;
-
-          if (it.x < -20) {
-            items.splice(i, 1);
-            continue;
+          this.speed = Math.max(BASE_SPEED, this.speed * 0.9);
+        } else if (it.type === 'invest') {
+          if (this.balance < INVEST_COST) {
+            showToast('Not enough balance to invest.');
+          } else {
+            this.balance -= INVEST_COST;
+            this.investments.push({ timer: INVEST_DELAY });
+            showToast('Investment made. Dividend will arrive soon inshaAllah.');
           }
+        } else if (it.type === 'kestrl') {
+          this.kestrlActive = true;
+          this.kestrlTimer = KESTRL_DURATION;
+          this.monsterBanished = true;
+          for (const o of this.items) if (o.type === 'red') o.type = 'green';
+          showToast('Kestrl Mode: Riba Monster banished, haram coins purified.');
+        }
+      },
 
-          const py = laneYs[playerLane] - PLAYER_H / 2;
-          const px = PLAYER_X;
+      triggerGameOver(reason) {
+        this.running = false;
+        this.gameOver = true;
 
-          if (rectOverlap(
-            px, py, PLAYER_W, PLAYER_H,
-            it.x, laneYs[it.lane] - it.h / 2, it.w, it.h
-          )) {
-            if (it.type === 'green') {
-              const gain = GREEN_VALUE * (barakahActive ? 2 : 1);
-              balance += gain;
-              if (!monsterBanished) monsterDistance += MONSTER_GREEN_PUSH_BACK;
+        if (reason === 'balance') {
+          gameOverTitle.textContent = 'Bankruptcy';
+          gameOverMessage.textContent = 'Your balance hit £0. The Riba Monster closed in as debts piled up.';
+        } else if (reason === 'caught') {
+          gameOverTitle.textContent = 'Caught by Riba';
+          gameOverMessage.textContent = 'Quick shortcuts looked tempting – but the Riba Monster caught you.';
+        } else {
+          gameOverTitle.textContent = 'Game Over';
+          gameOverMessage.textContent = 'Your run has ended.';
+        }
+        showOverlay();
+      },
 
-            } else if (it.type === 'red') {
-              const gain = RED_VALUE * (barakahActive ? 2 : 1);
-              balance += gain;
-              if (!monsterBanished) monsterDistance -= MONSTER_RED_PULL;
-              glitchFrames = GLITCH_FRAMES;
+      takeLoan() {
+        if (!this.gameOver) return;
+        this.balance += 1000;
+        this.debt += 1000;
+        this.drainPerFrame = DRAIN_BASE * 2;
+        this.monsterDistance = 25;
+        this.loanTaken = true;
+        this.hardModeLoan = true;
+        this.gameOver = false;
+        this.running = true;
+        hideOverlay();
+      },
 
-            } else if (it.type === 'obstacle') {
-              if (!monsterBanished) {
-                triggerGameOver('caught');
-                return;
-              }
-              speed = Math.max(BASE_SPEED, speed * 0.9);
-
-            } else if (it.type === 'invest') {
-              if (balance < INVEST_COST) {
-                showToast('Not enough balance to invest.');
-              } else {
-                balance -= INVEST_COST;
-                investments.push({ timer: INVEST_DELAY_FRAMES });
-                showToast('Investment made. Dividend will arrive soon inshaAllah.');
-              }
-
-            } else if (it.type === 'kestrl') {
-              kestrlActive = true;
-              kestrlTimer = KESTRL_DURATION_FRAMES;
-              worldBright = true;
-              monsterBanished = true;
-              for (const other of items) {
-                if (other.type === 'red') other.type = 'green';
-              }
-              showToast('Kestrl Mode: Pure Finance! Riba Monster banished, haram coins purified.');
-            }
-
-            items.splice(i, 1);
-          }
+      drawBackground() {
+        // marketplace backdrop
+        if (bgImg.complete && bgImg.naturalWidth) {
+          ctx.drawImage(bgImg, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        } else {
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         }
 
-        if (toastTimer > 0) {
-          toastTimer--;
-          if (toastTimer <= 0) toast.style.display = 'none';
-        }
-      }
-
-      function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-        return (
-          x1 < x2 + w2 &&
-          x1 + w1 > x2 &&
-          y1 < y2 + h2 &&
-          y1 + h1 > y2
-        );
-      }
-
-      function drawBackground() {
-        const grd = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
-        grd.addColorStop(0, `rgba(0,0,0,1)`);
-        grd.addColorStop(1, `rgba(0,0,0,${1 - fogLevel})`);
-        ctx.fillStyle = grd;
+        // subtle dusk overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-        ctx.strokeStyle = worldBright
-          ? 'rgba(120,255,180,0.4)'
-          : 'rgba(0,255,150,0.25)';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        for (let x = 0; x < LOGICAL_WIDTH; x += 10) {
-          ctx.moveTo(x + (frameCount % 10), 0);
-          ctx.lineTo(x + (frameCount % 10), LOGICAL_HEIGHT);
-        }
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-        ctx.beginPath();
-        for (let y of laneYs) {
-          ctx.moveTo(0, y + 6);
-          ctx.lineTo(LOGICAL_WIDTH, y + 6);
-        }
-        ctx.stroke();
-      }
-
-      function drawMonster() {
-        const maxDist = MONSTER_START_DISTANCE;
-        const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
-        const monsterX = 8 - (1 - t) * 6;
-        const monsterY = laneYs[playerLane] - MONSTER_H / 2;
-
-        if (monsterBanished) {
-          if (monsterImg.complete) {
-            ctx.globalAlpha = 0.2;
-            ctx.drawImage(monsterImg, monsterX, monsterY, MONSTER_W, MONSTER_H);
-            ctx.globalAlpha = 1;
-          } else {
-            ctx.fillStyle = 'rgba(255,0,0,0.15)';
-            ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
+        // glitch overlay when riba coins taken
+        if (this.glitchTimer > 0) {
+          const alpha = 0.25 + 0.15 * Math.sin(this.frameCount * 0.7);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = '#f97316';
+          for (let y = 0; y < LOGICAL_HEIGHT; y += 4) {
+            ctx.fillRect((this.frameCount * 3) % 10, y, LOGICAL_WIDTH, 2);
           }
-        } else {
-          if (monsterImg.complete) {
-            ctx.drawImage(monsterImg, monsterX, monsterY, MONSTER_W, MONSTER_H);
-          } else {
-            ctx.fillStyle = '#7f1d1d';
-            ctx.fillRect(monsterX, monsterY, MONSTER_W, MONSTER_H);
-          }
+          ctx.restore();
         }
-      }
+      },
 
-      function drawPlayer() {
-        const px = PLAYER_X;
-        const py = laneYs[playerLane] - PLAYER_H / 2;
+      drawMonster() {
+        const maxDist = MONSTER_START_DIST;
+        const t = Math.max(0, Math.min(1, this.monsterDistance / maxDist));
+        const monsterX = 8 - (1 - t) * 7;
+        const monsterY = laneYs[this.playerLane];
 
-        const img = kestrlActive ? playerPowerImg : playerImg;
-        if (img.complete) {
-          ctx.drawImage(img, px, py, PLAYER_W, PLAYER_H);
+        const img = monsterImg;
+        if (img.complete && img.naturalWidth) {
+          const scale = 0.22;
+          const w = img.naturalWidth * scale;
+          const h = img.naturalHeight * scale;
+          const x = monsterX - w / 2;
+          const y = monsterY - h / 2;
+          ctx.drawImage(img, x, y, w, h);
         } else {
-          ctx.fillStyle = kestrlActive ? '#22c55e' : '#3b82f6';
-          ctx.fillRect(px, py, PLAYER_W, PLAYER_H);
+          ctx.fillStyle = '#7f1d1d';
+          ctx.fillRect(monsterX - 6, monsterY - 6, 12, 12);
         }
-      }
+      },
 
-      function drawItems() {
-        for (const it of items) {
+      drawPlayer() {
+        const img = this.kestrlActive ? kestrelPowerImg : kestrelImg;
+        const py = laneYs[this.playerLane];
+
+        if (img.complete && img.naturalWidth) {
+          const baseScale = 0.12;
+          const w = img.naturalWidth * baseScale;
+          const h = img.naturalHeight * baseScale;
+          const x = PLAYER_X - w / 2;
+          const y = py - h / 2;
+          // bird faces right (direction of travel)
+          ctx.drawImage(img, x, y, w, h);
+        } else {
+          // fallback rectangle
+          ctx.fillStyle = this.kestrlActive ? '#22c55e' : '#3b82f6';
+          ctx.fillRect(PLAYER_X - 5, py - 5, 10, 10);
+        }
+      },
+
+      drawItems() {
+        for (const it of this.items) {
           const x = it.x;
-          const y = laneYs[it.lane] - it.h / 2;
+          const y = laneYs[it.lane];
 
           if (it.type === 'green') {
+            ctx.save();
             ctx.fillStyle = '#22c55e';
-            ctx.fillRect(x, y, it.w, it.h);
+            ctx.shadowColor = '#bbf7d0';
+            ctx.shadowBlur = 4;
+            ctx.fillRect(x - 3, y - 3, 6, 6);
+            ctx.restore();
           } else if (it.type === 'red') {
+            ctx.save();
             ctx.fillStyle = '#ef4444';
-            ctx.fillRect(x, y, it.w, it.h);
+            ctx.shadowColor = '#fecaca';
+            ctx.shadowBlur = 4;
+            ctx.fillRect(x - 3, y - 3, 6, 6);
+            ctx.restore();
           } else if (it.type === 'obstacle') {
             ctx.fillStyle = '#9ca3af';
-            ctx.fillRect(x, y, it.w, it.h + 2);
+            ctx.fillRect(x - 3, y - 4, 6, 8);
           } else if (it.type === 'invest') {
             ctx.fillStyle = '#facc15';
-            ctx.fillRect(x, y - 2, 2, it.h + 4);
-            ctx.fillRect(x + it.w - 2, y - 2, 2, it.h + 4);
-            ctx.fillRect(x, y - 2, it.w, 2);
+            ctx.fillRect(x - 4, y - 5, 2, 10);
+            ctx.fillRect(x + 2, y - 5, 2, 10);
+            ctx.fillRect(x - 4, y - 5, 8, 2);
           } else if (it.type === 'kestrl') {
+            ctx.save();
             ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(x, y, it.w, it.h);
-            ctx.fillStyle = '#0ea5e9';
-            ctx.fillRect(x + 1, y + 1, it.w - 2, it.h - 2);
+            ctx.shadowColor = '#bae6fd';
+            ctx.shadowBlur = 5;
+            ctx.fillRect(x - 3, y - 3, 6, 6);
+            ctx.restore();
           }
         }
-      }
+      },
 
-      function drawHUD() {
-        const barX = 4;
-        const barY = 4;
-
-        ctx.fillStyle = '#fff';
+      drawHUD() {
+        // balance + threat bar in-canvas
+        const barX = 4, barY = 4, width = 75;
+        ctx.fillStyle = '#f9fafb';
         ctx.font = '6px monospace';
-        ctx.fillText('£' + Math.max(0, Math.floor(balance)), barX, barY + 6);
+        ctx.fillText('£' + Math.floor(this.balance), barX, barY + 6);
 
-        const maxDist = MONSTER_START_DISTANCE;
-        const width = 70;
-        const t = Math.max(0, Math.min(1, monsterDistance / maxDist));
+        const maxDist = MONSTER_START_DIST;
+        const t = Math.max(0, Math.min(1, this.monsterDistance / maxDist));
         const barWidth = width * t;
-
         ctx.fillStyle = '#4b5563';
         ctx.fillRect(barX, barY + 8, width, 4);
-
-        ctx.fillStyle = monsterBanished ? '#22c55e' : '#ef4444';
+        ctx.fillStyle = this.monsterBanished ? '#22c55e' : '#ef4444';
         ctx.fillRect(barX, barY + 8, barWidth, 4);
-
-        ctx.fillStyle = '#9ca3af';
+        ctx.fillStyle = '#e5e7eb';
         ctx.font = '5px monospace';
         ctx.fillText('THREAT', barX + width + 4, barY + 11);
 
-        const statusParts = [];
-        if (currentLevel) statusParts.push('Route: ' + currentLevel);
-        statusParts.push('Balance £' + Math.max(0, Math.floor(balance)));
-        statusParts.push('Threat ' + Math.floor((1 - t) * 100) + '%');
-        if (barakahActive) statusParts.push('Barakah x2');
-        if (kestrlActive) statusParts.push('Kestrl Mode');
-        if (loanTaken) statusParts.push('Riba Loan Active');
+        const status = [];
+        if (this.barakahActive) status.push('Barakah x2');
+        if (this.kestrlActive) status.push('Kestrl Mode');
+        if (this.loanTaken) status.push('Riba Loan Active');
 
-        statsDiv.textContent = statusParts.join(' · ');
+        statsDiv.textContent =
+          `Balance: £${Math.floor(this.balance)} | Debt: £${Math.floor(this.debt)} | Interest: £${(this.drainPerFrame - DRAIN_BASE).toFixed(2)}/sec` +
+          (status.length ? ' | ' + status.join(' · ') : '');
+      },
+
+      draw() {
+        this.drawBackground();
+        this.drawItems();
+        this.drawMonster();
+        this.drawPlayer();
+        this.drawHUD();
       }
+    };
 
-      function draw() {
-        drawBackground();
-        drawItems();
-        drawMonster();
-        drawPlayer();
-        drawHUD();
-
-        if (glitchFrames > 0) {
-          ctx.fillStyle = 'rgba(255,0,0,0.18)';
-          ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
-          glitchFrames--;
+    // Input
+    window.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp') {
+        game.playerLane = Math.max(0, game.playerLane - 1);
+      } else if (e.key === 'ArrowDown') {
+        game.playerLane = Math.min(LANES - 1, game.playerLane + 1);
+      } else if (e.key === 's' || e.key === 'S') {
+        if (game.barakahActive) {
+          showToast('Barakah already active.');
+        } else if (game.balance < SADAQAH_COST) {
+          showToast('Not enough balance for Sadaqah.');
+        } else {
+          game.balance -= SADAQAH_COST;
+          game.barakahActive = true;
+          game.barakahTimer = SADAQAH_DURATION;
+          showToast('Sadaqah given — hidden Barakah x2 activated.');
         }
+      } else if (e.key === 'r' || e.key === 'R') {
+        game.reset();
       }
+    });
 
-      function loop(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const delta = timestamp - lastTime;
-        lastTime = timestamp;
-
-        update(delta);
-        draw();
-
-        requestAnimationFrame(loop);
-      }
-
-      resetGame();
-      requestAnimationFrame(loop);
-
-      // public API
-      return {
-        start(levelName) {
-          currentLevel = levelName || 'Tunnel of Wants';
-          resetGame();
-          running = true;
-        }
-      };
-    })();
+    btnRestart.addEventListener('click', () => game.reset());
+    btnLoan.addEventListener('click', () => game.takeLoan());
   </script>
 </body>
 </html>
+
 
 
 
