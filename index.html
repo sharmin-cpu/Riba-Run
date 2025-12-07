@@ -491,10 +491,10 @@
       debt: 0,
       drainPerFrame: DRAIN_BASE,
       monsterDistance: MONSTER_START_DIST,
-      // Monster size behaviour
-      monsterScale: 0.05,
-      monsterScaleMin: 0.04,
-      monsterScaleMax: 0.14,
+      // Monster size – now fixed small
+      monsterScale: 0.025,
+      monsterScaleMin: 0.025,
+      monsterScaleMax: 0.025,
       barakahActive: false,
       barakahTimer: 0,
       kestrlActive: false,
@@ -519,7 +519,7 @@
         this.debt = 0;
         this.drainPerFrame = DRAIN_BASE;
         this.monsterDistance = MONSTER_START_DIST;
-        this.monsterScale = 0.05;
+        this.monsterScale = 0.025;  // small monster
         this.items = [];
         this.investments = [];
         this.speed = BASE_SPEED;
@@ -661,25 +661,13 @@
         if (it.type === 'green') {
           const gain = GREEN_VALUE * (this.barakahActive ? 2 : 1);
           this.balance += gain;
-          if (!this.monsterBanished) {
-            this.monsterDistance += MONSTER_GREEN_PUSH;
-            // halal coins calm the monster a bit
-            this.monsterScale = Math.max(
-              this.monsterScaleMin,
-              this.monsterScale - 0.004
-            );
-          }
+          if (!this.monsterBanished) this.monsterDistance += MONSTER_GREEN_PUSH;
         } else if (it.type === 'red') {
           const gain = RED_VALUE * (this.barakahActive ? 2 : 1);
           this.balance += gain;
           if (!this.monsterBanished) {
             this.monsterDistance -= MONSTER_RED_PULL;
             this.glitchTimer = 22;
-            // riba coins make the monster grow
-            this.monsterScale = Math.min(
-              this.monsterScaleMax,
-              this.monsterScale + 0.01
-            );
           }
         } else if (it.type === 'obstacle') {
           if (!this.monsterBanished) {
@@ -765,7 +753,7 @@
 
         const img = monsterImg;
         if (img.complete && img.naturalWidth) {
-          const scale = this.monsterScale; // dynamic size
+          const scale = this.monsterScale; // fixed small size
           const w = img.naturalWidth * scale;
           const h = img.naturalHeight * scale;
           const x = monsterX - w / 2;
@@ -940,9 +928,6 @@
   </script>
 </body>
 </html>
-
-
-
 
 
 
