@@ -115,7 +115,8 @@
       cursor: pointer;
       box-shadow: 0 0 30px rgba(56,189,248,0.7);
       background: radial-gradient(circle at center, rgba(56,189,248,0.45), rgba(15,23,42,0.9));
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease,
+                  border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
     }
     .city-dot:hover {
       transform: translate(-50%, -50%) scale(1.08);
@@ -145,6 +146,7 @@
       white-space: nowrap;
       text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
+
     /* Locked cities */
     .city-dot.locked {
       filter: grayscale(100%);
@@ -291,7 +293,7 @@
         <div class="city-inner">3</div>
         <div class="city-label">Riba Cave (Locked)</div>
       </div>
-      <!-- Unlocked city with minigame -->
+      <!-- Unlocked city -->
       <div id="city-market" class="city-dot" data-route="Market Town" data-locked="false">
         <div class="city-inner">4</div>
         <div class="city-label">Market Town</div>
@@ -367,7 +369,6 @@
       cutsceneVideo.currentTime = 0;
       cutsceneVideo.muted = false;
       cutsceneVideo.play().catch(() => {
-        // if autoplay with sound fails, show overlay again
         cutsceneOverlay.style.display = 'flex';
       });
     });
@@ -408,7 +409,7 @@
 
     const LOGICAL_WIDTH = 200;
     const LOGICAL_HEIGHT = 112;
-    const SCALE = 4; // 200 x 112 -> 800 x 448 (approx)
+    const SCALE = 4;
     canvas.width = LOGICAL_WIDTH * SCALE;
     canvas.height = LOGICAL_HEIGHT * SCALE;
     ctx.imageSmoothingEnabled = false;
@@ -429,15 +430,15 @@
     const SPEED_INC = 0.00008;
 
     const BALANCE_START = 500;
-    const DRAIN_BASE = 0.30; // much slower drain now
+    const DRAIN_BASE = 0.30;
 
     const GREEN_VALUE = 15;
     const RED_VALUE = 50;
 
     const SADAQAH_COST = 80;
-    const SADAQAH_DURATION = 900; // ~15s
+    const SADAQAH_DURATION = 900;
 
-    const KESTRL_DURATION = 600;  // ~10s
+    const KESTRL_DURATION = 600;
 
     const INVEST_COST = 200;
     const INVEST_PAYOFF = 600;
@@ -456,7 +457,13 @@
     bgImg.src = 'background.png';
 
     const heroImg = new Image();
-    heroImg.src = 'kestrlman1.png';
+    heroImg.src = 'kestrlmanframes.png'; // 5-frame sprite sheet, 1950x382
+
+    // Sprite sheet settings
+    const HERO_FRAMES = 5;
+    const HERO_FRAME_WIDTH = 390;   // 1950 / 5
+    const HERO_FRAME_HEIGHT = 382;
+    const HERO_ANIM_SPEED = 6;      // lower = faster flap
 
     const monsterImg = new Image();
     monsterImg.src = 'ribamonster.png';
@@ -543,7 +550,6 @@
         if (!this.running) return;
         this.frameCount++;
 
-        // Balance drain (living costs + hidden inflation)
         this.balance -= this.drainPerFrame;
         if (this.balance <= 0) {
           this.balance = 0;
@@ -551,7 +557,6 @@
           return;
         }
 
-        // World speed & spawn pacing
         this.speed += SPEED_INC;
         this.spawnTimer++;
         const spawnInterval = Math.max(40, 90 - Math.floor(this.frameCount / 900));
@@ -560,7 +565,6 @@
           this.spawnTimer = 0;
         }
 
-        // Sadaqah & Barakah
         if (this.barakahActive) {
           this.barakahTimer--;
           if (this.barakahTimer <= 0) {
@@ -568,7 +572,6 @@
           }
         }
 
-        // Kestrl Card mode
         if (this.kestrlActive) {
           this.kestrlTimer--;
           if (this.kestrlTimer <= 0) {
@@ -577,7 +580,6 @@
           }
         }
 
-        // Investments
         for (let i = this.investments.length - 1; i >= 0; i--) {
           const inv = this.investments[i];
           inv.timer--;
@@ -587,7 +589,6 @@
           }
         }
 
-        // Monster distance
         if (!this.monsterBanished) {
           this.monsterDistance -= MONSTER_GAIN;
           if (this.loanTaken) this.monsterDistance -= MONSTER_LOAN_PULL;
@@ -598,7 +599,6 @@
           }
         }
 
-        // Items movement & collisions
         for (let i = this.items.length - 1; i >= 0; i--) {
           const it = this.items[i];
           it.x -= this.speed;
@@ -608,7 +608,7 @@
           }
           const px = PLAYER_X;
           const py = laneYs[this.playerLane];
-          if (this.hit(px, py, 10, 10, it.x, laneYs[it.lane], it)) {
+          if (this.hit(px, py, 10, 10, it.x, laneYs[it.lane])) {
             this.resolveCollision(it);
             this.items.splice(i, 1);
           }
@@ -662,7 +662,7 @@
           this.balance += gain;
           if (!this.monsterBanished) {
             this.monsterDistance -= MONSTER_RED_PULL;
-            this.glitchTimer = 22; // short glitch
+            this.glitchTimer = 22;
           }
         } else if (it.type === 'obstacle') {
           if (!this.monsterBanished) {
@@ -718,7 +718,6 @@
       },
 
       drawBackground() {
-        // marketplace backdrop
         if (bgImg.complete && bgImg.naturalWidth) {
           ctx.drawImage(bgImg, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         } else {
@@ -726,11 +725,9 @@
           ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         }
 
-        // subtle dusk overlay
         ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-        // glitch overlay when riba coins taken
         if (this.glitchTimer > 0) {
           const alpha = 0.25 + 0.15 * Math.sin(this.frameCount * 0.7);
           ctx.save();
@@ -751,7 +748,7 @@
 
         const img = monsterImg;
         if (img.complete && img.naturalWidth) {
-          const scale = 0.05; // much smaller monster
+          const scale = 0.05;
           const w = img.naturalWidth * scale;
           const h = img.naturalHeight * scale;
           const x = monsterX - w / 2;
@@ -767,23 +764,38 @@
         const img = heroImg;
         const py = laneYs[this.playerLane];
 
-        if (img.complete && img.naturalWidth) {
-          const baseScale = this.kestrlActive ? 0.025 : 0.02; // tiny sprite
-          const w = img.naturalWidth * baseScale;
-          const h = img.naturalHeight * baseScale;
-          const x = PLAYER_X - w / 2;
-          const y = py - h / 2;
-          ctx.save();
-          if (this.kestrlActive) {
-            ctx.shadowColor = '#38bdf8';
-            ctx.shadowBlur = 5;
-          }
-          ctx.drawImage(img, x, y, w, h);
-          ctx.restore();
-        } else {
+        if (!img.complete || !img.naturalWidth) {
           ctx.fillStyle = this.kestrlActive ? '#22c55e' : '#3b82f6';
           ctx.fillRect(PLAYER_X - 5, py - 5, 10, 10);
+          return;
         }
+
+        const frameIndex = Math.floor(this.frameCount / HERO_ANIM_SPEED) % HERO_FRAMES;
+        const sx = frameIndex * HERO_FRAME_WIDTH;
+        const sy = 0;
+
+        const scale = this.kestrlActive ? 0.10 : 0.08;
+        const drawW = HERO_FRAME_WIDTH * scale;
+        const drawH = HERO_FRAME_HEIGHT * scale;
+
+        const dx = PLAYER_X - drawW / 2;
+        const dy = py - drawH / 2;
+
+        ctx.save();
+        if (this.kestrlActive) {
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 5;
+        }
+
+        ctx.drawImage(
+          img,
+          sx, sy,
+          HERO_FRAME_WIDTH, HERO_FRAME_HEIGHT,
+          dx, dy,
+          drawW, drawH
+        );
+
+        ctx.restore();
       },
 
       drawItems() {
@@ -793,7 +805,7 @@
 
           if (it.type === 'green') {
             if (halalCoinImg.complete && halalCoinImg.naturalWidth) {
-              const scale = 0.03; // smaller coins
+              const scale = 0.03;
               const w = halalCoinImg.naturalWidth * scale;
               const h = halalCoinImg.naturalHeight * scale;
               ctx.save();
@@ -847,7 +859,6 @@
       },
 
       drawHUD() {
-        // balance + threat bar in-canvas
         const barX = 4, barY = 4, width = 75;
         ctx.fillStyle = '#f9fafb';
         ctx.font = '6px monospace';
@@ -910,7 +921,6 @@
   </script>
 </body>
 </html>
-
 
 
 
