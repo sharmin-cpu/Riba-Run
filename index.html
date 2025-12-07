@@ -115,7 +115,7 @@
       cursor: pointer;
       box-shadow: 0 0 30px rgba(56,189,248,0.7);
       background: radial-gradient(circle at center, rgba(56,189,248,0.45), rgba(15,23,42,0.9));
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
     }
     .city-dot:hover {
       transform: translate(-50%, -50%) scale(1.08);
@@ -145,6 +145,21 @@
       white-space: nowrap;
       text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
+    /* Locked cities */
+    .city-dot.locked {
+      filter: grayscale(100%);
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+      border-color: rgba(148,163,184,0.6);
+      background: radial-gradient(circle at center, rgba(31,41,55,0.8), rgba(15,23,42,0.95));
+    }
+    .city-dot.locked:hover {
+      transform: translate(-50%, -50%) scale(1);
+      box-shadow: none;
+      border-color: rgba(148,163,184,0.6);
+    }
+
     /* City positions */
     #city-castle { left: 20%; top: 70%; transform: translate(-50%, -50%); }
     #city-forest { left: 50%; top: 55%; transform: translate(-50%, -50%); }
@@ -264,26 +279,28 @@
     <div id="map-frame">
       <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
       <!-- Cities -->
-      <div id="city-castle" class="city-dot" data-route="Castle Hub">
+      <!-- Locked (coming soon) -->
+      <div id="city-castle" class="city-dot locked" data-route="Castle Hub" data-locked="true">
         <div class="city-inner">1</div>
-        <div class="city-label">Castle Hub</div>
+        <div class="city-label">Castle Hub (Locked)</div>
       </div>
-      <div id="city-forest" class="city-dot" data-route="Forest Trials">
+      <div id="city-forest" class="city-dot locked" data-route="Forest Trials" data-locked="true">
         <div class="city-inner">2</div>
-        <div class="city-label">Forest Trials</div>
+        <div class="city-label">Forest Trials (Locked)</div>
       </div>
-      <div id="city-cave" class="city-dot" data-route="Riba Cave">
+      <div id="city-cave" class="city-dot locked" data-route="Riba Cave" data-locked="true">
         <div class="city-inner">3</div>
-        <div class="city-label">Riba Cave</div>
+        <div class="city-label">Riba Cave (Locked)</div>
       </div>
-      <div id="city-market" class="city-dot" data-route="Market Town">
+      <!-- Unlocked city with minigame -->
+      <div id="city-market" class="city-dot" data-route="Market Town" data-locked="false">
         <div class="city-inner">4</div>
         <div class="city-label">Market Town</div>
       </div>
     </div>
     <div id="map-caption">
-      Hover a glowing city to see its name. Click to start that route.<br/>
-      <small>Each route plays the same core minigame – but you can role-play different financial journeys.</small>
+      Only <strong>Market Town</strong> is unlocked for now. Other cities are coming soon inshaAllah.<br/>
+      <small>Click Market Town to start Riba Run.</small>
     </div>
   </div>
 
@@ -359,8 +376,26 @@
     skipBtn.addEventListener('click', startMap);
     cutsceneVideo.addEventListener('ended', startMap);
 
+    /* ---------- TOAST (used by map + game) ---------- */
+    const toast = document.getElementById('toast');
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      game.toastTimer = 120;
+    }
+
+    // Map city clicks (lock logic)
     document.querySelectorAll('.city-dot').forEach(dot => {
+      const locked = dot.dataset.locked === 'true';
+      if (locked) {
+        dot.classList.add('locked');
+      }
+
       dot.addEventListener('click', () => {
+        if (dot.dataset.locked === 'true') {
+          showToast('This city is locked. Minigame coming soon inshaAllah.');
+          return;
+        }
         const route = dot.dataset.route || "Unknown Route";
         routeLabel.textContent = "Route: " + route;
         showScreen(gameScreen);
@@ -382,7 +417,6 @@
 
     const statsDiv = document.getElementById('stats');
     const overlay = document.getElementById('game-over-overlay');
-    const toast = document.getElementById('toast');
     const btnRestart = document.getElementById('btn-restart');
     const btnLoan = document.getElementById('btn-loan');
     const gameOverTitle = document.getElementById('game-over-title');
@@ -422,20 +456,17 @@
     const bgImg = new Image();
     bgImg.src = 'background.png';
 
-    const kestrelImg = new Image();
-    kestrelImg.src = 'Kestrlman.png';
-
-    const kestrelPowerImg = new Image();
-    kestrelPowerImg.src = 'Kestrlpowerup.png';
+    const heroImg = new Image();
+    heroImg.src = 'superhero.png';
 
     const monsterImg = new Image();
-    monsterImg.src = 'Ribamonster.png';
+    monsterImg.src = 'ribamonster.png';
 
-    function showToast(msg) {
-      toast.textContent = msg;
-      toast.style.display = 'block';
-      game.toastTimer = 120;
-    }
+    const halalCoinImg = new Image();
+    halalCoinImg.src = 'halalcoin.png';
+
+    const ribaCoinImg = new Image();
+    ribaCoinImg.src = 'ribacoin.png';
 
     function showOverlay() { overlay.style.display = 'flex'; }
     function hideOverlay() { overlay.style.display = 'none'; }
@@ -612,7 +643,7 @@
         this.items.push({ type, lane, x });
       },
 
-      hit(px, py, pw, ph, ix, iy, item) {
+      hit(px, py, pw, ph, ix, iy) {
         const w = 6, h = 6;
         return (
           px < ix + w &&
@@ -734,19 +765,23 @@
       },
 
       drawPlayer() {
-        const img = this.kestrlActive ? kestrelPowerImg : kestrelImg;
+        const img = heroImg;
         const py = laneYs[this.playerLane];
 
         if (img.complete && img.naturalWidth) {
-          const baseScale = 0.12;
+          const baseScale = this.kestrlActive ? 0.14 : 0.12;
           const w = img.naturalWidth * baseScale;
           const h = img.naturalHeight * baseScale;
           const x = PLAYER_X - w / 2;
           const y = py - h / 2;
-          // bird faces right (direction of travel)
+          ctx.save();
+          if (this.kestrlActive) {
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 8;
+          }
           ctx.drawImage(img, x, y, w, h);
+          ctx.restore();
         } else {
-          // fallback rectangle
           ctx.fillStyle = this.kestrlActive ? '#22c55e' : '#3b82f6';
           ctx.fillRect(PLAYER_X - 5, py - 5, 10, 10);
         }
@@ -758,19 +793,41 @@
           const y = laneYs[it.lane];
 
           if (it.type === 'green') {
-            ctx.save();
-            ctx.fillStyle = '#22c55e';
-            ctx.shadowColor = '#bbf7d0';
-            ctx.shadowBlur = 4;
-            ctx.fillRect(x - 3, y - 3, 6, 6);
-            ctx.restore();
+            if (halalCoinImg.complete && halalCoinImg.naturalWidth) {
+              const scale = 0.1;
+              const w = halalCoinImg.naturalWidth * scale;
+              const h = halalCoinImg.naturalHeight * scale;
+              ctx.save();
+              ctx.shadowColor = '#bbf7d0';
+              ctx.shadowBlur = 6;
+              ctx.drawImage(halalCoinImg, x - w / 2, y - h / 2, w, h);
+              ctx.restore();
+            } else {
+              ctx.save();
+              ctx.fillStyle = '#22c55e';
+              ctx.shadowColor = '#bbf7d0';
+              ctx.shadowBlur = 4;
+              ctx.fillRect(x - 3, y - 3, 6, 6);
+              ctx.restore();
+            }
           } else if (it.type === 'red') {
-            ctx.save();
-            ctx.fillStyle = '#ef4444';
-            ctx.shadowColor = '#fecaca';
-            ctx.shadowBlur = 4;
-            ctx.fillRect(x - 3, y - 3, 6, 6);
-            ctx.restore();
+            if (ribaCoinImg.complete && ribaCoinImg.naturalWidth) {
+              const scale = 0.1;
+              const w = ribaCoinImg.naturalWidth * scale;
+              const h = ribaCoinImg.naturalHeight * scale;
+              ctx.save();
+              ctx.shadowColor = '#fecaca';
+              ctx.shadowBlur = 6;
+              ctx.drawImage(ribaCoinImg, x - w / 2, y - h / 2, w, h);
+              ctx.restore();
+            } else {
+              ctx.save();
+              ctx.fillStyle = '#ef4444';
+              ctx.shadowColor = '#fecaca';
+              ctx.shadowBlur = 4;
+              ctx.fillRect(x - 3, y - 3, 6, 6);
+              ctx.restore();
+            }
           } else if (it.type === 'obstacle') {
             ctx.fillStyle = '#9ca3af';
             ctx.fillRect(x - 3, y - 4, 6, 8);
