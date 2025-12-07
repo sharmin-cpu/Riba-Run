@@ -278,8 +278,7 @@
   <div id="map-screen" class="screen">
     <div id="map-frame">
       <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
-      <!-- Cities -->
-      <!-- Locked (coming soon) -->
+      <!-- Locked cities -->
       <div id="city-castle" class="city-dot locked" data-route="Castle Hub" data-locked="true">
         <div class="city-inner">1</div>
         <div class="city-label">Castle Hub (Locked)</div>
@@ -457,7 +456,7 @@
     bgImg.src = 'background.png';
 
     const heroImg = new Image();
-    heroImg.src = 'superhero.png';
+    heroImg.src = 'kestrlman1.png';
 
     const monsterImg = new Image();
     monsterImg.src = 'ribamonster.png';
@@ -752,7 +751,7 @@
 
         const img = monsterImg;
         if (img.complete && img.naturalWidth) {
-          const scale = 0.22;
+          const scale = 0.14; // smaller monster
           const w = img.naturalWidth * scale;
           const h = img.naturalHeight * scale;
           const x = monsterX - w / 2;
@@ -769,7 +768,8 @@
         const py = laneYs[this.playerLane];
 
         if (img.complete && img.naturalWidth) {
-          const baseScale = this.kestrlActive ? 0.14 : 0.12;
+          // Smaller scale; slightly bigger in Kestrl mode
+          const baseScale = this.kestrlActive ? 0.08 : 0.06;
           const w = img.naturalWidth * baseScale;
           const h = img.naturalHeight * baseScale;
           const x = PLAYER_X - w / 2;
@@ -794,7 +794,7 @@
 
           if (it.type === 'green') {
             if (halalCoinImg.complete && halalCoinImg.naturalWidth) {
-              const scale = 0.1;
+              const scale = 0.06; // smaller
               const w = halalCoinImg.naturalWidth * scale;
               const h = halalCoinImg.naturalHeight * scale;
               ctx.save();
@@ -812,7 +812,7 @@
             }
           } else if (it.type === 'red') {
             if (ribaCoinImg.complete && ribaCoinImg.naturalWidth) {
-              const scale = 0.1;
+              const scale = 0.06; // smaller
               const w = ribaCoinImg.naturalWidth * scale;
               const h = ribaCoinImg.naturalHeight * scale;
               ctx.save();
@@ -911,10 +911,6 @@
   </script>
 </body>
 </html>
-
-
-
-
 
 
 
