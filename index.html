@@ -751,7 +751,7 @@
 
         const img = monsterImg;
         if (img.complete && img.naturalWidth) {
-          const scale = 0.14; // smaller monster
+          const scale = 0.05; // much smaller monster
           const w = img.naturalWidth * scale;
           const h = img.naturalHeight * scale;
           const x = monsterX - w / 2;
@@ -768,8 +768,7 @@
         const py = laneYs[this.playerLane];
 
         if (img.complete && img.naturalWidth) {
-          // Smaller scale; slightly bigger in Kestrl mode
-          const baseScale = this.kestrlActive ? 0.08 : 0.06;
+          const baseScale = this.kestrlActive ? 0.025 : 0.02; // tiny sprite
           const w = img.naturalWidth * baseScale;
           const h = img.naturalHeight * baseScale;
           const x = PLAYER_X - w / 2;
@@ -777,7 +776,7 @@
           ctx.save();
           if (this.kestrlActive) {
             ctx.shadowColor = '#38bdf8';
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 5;
           }
           ctx.drawImage(img, x, y, w, h);
           ctx.restore();
@@ -794,12 +793,12 @@
 
           if (it.type === 'green') {
             if (halalCoinImg.complete && halalCoinImg.naturalWidth) {
-              const scale = 0.06; // smaller
+              const scale = 0.03; // smaller coins
               const w = halalCoinImg.naturalWidth * scale;
               const h = halalCoinImg.naturalHeight * scale;
               ctx.save();
               ctx.shadowColor = '#bbf7d0';
-              ctx.shadowBlur = 6;
+              ctx.shadowBlur = 4;
               ctx.drawImage(halalCoinImg, x - w / 2, y - h / 2, w, h);
               ctx.restore();
             } else {
@@ -812,12 +811,12 @@
             }
           } else if (it.type === 'red') {
             if (ribaCoinImg.complete && ribaCoinImg.naturalWidth) {
-              const scale = 0.06; // smaller
+              const scale = 0.03;
               const w = ribaCoinImg.naturalWidth * scale;
               const h = ribaCoinImg.naturalHeight * scale;
               ctx.save();
               ctx.shadowColor = '#fecaca';
-              ctx.shadowBlur = 6;
+              ctx.shadowBlur = 4;
               ctx.drawImage(ribaCoinImg, x - w / 2, y - h / 2, w, h);
               ctx.restore();
             } else {
@@ -911,6 +910,7 @@
   </script>
 </body>
 </html>
+
 
 
 
