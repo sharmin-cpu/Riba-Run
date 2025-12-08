@@ -129,39 +129,90 @@
     }
     .hero-cta-row {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       gap: 10px;
-      margin-top: 8px;
-    }
-    .hero-btn-primary {
-      padding: 10px 18px;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg,#22c55e,#16a34a);
-      color: #022c22;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 10px 30px rgba(22,163,74,0.75);
-      white-space: nowrap;
-    }
-    .hero-btn-ghost {
-      padding: 10px 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.8);
-      background: rgba(15,23,42,0.8);
-      color: #e5e7eb;
-      font-size: 13px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
+      margin-top: 10px;
+      align-items: flex-start;
     }
     .hero-scroll-hint {
       font-size: 12px;
       color: #9ca3af;
       margin-top: 4px;
+    }
+
+    /* ---------- Modern retro button (pure CSS version) ---------- */
+    .retro-warning {
+      font-size: 12px;
+      color: #facc15;
+      font-weight: 500;
+    }
+
+    .retro-button {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+      font-style: italic;
+      font-family: "IBM Plex Mono", system-ui, sans-serif;
+      height: 50px;
+      padding: 0 30px;
+      border-radius: 15px;
+      outline: none;
+      border: none;
+      transform: skew(-15deg);
+      overflow: hidden;
+      transition: transform 350ms, box-shadow 350ms;
+      position: relative;
+      background: transparent;
+      box-shadow: 0 0 0 0 #0763f7;
+    }
+    .retro-button:hover {
+      transform: scale(1.05) skew(-15deg);
+      box-shadow: 0 0 20px 2px #0763f7;
+    }
+    .retro-button span {
+      position: relative;
+      z-index: 2;
+      color: #f7f7ff;
+      transition: color 350ms;
+      white-space: nowrap;
+    }
+    .retro-button:hover span {
+      color: #111118;
+    }
+    .retro-bg-svg,
+    .retro-bars-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      border-radius: 15px;
+    }
+    .retro-bg-svg rect {
+      fill: #181a29; /* dark theme background */
+    }
+    .retro-bars-svg rect.bar {
+      fill: #76b3fa;
+      transform: translateX(-100%);
+    }
+
+    @keyframes bar-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes bar-flicker {
+      0%, 100% { fill: #76b3fa; }
+      50% { fill: #0c79f7; }
+    }
+
+    .retro-button:hover .retro-bars-svg rect.bar {
+      animation:
+        bar-sweep 0.8s cubic-bezier(0.2, 0.8, 0.3, 1.2) forwards,
+        bar-flicker 0.2s linear 0.8s infinite alternate;
     }
 
     /* ---------- MAP ---------- */
@@ -362,19 +413,58 @@
           <p class="hero-kicker">Kestrl • Riba Run</p>
           <h1 class="hero-title">Run clean through the Tunnel of Wants.</h1>
           <p class="hero-sub">
-            Scroll to expand the story window, then enter Market Town to face the Riba Monster.
+            Scroll to expand the story window, then face Market Town and the Riba Monster.
             Every choice shows the difference between barakah and riba.
           </p>
           <div class="hero-cta-row">
-            <button class="hero-btn-primary" id="hero-play-btn">
-              Play story & enter map
-            </button>
-            <button class="hero-btn-ghost" id="hero-skip-btn">
-              Skip straight to map
+            <div class="retro-warning">
+              ⚠️ Warning: beware of the Riba Monster.
+            </div>
+            <!-- Retro button used as main CTA -->
+            <button class="retro-button" id="hero-play-btn">
+              <!-- SVG background -->
+              <svg class="retro-bg-svg" width="100%" height="100%">
+                <rect x="0" y="0" width="100%" height="100%" rx="15"></rect>
+              </svg>
+              <!-- Animated bars -->
+              <svg class="retro-bars-svg" width="100%" height="100%">
+                <g class="left">
+                  <!-- 25 bars like the React version -->
+                  <!-- We don't need keys in plain HTML -->
+                  <!-- They will animate on :hover -->
+                  <!-- Generate them manually -->
+                  <rect class="bar" x="-100%" y="0"  width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="2"  width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="4"  width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="6"  width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="8"  width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="10" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="12" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="14" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="16" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="18" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="20" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="22" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="24" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="26" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="28" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="30" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="32" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="34" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="36" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="38" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="40" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="42" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="44" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="46" width="100%" height="2"></rect>
+                  <rect class="bar" x="-100%" y="48" width="100%" height="2"></rect>
+                </g>
+              </svg>
+              <span>Play if you dare</span>
             </button>
           </div>
           <p class="hero-scroll-hint">
-            Tip: use your mouse wheel or touchpad to expand the video before you start.
+            Tip: Use your mouse wheel or touchpad to expand the tunnel window before you hit play.
           </p>
         </div>
       </div>
@@ -458,7 +548,6 @@
     const routeLabel = document.getElementById('route-label');
     const heroMedia = document.getElementById('hero-media');
     const heroPlayBtn = document.getElementById('hero-play-btn');
-    const heroSkipBtn = document.getElementById('hero-skip-btn');
 
     function showScreen(screen) {
       [cutsceneScreen, mapScreen, gameScreen].forEach(s => s.classList.remove('active'));
@@ -492,7 +581,7 @@
       if (!cutsceneScreen.classList.contains('active')) return;
       if (heroExpanded) return;
       e.preventDefault();
-      const delta = e.deltaY * 0.0008; // tweak speed here
+      const delta = e.deltaY * 0.0008;
       heroProgress = Math.min(1, Math.max(0, heroProgress + delta));
       updateHeroSize();
     }, { passive: false });
@@ -506,7 +595,6 @@
       cutsceneVideo.play().catch(() => {});
     });
 
-    heroSkipBtn.addEventListener('click', startMap);
     cutsceneVideo.addEventListener('ended', startMap);
 
     /* ---------- MAP CLICK HANDLING ---------- */
@@ -535,7 +623,7 @@
       });
     });
 
-    /* ---------- GAME LOGIC (same as before, with small monster) ---------- */
+    /* ---------- GAME LOGIC (same as your version, including small monster + bird) ---------- */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
@@ -1056,6 +1144,7 @@
   </script>
 </body>
 </html>
+
 
 
 
