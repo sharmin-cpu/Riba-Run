@@ -29,7 +29,7 @@
     }
     .screen.active { display: flex; }
 
-    /* ---------- HERO / CUTSCENE UI (Scroll-expand style) ---------- */
+    /* ---------- HERO / CUTSCENE UI ---------- */
     #cutscene-screen {
       background: #020617;
     }
@@ -164,32 +164,35 @@
       margin-top: 4px;
     }
 
-    /* ---------- MAP ---------- */
+    /* ---------- MAP (show full parchment, no cropping) ---------- */
     #map-screen {
       padding: 24px;
       flex-direction: column;
       gap: 16px;
     }
+
     #map-frame {
       position: relative;
-      width: min(1100px, 80vw);      /* smaller so you see the corners */
-      max-height: 70vh;
-      aspect-ratio: 16/9;
+      max-width: min(1200px, 95vw);
+      width: 100%;
+      margin: 0 auto;
       border-radius: 22px;
       overflow: hidden;
       background: #020617;
       box-shadow: 0 32px 80px rgba(15,23,42,0.9);
     }
+
+    /* Use natural aspect ratio of the image so corners/borders are visible */
     #world-map {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
+      height: auto;       /* important: no forced aspect-ratio */
       display: block;
     }
+
     .city-dot {
       position: absolute;
-      width: 72px;
-      height: 72px;
+      width: 70px;
+      height: 70px;
       border-radius: 999px;
       border: 2px solid rgba(56,189,248,0.8);
       display: flex;
@@ -200,6 +203,7 @@
       background: radial-gradient(circle at center, rgba(56,189,248,0.45), rgba(15,23,42,0.9));
       transition: transform 0.2s ease, box-shadow 0.2s ease,
                   border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+      transform: translate(-50%, -50%);
     }
     .city-dot:hover {
       transform: translate(-50%, -50%) scale(1.08);
@@ -245,14 +249,14 @@
       border-color: rgba(148,163,184,0.6);
     }
 
-    /* City positions on the parchment map */
-    #city-riba-fort     { left: 21%; top: 18%; transform: translate(-50%, -50%); }
-    #city-qard-hamlet   { left: 23%; top: 46%; transform: translate(-50%, -50%); }
-    #city-sukuk-citadel { left: 24%; top: 78%; transform: translate(-50%, -50%); }
-    #city-inflation     { left: 50%; top: 72%; transform: translate(-50%, -50%); }
-    #city-takaful       { left: 77%; top: 30%; transform: translate(-50%, -50%); }
-    #city-zakat-coast   { left: 77%; top: 72%; transform: translate(-50%, -50%); }
-    #city-market        { left: 50%; top: 46%; transform: translate(-50%, -50%); }
+    /* City positions tuned for the full uncropped parchment */
+    #city-riba-fortress    { left: 23%; top: 23%; }
+    #city-qard-hasan       { left: 33%; top: 57%; }
+    #city-sukuk-citadel    { left: 26%; top: 78%; }
+    #city-inflation        { left: 53%; top: 71%; }
+    #city-takaful-heights  { left: 76%; top: 30%; }
+    #city-zakat-coast      { left: 76%; top: 72%; }
+    #city-market           { left: 51%; top: 45%; }
 
     #map-caption {
       font-size: 14px;
@@ -359,7 +363,6 @@
       </div>
       <div class="hero-inner">
         <div class="hero-media" id="hero-media">
-          <!-- We’ll manually control when the cutscene plays -->
           <video id="cutscene" src="cutscene.mp4" preload="auto" playsinline muted></video>
         </div>
         <div class="hero-text">
@@ -390,74 +393,48 @@
     <div id="map-frame">
       <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
 
-      <!-- 1. Riba Fortress (top-left castle) -->
-      <div id="city-riba-fort"
-           class="city-dot locked"
-           data-route="Riba Fortress"
-           data-locked="true">
+      <!-- Locked cities with Islamic finance names -->
+      <div id="city-riba-fortress" class="city-dot locked" data-route="Riba Fortress" data-locked="true">
         <div class="city-inner">1</div>
         <div class="city-label">Riba Fortress (Locked)</div>
       </div>
 
-      <!-- 2. Qard Hasan Hamlet (left mid house) -->
-      <div id="city-qard-hamlet"
-           class="city-dot locked"
-           data-route="Qard Hasan Hamlet"
-           data-locked="true">
+      <div id="city-qard-hasan" class="city-dot locked" data-route="Qard Hasan Hamlet" data-locked="true">
         <div class="city-inner">2</div>
         <div class="city-label">Qard Hasan Hamlet (Locked)</div>
       </div>
 
-      <!-- 3. Sukuk Citadel (bottom-left castle) -->
-      <div id="city-sukuk-citadel"
-           class="city-dot locked"
-           data-route="Sukuk Citadel"
-           data-locked="true">
+      <div id="city-sukuk-citadel" class="city-dot locked" data-route="Sukuk Citadel" data-locked="true">
         <div class="city-inner">3</div>
         <div class="city-label">Sukuk Citadel (Locked)</div>
       </div>
 
-      <!-- 4. Inflation Quarter (central lower town) -->
-      <div id="city-inflation"
-           class="city-dot locked"
-           data-route="Inflation Quarter"
-           data-locked="true">
+      <div id="city-inflation" class="city-dot locked" data-route="Inflation Quarter" data-locked="true">
         <div class="city-inner">4</div>
         <div class="city-label">Inflation Quarter (Locked)</div>
       </div>
 
-      <!-- 5. Takaful Heights (top-right masjid) -->
-      <div id="city-takaful"
-           class="city-dot locked"
-           data-route="Takaful Heights"
-           data-locked="true">
+      <div id="city-takaful-heights" class="city-dot locked" data-route="Takaful Heights" data-locked="true">
         <div class="city-inner">5</div>
         <div class="city-label">Takaful Heights (Locked)</div>
       </div>
 
-      <!-- 6. Zakat Coast (bottom-right masjid) -->
-      <div id="city-zakat-coast"
-           class="city-dot locked"
-           data-route="Zakat Coast"
-           data-locked="true">
+      <div id="city-zakat-coast" class="city-dot locked" data-route="Zakat Coast" data-locked="true">
         <div class="city-inner">6</div>
         <div class="city-label">Zakat Coast (Locked)</div>
       </div>
 
-      <!-- 7. Marketplace (central dome – unlocked) -->
-      <div id="city-market"
-           class="city-dot"
-           data-route="Marketplace"
-           data-locked="false">
+      <!-- Unlocked start city -->
+      <div id="city-market" class="city-dot" data-route="Marketplace" data-locked="false">
         <div class="city-inner">7</div>
         <div class="city-label">Marketplace</div>
       </div>
     </div>
 
     <div id="map-caption">
-      Start your journey in <strong>Marketplace</strong>.  
-      The other routes – Riba Fortress, Qard Hasan Hamlet, Sukuk Citadel,
-      Inflation Quarter, Takaful Heights and Zakat Coast – will unlock later inshaAllah.<br/>
+      Start your journey in <strong>Marketplace</strong>.
+      The other routes – Riba Fortress, Qard Hasan Hamlet, Sukuk Citadel, Inflation Quarter,
+      Takaful Heights and Zakat Coast – will unlock later inshaAllah.<br/>
       <small>Click <strong>Marketplace</strong> to start Riba Run.</small>
     </div>
   </div>
@@ -522,8 +499,7 @@
       try { cutsceneVideo.pause(); } catch(e) {}
     }
 
-    // Scroll-to-expand behaviour (simplified ScrollExpandMedia feel)
-    let heroProgress = 0;   // 0 → 1
+    let heroProgress = 0;
     let heroExpanded = false;
 
     function updateHeroSize() {
@@ -544,7 +520,7 @@
       if (!cutsceneScreen.classList.contains('active')) return;
       if (heroExpanded) return;
       e.preventDefault();
-      const delta = e.deltaY * 0.0008; // tweak speed here
+      const delta = e.deltaY * 0.0008;
       heroProgress = Math.min(1, Math.max(0, heroProgress + delta));
       updateHeroSize();
     }, { passive: false });
@@ -571,9 +547,7 @@
 
     document.querySelectorAll('.city-dot').forEach(dot => {
       const locked = dot.dataset.locked === 'true';
-      if (locked) {
-        dot.classList.add('locked');
-      }
+      if (locked) dot.classList.add('locked');
 
       dot.addEventListener('click', () => {
         if (dot.dataset.locked === 'true') {
@@ -587,7 +561,7 @@
       });
     });
 
-    /* ---------- GAME LOGIC ---------- */
+    /* ---------- GAME LOGIC (unchanged) ---------- */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
@@ -636,17 +610,16 @@
 
     const FRAME_TIME = 1000 / 60;
 
-    // Images
     const bgImg = new Image();
     bgImg.src = 'background.png';
 
     const heroImg = new Image();
-    heroImg.src = 'kestrlmanframes.png'; // 5-frame sprite sheet, 1950x382
+    heroImg.src = 'kestrlmanframes.png';
 
     const HERO_FRAMES = 5;
     const HERO_FRAME_WIDTH = 390;
     const HERO_FRAME_HEIGHT = 382;
-    const HERO_ANIM_SPEED = 10; // ~6 FPS
+    const HERO_ANIM_SPEED = 10;
 
     const monsterImg = new Image();
     monsterImg.src = 'ribamonster.png';
@@ -723,7 +696,6 @@
         hideOverlay();
       },
 
-      // UPDATED LOOP: keeps the animation frame alive even when not running
       loop(timestamp) {
         const delta = timestamp - this.lastTime;
         this.lastTime = timestamp;
@@ -908,7 +880,6 @@
         hideOverlay();
       },
 
-      // background & drawing functions unchanged
       drawBackground() {
         if (bgImg.complete && bgImg.naturalWidth) {
           ctx.drawImage(bgImg, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
@@ -1086,7 +1057,6 @@
       }
     };
 
-    // Input
     window.addEventListener('keydown', e => {
       if (e.key === 'ArrowUp') {
         game.playerLane = Math.max(0, game.playerLane - 1);
@@ -1113,6 +1083,7 @@
   </script>
 </body>
 </html>
+
 
 
 
