@@ -172,7 +172,8 @@
     }
     #map-frame {
       position: relative;
-      width: min(1200px, 90vw);
+      width: min(1100px, 80vw);      /* smaller so you see the corners */
+      max-height: 70vh;
       aspect-ratio: 16/9;
       border-radius: 22px;
       overflow: hidden;
@@ -244,55 +245,14 @@
       border-color: rgba(148,163,184,0.6);
     }
 
-    /* City positions on fantasy-world-map.png (7 cities) */
-    /* Top-left red fortress */
-    #city-fort-debt {
-      left: 18%;
-      top: 18%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Small village in the left-middle */
-    #city-village {
-      left: 26%;
-      top: 52%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Bottom-left green castle */
-    #city-green-keep {
-      left: 18%;
-      top: 78%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Bottom-middle red district */
-    #city-ember-district {
-      left: 44%;
-      top: 70%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Centre mosque with market stalls – the only unlocked one */
-    #city-marketplace {
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Top-right mountain mosque */
-    #city-highpeak {
-      left: 78%;
-      top: 30%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Bottom-right coastal mosque */
-    #city-coastline {
-      left: 70%;
-      top: 72%;
-      transform: translate(-50%, -50%);
-    }
+    /* City positions on the parchment map */
+    #city-riba-fort     { left: 21%; top: 18%; transform: translate(-50%, -50%); }
+    #city-qard-hamlet   { left: 23%; top: 46%; transform: translate(-50%, -50%); }
+    #city-sukuk-citadel { left: 24%; top: 78%; transform: translate(-50%, -50%); }
+    #city-inflation     { left: 50%; top: 72%; transform: translate(-50%, -50%); }
+    #city-takaful       { left: 77%; top: 30%; transform: translate(-50%, -50%); }
+    #city-zakat-coast   { left: 77%; top: 72%; transform: translate(-50%, -50%); }
+    #city-market        { left: 50%; top: 46%; transform: translate(-50%, -50%); }
 
     #map-caption {
       font-size: 14px;
@@ -430,46 +390,75 @@
     <div id="map-frame">
       <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
 
-      <!-- Locked cities (6 of them) -->
-      <div id="city-fort-debt" class="city-dot locked" data-route="Fort of Debts" data-locked="true">
+      <!-- 1. Riba Fortress (top-left castle) -->
+      <div id="city-riba-fort"
+           class="city-dot locked"
+           data-route="Riba Fortress"
+           data-locked="true">
         <div class="city-inner">1</div>
-        <div class="city-label">Fort of Debts (Locked)</div>
+        <div class="city-label">Riba Fortress (Locked)</div>
       </div>
 
-      <div id="city-village" class="city-dot locked" data-route="Humble Village" data-locked="true">
+      <!-- 2. Qard Hasan Hamlet (left mid house) -->
+      <div id="city-qard-hamlet"
+           class="city-dot locked"
+           data-route="Qard Hasan Hamlet"
+           data-locked="true">
         <div class="city-inner">2</div>
-        <div class="city-label">Humble Village (Locked)</div>
+        <div class="city-label">Qard Hasan Hamlet (Locked)</div>
       </div>
 
-      <div id="city-green-keep" class="city-dot locked" data-route="Greenwater Keep" data-locked="true">
+      <!-- 3. Sukuk Citadel (bottom-left castle) -->
+      <div id="city-sukuk-citadel"
+           class="city-dot locked"
+           data-route="Sukuk Citadel"
+           data-locked="true">
         <div class="city-inner">3</div>
-        <div class="city-label">Greenwater Keep (Locked)</div>
+        <div class="city-label">Sukuk Citadel (Locked)</div>
       </div>
 
-      <div id="city-ember-district" class="city-dot locked" data-route="Ember District" data-locked="true">
+      <!-- 4. Inflation Quarter (central lower town) -->
+      <div id="city-inflation"
+           class="city-dot locked"
+           data-route="Inflation Quarter"
+           data-locked="true">
         <div class="city-inner">4</div>
-        <div class="city-label">Ember District (Locked)</div>
+        <div class="city-label">Inflation Quarter (Locked)</div>
       </div>
 
-      <div id="city-highpeak" class="city-dot locked" data-route="Highpeak Minaret" data-locked="true">
+      <!-- 5. Takaful Heights (top-right masjid) -->
+      <div id="city-takaful"
+           class="city-dot locked"
+           data-route="Takaful Heights"
+           data-locked="true">
         <div class="city-inner">5</div>
-        <div class="city-label">Highpeak Minaret (Locked)</div>
+        <div class="city-label">Takaful Heights (Locked)</div>
       </div>
 
-      <div id="city-coastline" class="city-dot locked" data-route="Coastline Masjid" data-locked="true">
+      <!-- 6. Zakat Coast (bottom-right masjid) -->
+      <div id="city-zakat-coast"
+           class="city-dot locked"
+           data-route="Zakat Coast"
+           data-locked="true">
         <div class="city-inner">6</div>
-        <div class="city-label">Coastline Masjid (Locked)</div>
+        <div class="city-label">Zakat Coast (Locked)</div>
       </div>
 
-      <!-- The central minaret – ONLY unlocked city -->
-      <div id="city-marketplace" class="city-dot" data-route="Marketplace" data-locked="false">
+      <!-- 7. Marketplace (central dome – unlocked) -->
+      <div id="city-market"
+           class="city-dot"
+           data-route="Marketplace"
+           data-locked="false">
         <div class="city-inner">7</div>
         <div class="city-label">Marketplace</div>
       </div>
     </div>
+
     <div id="map-caption">
-      Only <strong>Marketplace</strong> is unlocked for now. Other cities are coming soon inshaAllah.<br/>
-      <small>Click Marketplace to start Riba Run.</small>
+      Start your journey in <strong>Marketplace</strong>.  
+      The other routes – Riba Fortress, Qard Hasan Hamlet, Sukuk Citadel,
+      Inflation Quarter, Takaful Heights and Zakat Coast – will unlock later inshaAllah.<br/>
+      <small>Click <strong>Marketplace</strong> to start Riba Run.</small>
     </div>
   </div>
 
@@ -919,7 +908,7 @@
         hideOverlay();
       },
 
-      // UPDATED: overlay rectangle covers full width (no half-screen shadow)
+      // background & drawing functions unchanged
       drawBackground() {
         if (bgImg.complete && bgImg.naturalWidth) {
           ctx.drawImage(bgImg, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
@@ -1124,7 +1113,6 @@
   </script>
 </body>
 </html>
-
 
 
 
