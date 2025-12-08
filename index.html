@@ -127,44 +127,44 @@
       font-size: 14px;
       color: #d1d5db;
     }
+    .hero-warning {
+      font-size: 13px;
+      color: #fbbf24;
+      margin-top: 4px;
+    }
     .hero-cta-row {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 10px;
       margin-top: 10px;
-      align-items: flex-start;
+      align-items: center;
     }
     .hero-scroll-hint {
       font-size: 12px;
       color: #9ca3af;
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
-    /* ---------- Modern retro button (pure CSS version) ---------- */
-    .retro-warning {
-      font-size: 12px;
-      color: #facc15;
-      font-weight: 500;
-    }
-
+    /* Modern retro button (adapted from 21st.dev, no React needed) */
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&display=swap");
     .retro-button {
       cursor: pointer;
       display: flex;
-      align-items: center;
-      justify-content: center;
       font-weight: 500;
       font-style: italic;
-      font-family: "IBM Plex Mono", system-ui, sans-serif;
+      align-items: center;
+      justify-content: center;
+      font-family: "IBM Plex Mono", monospace;
       height: 50px;
       padding: 0 30px;
       border-radius: 15px;
       outline: none;
-      border: none;
       transform: skew(-15deg);
       overflow: hidden;
       transition: transform 350ms, box-shadow 350ms;
       position: relative;
       background: transparent;
+      border: none;
       box-shadow: 0 0 0 0 #0763f7;
     }
     .retro-button:hover {
@@ -172,47 +172,35 @@
       box-shadow: 0 0 20px 2px #0763f7;
     }
     .retro-button span {
+      color: #f7f7ff;
       position: relative;
       z-index: 2;
-      color: #f7f7ff;
       transition: color 350ms;
-      white-space: nowrap;
     }
-    .retro-button:hover span {
-      color: #111118;
-    }
-    .retro-bg-svg,
-    .retro-bars-svg {
+    .retro-button-bg,
+    .retro-button-bars {
       position: absolute;
-      left: 0;
-      top: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
       border-radius: 15px;
+      pointer-events: none;
     }
-    .retro-bg-svg rect {
-      fill: #181a29; /* dark theme background */
+    .retro-button-bg {
+      background: #181a29;
+      z-index: 0;
     }
-    .retro-bars-svg rect.bar {
-      fill: #76b3fa;
-      transform: translateX(-100%);
+    .retro-button-bars {
+      z-index: 1;
+      overflow: hidden;
     }
-
-    @keyframes bar-sweep {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
-    @keyframes bar-flicker {
-      0%, 100% { fill: #76b3fa; }
-      50% { fill: #0c79f7; }
-    }
-
-    .retro-button:hover .retro-bars-svg rect.bar {
-      animation:
-        bar-sweep 0.8s cubic-bezier(0.2, 0.8, 0.3, 1.2) forwards,
-        bar-flicker 0.2s linear 0.8s infinite alternate;
+    .retro-button-bars .bar {
+      position: absolute;
+      left: -100%;
+      width: 100%;
+      height: 2px;
+      background: #76b3fa;
+      transform: translateX(0);
     }
 
     /* ---------- MAP ---------- */
@@ -413,58 +401,53 @@
           <p class="hero-kicker">Kestrl • Riba Run</p>
           <h1 class="hero-title">Run clean through the Tunnel of Wants.</h1>
           <p class="hero-sub">
-            Scroll to expand the story window, then face Market Town and the Riba Monster.
+            Scroll to expand the story window, then enter Market Town to face the Riba Monster.
             Every choice shows the difference between barakah and riba.
           </p>
+          <p class="hero-warning">⚠️ Warning: beware of the Riba Monster.</p>
           <div class="hero-cta-row">
-            <div class="retro-warning">
-              ⚠️ Warning: beware of the Riba Monster.
-            </div>
-            <!-- Retro button used as main CTA -->
-            <button class="retro-button" id="hero-play-btn">
-              <!-- SVG background -->
-              <svg class="retro-bg-svg" width="100%" height="100%">
-                <rect x="0" y="0" width="100%" height="100%" rx="15"></rect>
-              </svg>
-              <!-- Animated bars -->
-              <svg class="retro-bars-svg" width="100%" height="100%">
-                <g class="left">
-                  <!-- 25 bars like the React version -->
-                  <!-- We don't need keys in plain HTML -->
-                  <!-- They will animate on :hover -->
-                  <!-- Generate them manually -->
-                  <rect class="bar" x="-100%" y="0"  width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="2"  width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="4"  width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="6"  width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="8"  width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="10" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="12" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="14" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="16" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="18" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="20" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="22" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="24" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="26" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="28" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="30" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="32" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="34" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="36" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="38" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="40" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="42" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="44" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="46" width="100%" height="2"></rect>
-                  <rect class="bar" x="-100%" y="48" width="100%" height="2"></rect>
-                </g>
-              </svg>
-              <span>Play if you dare</span>
+            <!-- Modern retro style button -->
+            <button class="retro-button" id="hero-main-btn">
+              <div class="retro-button-bg"></div>
+              <div class="retro-button-bars">
+                <!-- simple static bars; animation handled in JS if you want later -->
+                <!-- 25 horizontal bars -->
+                <!-- (they all start off-screen; no GSAP here to keep it lightweight) -->
+                <!-- still gives a nice layered look -->
+                <div>
+                  <!-- generate bars by hand -->
+                  <div class="bar" style="top:0px;"></div>
+                  <div class="bar" style="top:2px;"></div>
+                  <div class="bar" style="top:4px;"></div>
+                  <div class="bar" style="top:6px;"></div>
+                  <div class="bar" style="top:8px;"></div>
+                  <div class="bar" style="top:10px;"></div>
+                  <div class="bar" style="top:12px;"></div>
+                  <div class="bar" style="top:14px;"></div>
+                  <div class="bar" style="top:16px;"></div>
+                  <div class="bar" style="top:18px;"></div>
+                  <div class="bar" style="top:20px;"></div>
+                  <div class="bar" style="top:22px;"></div>
+                  <div class="bar" style="top:24px;"></div>
+                  <div class="bar" style="top:26px;"></div>
+                  <div class="bar" style="top:28px;"></div>
+                  <div class="bar" style="top:30px;"></div>
+                  <div class="bar" style="top:32px;"></div>
+                  <div class="bar" style="top:34px;"></div>
+                  <div class="bar" style="top:36px;"></div>
+                  <div class="bar" style="top:38px;"></div>
+                  <div class="bar" style="top:40px;"></div>
+                  <div class="bar" style="top:42px;"></div>
+                  <div class="bar" style="top:44px;"></div>
+                  <div class="bar" style="top:46px;"></div>
+                  <div class="bar" style="top:48px;"></div>
+                </div>
+              </div>
+              <span id="hero-main-btn-label">Play story</span>
             </button>
           </div>
           <p class="hero-scroll-hint">
-            Tip: Use your mouse wheel or touchpad to expand the tunnel window before you hit play.
+            Tip: use your mouse wheel or touchpad to expand the tunnel window before you hit play.
           </p>
         </div>
       </div>
@@ -547,7 +530,8 @@
     const cutsceneVideo = document.getElementById('cutscene');
     const routeLabel = document.getElementById('route-label');
     const heroMedia = document.getElementById('hero-media');
-    const heroPlayBtn = document.getElementById('hero-play-btn');
+    const heroMainBtn = document.getElementById('hero-main-btn');
+    const heroMainBtnLabel = document.getElementById('hero-main-btn-label');
 
     function showScreen(screen) {
       [cutsceneScreen, mapScreen, gameScreen].forEach(s => s.classList.remove('active'));
@@ -562,6 +546,7 @@
     // Scroll-to-expand behaviour (simplified ScrollExpandMedia feel)
     let heroProgress = 0;   // 0 → 1
     let heroExpanded = false;
+    let heroState = 'intro'; // 'intro' | 'playing' | 'finished'
 
     function updateHeroSize() {
       const minW = 340, maxW = 960;
@@ -574,28 +559,73 @@
         heroExpanded = true;
         heroMedia.classList.add('expanded');
       }
+      if (heroProgress < 1 && heroExpanded) {
+        heroExpanded = false;
+        heroMedia.classList.remove('expanded');
+      }
     }
     updateHeroSize();
 
+    function animateHeroProgress(target) {
+      const start = heroProgress;
+      const duration = 450;
+      const startTime = performance.now();
+      function step(now) {
+        const t = Math.min(1, (now - startTime) / duration);
+        heroProgress = start + (target - start) * t;
+        updateHeroSize();
+        if (t < 1) {
+          requestAnimationFrame(step);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
     window.addEventListener('wheel', (e) => {
       if (!cutsceneScreen.classList.contains('active')) return;
-      if (heroExpanded) return;
+      if (heroState === 'playing') return; // lock while trailer plays
+      if (heroExpanded && heroState !== 'intro') return;
       e.preventDefault();
       const delta = e.deltaY * 0.0008;
       heroProgress = Math.min(1, Math.max(0, heroProgress + delta));
       updateHeroSize();
     }, { passive: false });
 
-    heroPlayBtn.addEventListener('click', () => {
-      heroProgress = 1;
-      heroExpanded = true;
-      updateHeroSize();
+    function startTrailer() {
+      heroState = 'playing';
+      heroMainBtn.style.display = 'none'; // hide button while video plays
+      animateHeroProgress(1);
       cutsceneVideo.currentTime = 0;
       cutsceneVideo.muted = false;
       cutsceneVideo.play().catch(() => {});
+    }
+
+    function onTrailerFinished() {
+      heroState = 'finished';
+      cutsceneVideo.pause();
+      animateHeroProgress(0); // shrink back to small card
+      heroMainBtnLabel.textContent = 'Enter world';
+      heroMainBtn.style.display = 'flex';
+    }
+
+    heroMainBtn.addEventListener('click', () => {
+      if (heroState === 'intro') {
+        // First time: play story
+        startTrailer();
+      } else if (heroState === 'finished') {
+        // After story: go to map
+        startMap();
+      }
     });
 
-    cutsceneVideo.addEventListener('ended', startMap);
+    cutsceneVideo.addEventListener('ended', onTrailerFinished);
+
+    // Keep page pinned while in hero state
+    window.addEventListener('scroll', () => {
+      if (cutsceneScreen.classList.contains('active')) {
+        window.scrollTo(0, 0);
+      }
+    });
 
     /* ---------- MAP CLICK HANDLING ---------- */
     const toast = document.getElementById('toast');
@@ -623,7 +653,7 @@
       });
     });
 
-    /* ---------- GAME LOGIC (same as your version, including small monster + bird) ---------- */
+    /* ---------- GAME LOGIC (same as before, with small monster & small bird) ---------- */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
@@ -949,7 +979,7 @@
         }
 
         ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        ctx.fillRect(0, 0, LOGICAL_HEIGHT, LOGICAL_HEIGHT);
 
         if (this.glitchTimer > 0) {
           const alpha = 0.25 + 0.15 * Math.sin(this.frameCount * 0.7);
