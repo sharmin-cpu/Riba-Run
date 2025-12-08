@@ -244,11 +244,55 @@
       border-color: rgba(148,163,184,0.6);
     }
 
-    /* City positions */
-    #city-castle { left: 20%; top: 70%; transform: translate(-50%, -50%); }
-    #city-forest { left: 50%; top: 55%; transform: translate(-50%, -50%); }
-    #city-cave   { left: 73%; top: 42%; transform: translate(-50%, -50%); }
-    #city-market { left: 65%; top: 78%; transform: translate(-50%, -50%); }
+    /* City positions on fantasy-world-map.png (7 cities) */
+    /* Top-left red fortress */
+    #city-fort-debt {
+      left: 18%;
+      top: 18%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Small village in the left-middle */
+    #city-village {
+      left: 26%;
+      top: 52%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Bottom-left green castle */
+    #city-green-keep {
+      left: 18%;
+      top: 78%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Bottom-middle red district */
+    #city-ember-district {
+      left: 44%;
+      top: 70%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Centre mosque with market stalls – the only unlocked one */
+    #city-marketplace {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Top-right mountain mosque */
+    #city-highpeak {
+      left: 78%;
+      top: 30%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Bottom-right coastal mosque */
+    #city-coastline {
+      left: 70%;
+      top: 72%;
+      transform: translate(-50%, -50%);
+    }
 
     #map-caption {
       font-size: 14px;
@@ -385,28 +429,47 @@
   <div id="map-screen" class="screen">
     <div id="map-frame">
       <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
-      <!-- Locked cities -->
-      <div id="city-castle" class="city-dot locked" data-route="Castle Hub" data-locked="true">
+
+      <!-- Locked cities (6 of them) -->
+      <div id="city-fort-debt" class="city-dot locked" data-route="Fort of Debts" data-locked="true">
         <div class="city-inner">1</div>
-        <div class="city-label">Castle Hub (Locked)</div>
+        <div class="city-label">Fort of Debts (Locked)</div>
       </div>
-      <div id="city-forest" class="city-dot locked" data-route="Forest Trials" data-locked="true">
+
+      <div id="city-village" class="city-dot locked" data-route="Humble Village" data-locked="true">
         <div class="city-inner">2</div>
-        <div class="city-label">Forest Trials (Locked)</div>
+        <div class="city-label">Humble Village (Locked)</div>
       </div>
-      <div id="city-cave" class="city-dot locked" data-route="Riba Cave" data-locked="true">
+
+      <div id="city-green-keep" class="city-dot locked" data-route="Greenwater Keep" data-locked="true">
         <div class="city-inner">3</div>
-        <div class="city-label">Riba Cave (Locked)</div>
+        <div class="city-label">Greenwater Keep (Locked)</div>
       </div>
-      <!-- Unlocked city -->
-      <div id="city-market" class="city-dot" data-route="Market Town" data-locked="false">
+
+      <div id="city-ember-district" class="city-dot locked" data-route="Ember District" data-locked="true">
         <div class="city-inner">4</div>
-        <div class="city-label">Market Town</div>
+        <div class="city-label">Ember District (Locked)</div>
+      </div>
+
+      <div id="city-highpeak" class="city-dot locked" data-route="Highpeak Minaret" data-locked="true">
+        <div class="city-inner">5</div>
+        <div class="city-label">Highpeak Minaret (Locked)</div>
+      </div>
+
+      <div id="city-coastline" class="city-dot locked" data-route="Coastline Masjid" data-locked="true">
+        <div class="city-inner">6</div>
+        <div class="city-label">Coastline Masjid (Locked)</div>
+      </div>
+
+      <!-- The central minaret – ONLY unlocked city -->
+      <div id="city-marketplace" class="city-dot" data-route="Marketplace" data-locked="false">
+        <div class="city-inner">7</div>
+        <div class="city-label">Marketplace</div>
       </div>
     </div>
     <div id="map-caption">
-      Only <strong>Market Town</strong> is unlocked for now. Other cities are coming soon inshaAllah.<br/>
-      <small>Click Market Town to start Riba Run.</small>
+      Only <strong>Marketplace</strong> is unlocked for now. Other cities are coming soon inshaAllah.<br/>
+      <small>Click Marketplace to start Riba Run.</small>
     </div>
   </div>
 
