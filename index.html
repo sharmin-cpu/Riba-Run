@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Riba Run – Cutscene, Map & Minigame</title>
+  <title>Riba Run – Inflation Survivor (Cutscene, Map & Minigame)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -12,11 +12,7 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       overflow: hidden;
     }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    body { display: flex; align-items: center; justify-content: center; }
     .screen {
       position: relative;
       width: 100vw;
@@ -29,10 +25,8 @@
     }
     .screen.active { display: flex; }
 
-    /* ---------- HERO / CUTSCENE UI (Scroll-expand style) ---------- */
-    #cutscene-screen {
-      background: #020617;
-    }
+    /* ---------- CUTSCENE ---------- */
+    #cutscene-screen { background: #020617; }
     .hero-root {
       position: relative;
       width: 100%;
@@ -43,23 +37,13 @@
       justify-content: center;
       color: #e5e7eb;
     }
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-    }
-    .hero-bg img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: saturate(1.1);
-    }
+    .hero-bg { position: absolute; inset: 0; z-index: 0; }
+    .hero-bg img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.1); }
     .hero-bg::after {
       content: "";
       position: absolute;
       inset: 0;
-      background:
-        radial-gradient(circle at center, rgba(15,23,42,0.15), rgba(15,23,42,0.9));
+      background: radial-gradient(circle at center, rgba(15,23,42,0.15), rgba(15,23,42,0.9));
     }
     .hero-inner {
       position: relative;
@@ -73,10 +57,7 @@
       align-items: center;
     }
     @media (max-width: 900px) {
-      .hero-inner {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 24px;
-      }
+      .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 24px; }
     }
     .hero-media {
       margin-inline: auto;
@@ -89,50 +70,23 @@
       height: var(--hero-h, 220px);
       max-width: min(90vw, 960px);
       max-height: 75vh;
-      transition:
-        width 0.15s ease-out,
-        height 0.15s ease-out,
-        box-shadow 0.2s ease-out,
-        border-color 0.2s ease-out;
+      transition: width 0.15s ease-out, height 0.15s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
     }
     .hero-media.expanded {
       box-shadow: 0 40px 120px rgba(15,23,42,1);
       border-color: rgba(56,189,248,0.9);
     }
-    .hero-media video {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-    }
-
-    .hero-text {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-width: 460px;
-    }
+    .hero-media video { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .hero-text { display: flex; flex-direction: column; gap: 12px; max-width: 460px; }
     .hero-kicker {
       font-size: 13px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: #93c5fd;
     }
-    .hero-title {
-      font-size: clamp(32px, 4vw, 40px);
-      font-weight: 700;
-      line-height: 1.1;
-    }
-    .hero-sub {
-      font-size: 14px;
-      color: #d1d5db;
-    }
-    .hero-cta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 8px;
-    }
+    .hero-title { font-size: clamp(32px, 4vw, 40px); font-weight: 700; line-height: 1.1; }
+    .hero-sub { font-size: 14px; color: #d1d5db; }
+    .hero-cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
     .hero-btn-primary {
       padding: 10px 18px;
       border-radius: 999px;
@@ -158,22 +112,13 @@
       gap: 6px;
       white-space: nowrap;
     }
-    .hero-scroll-hint {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
+    .hero-scroll-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
 
     /* ---------- MAP ---------- */
-    #map-screen {
-      padding: 24px;
-      flex-direction: column;
-      gap: 16px;
-    }
+    #map-screen { padding: 24px; flex-direction: column; gap: 16px; }
     #map-frame {
       position: relative;
       width: min(1200px, 95vw);
-      /* height limited so entire map fits in viewport with caption */
       height: min(700px, calc(100vh - 160px));
       margin: 0 auto;
       border-radius: 22px;
@@ -181,12 +126,7 @@
       background: #020617;
       box-shadow: 0 32px 80px rgba(15,23,42,0.9);
     }
-    #world-map {
-      width: 100%;
-      height: 100%;
-      object-fit: contain; /* show the whole parchment */
-      display: block;
-    }
+    #world-map { width: 100%; height: 100%; object-fit: contain; display: block; }
     .city-dot {
       position: absolute;
       width: 72px;
@@ -200,8 +140,7 @@
       box-shadow: 0 0 30px rgba(56,189,248,0.7);
       background: radial-gradient(circle at center, rgba(56,189,248,0.45), rgba(15,23,42,0.9));
       transform: translate(-50%, -50%);
-      transition: transform 0.2s ease, box-shadow 0.2s ease,
-                  border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
     }
     .city-dot:hover {
       transform: translate(-50%, -50%) scale(1.08);
@@ -209,8 +148,7 @@
       border-color: rgba(59,130,246,1);
     }
     .city-inner {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       border-radius: 999px;
       border: 1px solid rgba(248,250,252,0.9);
       display: flex;
@@ -231,8 +169,6 @@
       white-space: nowrap;
       text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
-
-    /* Locked cities */
     .city-dot.locked {
       filter: grayscale(100%);
       opacity: 0.55;
@@ -241,21 +177,14 @@
       border-color: rgba(148,163,184,0.6);
       background: radial-gradient(circle at center, rgba(31,41,55,0.8), rgba(15,23,42,0.95));
     }
-    .city-dot.locked:hover {
-      transform: translate(-50%, -50%) scale(1);
-      box-shadow: none;
-      border-color: rgba(148,163,184,0.6);
-    }
-
-    /* City positions on the parchment (percentages) */
-    #city-riba-fortress   { left: 24%; top: 23%; }
-    #city-qard-hasan      { left: 36%; top: 55%; }
-    #city-sukuk-citadel   { left: 24%; top: 79%; }
-    #city-inflation       { left: 52%; top: 68%; }
-    #city-takaful         { left: 77%; top: 31%; }
-    #city-zakat-coast     { left: 77%; top: 70%; }
-    #city-market          { left: 52%; top: 40%; }
-
+    .city-dot.locked:hover { transform: translate(-50%, -50%) scale(1); box-shadow: none; border-color: rgba(148,163,184,0.6); }
+    #city-riba-fortress { left: 24%; top: 23%; }
+    #city-qard-hasan { left: 36%; top: 55%; }
+    #city-sukuk-citadel { left: 24%; top: 79%; }
+    #city-inflation { left: 52%; top: 68%; }
+    #city-takaful { left: 77%; top: 31%; }
+    #city-zakat-coast { left: 77%; top: 70%; }
+    #city-market { left: 52%; top: 40%; }
     #map-caption {
       font-size: 14px;
       color: #9ca3af;
@@ -265,10 +194,7 @@
     }
 
     /* ---------- GAME ---------- */
-    #game-screen {
-      flex-direction: column;
-      gap: 8px;
-    }
+    #game-screen { flex-direction: column; gap: 8px; }
     #game-container {
       display: flex;
       flex-direction: column;
@@ -284,14 +210,10 @@
       image-rendering: pixelated;
       box-shadow: 0 28px 70px rgba(15,23,42,0.9);
     }
-    #hud {
-      margin-top: 10px;
-      font-size: 14px;
-      text-align: center;
-      line-height: 1.4;
-    }
+    #hud { margin-top: 10px; font-size: 14px; text-align: center; line-height: 1.4; }
     #hud small { color: #9ca3af; }
 
+    /* ---------- GAME OVER ---------- */
     #game-over-overlay {
       position: fixed;
       inset: 0;
@@ -304,33 +226,31 @@
     #game-over-box {
       background: #020617;
       border-radius: 16px;
-      padding: 20px 24px;
+      padding: 18px 18px;
       border: 1px solid rgba(148,163,184,0.6);
-      max-width: 360px;
+      width: min(560px, 92vw);
       box-shadow: 0 24px 60px rgba(15,23,42,0.95);
-      text-align: center;
+      text-align: left;
     }
-    #game-over-box h2 {
-      margin-bottom: 6px;
-      font-size: 22px;
-    }
-    #game-over-box p {
-      font-size: 14px;
-      color: #e5e7eb;
-      margin-bottom: 10px;
-    }
+    #game-over-box h2 { margin-bottom: 8px; font-size: 20px; }
+    #game-over-box p { font-size: 13px; color: #e5e7eb; margin-bottom: 10px; line-height: 1.35; }
+    .btnrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
     .btn {
-      display: inline-block;
-      margin: 4px 6px;
-      padding: 8px 14px;
-      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
       border-radius: 999px;
       border: none;
       cursor: pointer;
+      white-space: nowrap;
     }
-    .btn-primary { background: #22c55e; color: #022c22; }
-    .btn-danger  { background: #ef4444; color: #fee2e2; }
+    .btn-primary { background: #22c55e; color: #022c22; font-weight: 700; }
+    .btn-danger { background: #f59e0b; color: #1f1300; font-weight: 800; }
     .btn-secondary { background: #1f2937; color: #e5e7eb; }
+    .btn-muted { background: #374151; color: #9ca3af; cursor: not-allowed; }
 
     #toast {
       position: fixed;
@@ -345,17 +265,15 @@
       display: none;
       z-index: 30;
       border: 1px solid rgba(148,163,184,0.6);
+      max-width: min(560px, 92vw);
+      text-align: center;
     }
-
-    #route-label {
-      font-weight: 600;
-      margin-top: 4px;
-    }
+    #route-label { font-weight: 600; margin-top: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- HERO / CUTSCENE -->
+  <!-- CUTSCENE -->
   <div id="cutscene-screen" class="screen active">
     <div class="hero-root">
       <div class="hero-bg">
@@ -363,27 +281,20 @@
       </div>
       <div class="hero-inner">
         <div class="hero-media" id="hero-media">
-          <!-- We’ll manually control when the cutscene plays -->
           <video id="cutscene" src="cutscene.mp4" preload="auto" playsinline muted></video>
         </div>
         <div class="hero-text">
           <p class="hero-kicker">Kestrl • Riba Run</p>
-          <h1 class="hero-title">Run clean through the Tunnel of Wants.</h1>
+          <h1 class="hero-title">Survive inflation. Refuse the trap.</h1>
           <p class="hero-sub">
-            Scroll to expand the story window, then enter Market Town to face the Riba Monster.
-            Every choice shows the difference between barakah and riba.
+            Wages feel linear, but costs grow fast. Save under pressure, spot the Sadaqah box,
+            and use Kestrl to protect yourself from Riba.
           </p>
           <div class="hero-cta-row">
-            <button class="hero-btn-primary" id="hero-play-btn">
-              Play story & enter map
-            </button>
-            <button class="hero-btn-ghost" id="hero-skip-btn">
-              Skip straight to map
-            </button>
+            <button class="hero-btn-primary" id="hero-play-btn">Play story & enter map</button>
+            <button class="hero-btn-ghost" id="hero-skip-btn">Skip straight to map</button>
           </div>
-          <p class="hero-scroll-hint">
-            Tip: use your mouse wheel or touchpad to expand the video before you start.
-          </p>
+          <p class="hero-scroll-hint">Tip: use your mouse wheel or touchpad to expand the video before you start.</p>
         </div>
       </div>
     </div>
@@ -394,38 +305,31 @@
     <div id="map-frame">
       <img id="world-map" src="fantasy-world-map.png" alt="World Map" />
 
-      <!-- Locked routes -->
       <div id="city-riba-fortress" class="city-dot locked" data-route="Riba Fortress" data-locked="true">
         <div class="city-inner">1</div>
         <div class="city-label">Riba Fortress (Locked)</div>
       </div>
-
       <div id="city-qard-hasan" class="city-dot locked" data-route="Qard Hasan Hamlet" data-locked="true">
         <div class="city-inner">2</div>
         <div class="city-label">Qard Hasan Hamlet (Locked)</div>
       </div>
-
       <div id="city-sukuk-citadel" class="city-dot locked" data-route="Sukuk Citadel" data-locked="true">
         <div class="city-inner">3</div>
         <div class="city-label">Sukuk Citadel (Locked)</div>
       </div>
-
       <div id="city-inflation" class="city-dot locked" data-route="Inflation Quarter" data-locked="true">
         <div class="city-inner">4</div>
         <div class="city-label">Inflation Quarter (Locked)</div>
       </div>
-
       <div id="city-takaful" class="city-dot locked" data-route="Takaful Heights" data-locked="true">
         <div class="city-inner">5</div>
         <div class="city-label">Takaful Heights (Locked)</div>
       </div>
-
       <div id="city-zakat-coast" class="city-dot locked" data-route="Zakat Coast" data-locked="true">
         <div class="city-inner">6</div>
         <div class="city-label">Zakat Coast (Locked)</div>
       </div>
 
-      <!-- Unlocked: Marketplace -->
       <div id="city-market" class="city-dot" data-route="Marketplace" data-locked="false">
         <div class="city-inner">7</div>
         <div class="city-label">Marketplace</div>
@@ -434,9 +338,8 @@
 
     <div id="map-caption">
       Start your journey in <strong>Marketplace</strong>.
-      The other routes – <em>Riba Fortress, Qard Hasan Hamlet, Sukuk Citadel, Inflation Quarter,
-      Takaful Heights</em> and <em>Zakat Coast</em> – will unlock later inshaAllah.<br/>
-      <small>Click <strong>Marketplace</strong> to start Riba Run.</small>
+      The other routes will unlock later inshaAllah.<br/>
+      <small>Click <strong>Marketplace</strong> to start the Inflation Survivor run.</small>
     </div>
   </div>
 
@@ -445,13 +348,10 @@
     <div id="game-container">
       <canvas id="game" width="800" height="450"></canvas>
       <div id="hud">
-        <div><strong>Controls:</strong> Arrow Up/Down = change lane &nbsp;|&nbsp; S = Sadaqah &nbsp;|&nbsp; R = Restart</div>
+        <div><strong>Controls:</strong> Arrow Up/Down = change lane &nbsp;|&nbsp; S = Save £10 &nbsp;|&nbsp; R = Restart</div>
         <div id="route-label"></div>
         <div id="stats"></div>
-        <small>
-          Riba Run 2D · Kestrel vs Riba Monster · Halal coins (green), Riba coins (red),
-          Kestrl Card (blue), Investment Gate (yellow)
-        </small>
+        <small>Lane 3 is always the escape route when haram obstacles appear.</small>
       </div>
     </div>
   </div>
@@ -459,20 +359,22 @@
   <!-- GAME OVER -->
   <div id="game-over-overlay">
     <div id="game-over-box">
-      <h2 id="game-over-title">Bankruptcy</h2>
-      <p id="game-over-message">
-        Your balance hit £0. The Riba Monster is looming over you in the Tunnel of Wants…
-      </p>
-      <div style="margin-bottom: 8px;">
-        <button class="btn btn-secondary" id="btn-restart">Accept Bankruptcy (Restart)</button>
+      <h2 id="game-over-title">Liquidity Crisis</h2>
+      <p id="game-over-message">Your cash hit £0. The Riba Banker slides a contract across the desk.</p>
+
+      <div id="autopsy" style="margin-top:10px; padding:10px; border-radius:12px; border:1px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.5);">
+        <div style="font-size:12px; color:#cbd5e1; margin-bottom:6px; font-weight:700;">Financial Autopsy</div>
+        <div id="autopsy-lines" style="font-size:12px; color:#e5e7eb; line-height:1.35;"></div>
       </div>
-      <div>
-        <button class="btn btn-danger" id="btn-loan">
-          Take Riba Loan (+£1000)
-        </button>
+
+      <div class="btnrow">
+        <button class="btn btn-danger" id="btn-loan">The Bridge Loan (+£100)</button>
+        <button class="btn btn-primary" id="btn-savings">Use Savings (£150)</button>
+        <button class="btn btn-secondary" id="btn-bankrupt">Declare Bankruptcy</button>
       </div>
-      <p style="margin-top: 10px; font-size: 11px; color:#facc15;">
-        Taking the loan doubles your drain and pulls the Riba Monster close. One mistake = permanent death.
+
+      <p style="margin-top: 10px; font-size: 11px; color:#fbbf24;">
+        Loan hides a cost: burn increases and your controls get heavier.
       </p>
     </div>
   </div>
@@ -497,11 +399,10 @@
 
     function startMap() {
       showScreen(mapScreen);
-      try { cutsceneVideo.pause(); } catch(e) {}
+      try { cutsceneVideo.pause(); } catch (e) {}
     }
 
-    // Scroll-to-expand behaviour
-    let heroProgress = 0;   // 0 → 1
+    let heroProgress = 0;
     let heroExpanded = false;
 
     function updateHeroSize() {
@@ -544,18 +445,16 @@
     function showToast(msg) {
       toast.textContent = msg;
       toast.style.display = 'block';
-      game.toastTimer = 120;
+      game.toastTimer = 150;
     }
 
     document.querySelectorAll('.city-dot').forEach(dot => {
       const locked = dot.dataset.locked === 'true';
-      if (locked) {
-        dot.classList.add('locked');
-      }
+      if (locked) dot.classList.add('locked');
 
       dot.addEventListener('click', () => {
         if (dot.dataset.locked === 'true') {
-          showToast('This city is locked. Minigame coming soon inshaAllah.');
+          showToast('This city is locked. Coming soon inshaAllah.');
           return;
         }
         const route = dot.dataset.route || "Unknown Route";
@@ -565,7 +464,7 @@
       });
     });
 
-    /* ---------- GAME LOGIC ---------- */
+    /* ---------- GAME ---------- */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
@@ -579,236 +478,365 @@
 
     const statsDiv = document.getElementById('stats');
     const overlay = document.getElementById('game-over-overlay');
-    const btnRestart = document.getElementById('btn-restart');
     const btnLoan = document.getElementById('btn-loan');
+    const btnSavings = document.getElementById('btn-savings');
+    const btnBankrupt = document.getElementById('btn-bankrupt');
     const gameOverTitle = document.getElementById('game-over-title');
     const gameOverMessage = document.getElementById('game-over-message');
+    const autopsyLines = document.getElementById('autopsy-lines');
+
+    function showOverlay() { overlay.style.display = 'flex'; }
+    function hideOverlay() { overlay.style.display = 'none'; }
 
     const LANES = 3;
     const laneYs = [40, 60, 80];
     const PLAYER_X = 40;
 
-    const BASE_SPEED = 1.35;
-    const SPEED_INC = 0.00008;
-
-    const BALANCE_START = 500;
-    const DRAIN_BASE = 0.30;
-
-    const GREEN_VALUE = 15;
-    const RED_VALUE = 50;
-
-    const SADAQAH_COST = 80;
-    const SADAQAH_DURATION = 900;
-
-    const KESTRL_DURATION = 600;
-
-    const INVEST_COST = 200;
-    const INVEST_PAYOFF = 600;
-    const INVEST_DELAY = 600;
-
-    const MONSTER_START_DIST = 120;
-    const MONSTER_GAIN = 0.028;
-    const MONSTER_GREEN_PUSH = 7;
-    const MONSTER_RED_PULL = 12;
-    const MONSTER_LOAN_PULL = 0.12;
-
     const FRAME_TIME = 1000 / 60;
 
-    // Images
-    const bgImg = new Image();
-    bgImg.src = 'background.png';
+    /* ---------- GDD ECONOMY ---------- */
+    const START_LIQUIDITY = 100;
+    const COIN_VALUE = 2;
+    const KESTRL_COIN_VALUE = 5;
 
-    const heroImg = new Image();
-    heroImg.src = 'kestrlmanframes.png'; // 5-frame sprite sheet, 1950x382
+    const OBSTACLE_PENALTY = 15;
 
-    const HERO_FRAMES = 5;
-    const HERO_FRAME_WIDTH = 390;
-    const HERO_FRAME_HEIGHT = 382;
-    const HERO_ANIM_SPEED = 10; // ~6 FPS
+    const SAVE_STEP = 10;
+    const REVIVE_COST = 150;
+    const REVIVE_REFILL = 100;
 
-    const monsterImg = new Image();
-    monsterImg.src = 'ribamonster.png';
+    const LOAN_CASH = 100;
+    const LOAN_BURN_MULT = 1.4; // +40%
+    const LOAN_LAG_ADD = 0.2;   // +0.2s lag
 
-    const halalCoinImg = new Image();
-    halalCoinImg.src = 'halalcoin.png';
+    /* ---------- SADAQAH BOX ---------- */
+    const SADAQAH_COST = 40;
+    const SADAQAH_DELAY_1 = 2.0;
+    const SADAQAH_DELAY_2 = 1.0;
+    const SADAQAH_MAGNET_DURATION = 12.0; // (3 → 15s total after hit)
+    const SADAQAH_MAGNET_CAP = 80;        // collect exactly £80 then stop
 
-    const ribaCoinImg = new Image();
-    ribaCoinImg.src = 'ribacoin.png';
+    /* ---------- KESTRL CARD ---------- */
+    const KESTRL_DURATION = 10.0;
 
-    function showOverlay() { overlay.style.display = 'flex'; }
-    function hideOverlay() { overlay.style.display = 'none'; }
+    /* ---------- SPAWNS ---------- */
+    const COINS_PER_SEC_BASE = 4.0; // at 1.0x speed
+    const BASE_SPEED = 1.35;
+
+    /* ---------- MONSTER PRESSURE ---------- */
+    const MONSTER_START_DIST = 120;
+    const MONSTER_GAIN_PER_SEC = 0.9;
+    const MONSTER_GREEN_PUSH = 3.0;
+    const MONSTER_RED_PULL = 5.0;
+    const MONSTER_LOAN_PULL_PER_SEC = 1.6;
+
+    /* ---------- IMAGES ---------- */
+    const bgImg = new Image(); bgImg.src = 'background.png';
+    const heroImg = new Image(); heroImg.src = 'kestrlmanframes.png';
+    const monsterImg = new Image(); monsterImg.src = 'ribamonster.png';
+    const halalCoinImg = new Image(); halalCoinImg.src = 'halalcoin.png';
+    const ribaCoinImg = new Image(); ribaCoinImg.src = 'ribacoin.png';
+
+    // Optional if you have these:
+    const kestrlCardImg = new Image(); kestrlCardImg.src = 'kestrlcard.png';
+    const sadaqahBoxImg = new Image(); sadaqahBoxImg.src = 'sadaqahbox.png';
+
+    // Your real obstacle assets:
+    const obsBeerImg = new Image(); obsBeerImg.src = 'beer.png';
+    const obsPokerImg = new Image(); obsPokerImg.src = 'poker.png';
+    const obsRocketImg = new Image(); obsRocketImg.src = 'rocket.png';
+    const obsChemicalDrumImg = new Image(); obsChemicalDrumImg.src = 'chemicaldrum.png';
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+    function inflationPhase(elapsedSec) {
+      if (elapsedSec < 30) return { speedMult: 1.0, burnPerSec: 5 };
+      if (elapsedSec < 60) return { speedMult: 1.2, burnPerSec: 7 };
+      if (elapsedSec < 90) return { speedMult: 1.4, burnPerSec: 10 };
+      if (elapsedSec < 120) return { speedMult: 1.6, burnPerSec: 15 };
+      return { speedMult: 1.8, burnPerSec: 22 };
+    }
 
     const game = {
       running: false,
-      routeName: "Castle Hub",
+      gameOver: false,
+
+      routeName: "Marketplace",
       lastTime: 0,
       frameCount: 0,
-      speed: BASE_SPEED,
-      spawnTimer: 0,
-      items: [],
-      investments: [],
+
+      elapsedSec: 0,
+      cash: START_LIQUIDITY,
+      savings: 0,
+
+      loanTaken: false,
+      burnMult: 1.0,
+
+      baseLagSec: 0.0,
+      lagSec: 0.0,
+      pendingLane: null,
+      laneApplyTimerSec: 0.0,
+
       playerLane: 1,
-      balance: BALANCE_START,
-      debt: 0,
-      drainPerFrame: DRAIN_BASE,
-      monsterDistance: MONSTER_START_DIST,
-      monsterScale: 0.025,
-      monsterScaleMin: 0.025,
-      monsterScaleMax: 0.025,
-      barakahActive: false,
-      barakahTimer: 0,
+
+      items: [],
+      coinSpawnAcc: 0,
+      obstacleSpawnAcc: 0,
+      specialSpawnAcc: 0,
+
       kestrlActive: false,
       kestrlTimer: 0,
+
+      sadaqahState: "off", // off | waiting | aura | magnet
+      sadaqahTimer: 0,
+      magnetEarned: 0,
+
+      monsterDistance: MONSTER_START_DIST,
       monsterBanished: false,
-      loanTaken: false,
-      hardModeLoan: false,
-      toastTimer: 0,
-      gameOver: false,
+
+      blurTimer: 0,
+      tintGreenTimer: 0,
+      shakeTimer: 0,
       glitchTimer: 0,
-      fogLevel: 0.4,
+
+      wagesEarned: 0,
+      burnedToInflation: 0,
+      obstacleLoss: 0,
+      greenCoinsTaken: 0,
+      redCoinsTaken: 0,
+      savingsDeposited: 0,
+      sadaqahGiven: 0,
+      sadaqahReturn: 0,
+      kestrlPickups: 0,
+
+      toastTimer: 0,
 
       start(route) {
-        this.routeName = route || "Castle Hub";
+        this.routeName = route || "Marketplace";
         this.reset();
         requestAnimationFrame(this.loop.bind(this));
       },
 
       reset() {
-        this.playerLane = 1;
-        this.balance = BALANCE_START;
-        this.debt = 0;
-        this.drainPerFrame = DRAIN_BASE;
-        this.monsterDistance = MONSTER_START_DIST;
-        this.monsterScale = 0.025;
-        this.items = [];
-        this.investments = [];
-        this.speed = BASE_SPEED;
+        this.running = true;
+        this.gameOver = false;
+
         this.frameCount = 0;
-        this.spawnTimer = 0;
-        this.barakahActive = false;
-        this.barakahTimer = 0;
+        this.elapsedSec = 0;
+
+        this.cash = START_LIQUIDITY;
+        this.savings = 0;
+
+        this.loanTaken = false;
+        this.burnMult = 1.0;
+
+        this.baseLagSec = 0.0;
+        this.lagSec = 0.0;
+        this.pendingLane = null;
+        this.laneApplyTimerSec = 0.0;
+
+        this.playerLane = 1;
+
+        this.items = [];
+        this.coinSpawnAcc = 0;
+        this.obstacleSpawnAcc = 0;
+        this.specialSpawnAcc = 0;
+
         this.kestrlActive = false;
         this.kestrlTimer = 0;
+
+        this.sadaqahState = "off";
+        this.sadaqahTimer = 0;
+        this.magnetEarned = 0;
+
+        this.monsterDistance = MONSTER_START_DIST;
         this.monsterBanished = false;
-        this.loanTaken = false;
-        this.hardModeLoan = false;
-        this.toastTimer = 0;
-        this.gameOver = false;
+
+        this.blurTimer = 0;
+        this.tintGreenTimer = 0;
+        this.shakeTimer = 0;
         this.glitchTimer = 0;
-        this.fogLevel = 0.2;
-        this.running = true;
-        this.lastTime = performance.now();
+
+        this.wagesEarned = 0;
+        this.burnedToInflation = 0;
+        this.obstacleLoss = 0;
+        this.greenCoinsTaken = 0;
+        this.redCoinsTaken = 0;
+        this.savingsDeposited = 0;
+        this.sadaqahGiven = 0;
+        this.sadaqahReturn = 0;
+        this.kestrlPickups = 0;
+
+        this.toastTimer = 0;
+
         hideOverlay();
+        this.lastTime = performance.now();
       },
 
-      // LOOP keeps running so animation never freezes
       loop(timestamp) {
-        const delta = timestamp - this.lastTime;
+        const deltaMs = timestamp - this.lastTime;
         this.lastTime = timestamp;
-        const frames = Math.min(2, delta / FRAME_TIME);
+
+        const maxSteps = 2;
+        const steps = Math.min(maxSteps, deltaMs / FRAME_TIME);
 
         if (this.running) {
-          for (let i = 0; i < frames; i++) this.logicStep();
+          for (let i = 0; i < steps; i++) this.logicStep(1 / 60);
           this.draw();
         }
 
         requestAnimationFrame(this.loop.bind(this));
       },
 
-      logicStep() {
-        if (!this.running) return;
-        this.frameCount++;
+      currentCoinValue() {
+        return this.kestrlActive ? KESTRL_COIN_VALUE : COIN_VALUE;
+      },
 
-        this.balance -= this.drainPerFrame;
-        if (this.balance <= 0) {
-          this.balance = 0;
-          this.triggerGameOver('balance');
+      currentSpeed() {
+        const ph = inflationPhase(this.elapsedSec);
+        return BASE_SPEED * ph.speedMult;
+      },
+
+      currentBurnPerSec() {
+        const ph = inflationPhase(this.elapsedSec);
+        return ph.burnPerSec * this.burnMult;
+      },
+
+      setLaneWithLag(targetLane) {
+        targetLane = clamp(targetLane, 0, LANES - 1);
+        const lag = this.lagSec;
+        if (lag <= 0) {
+          this.playerLane = targetLane;
           return;
         }
+        this.pendingLane = targetLane;
+        this.laneApplyTimerSec = lag;
+      },
 
-        this.speed += SPEED_INC;
-        this.spawnTimer++;
-        const spawnInterval = Math.max(40, 90 - Math.floor(this.frameCount / 900));
-        if (this.spawnTimer >= spawnInterval) {
-          this.spawnItem();
-          this.spawnTimer = 0;
-        }
+      logicStep(dt) {
+        this.frameCount++;
+        this.elapsedSec += dt;
 
-        if (this.barakahActive) {
-          this.barakahTimer--;
-          if (this.barakahTimer <= 0) {
-            this.barakahActive = false;
+        if (this.pendingLane !== null) {
+          this.laneApplyTimerSec -= dt;
+          if (this.laneApplyTimerSec <= 0) {
+            this.playerLane = this.pendingLane;
+            this.pendingLane = null;
           }
         }
 
+        if (this.blurTimer > 0) this.blurTimer -= dt;
+        if (this.tintGreenTimer > 0) this.tintGreenTimer -= dt;
+        if (this.shakeTimer > 0) this.shakeTimer -= dt;
+        if (this.glitchTimer > 0) this.glitchTimer -= dt;
+
+        if (this.toastTimer > 0) {
+          this.toastTimer--;
+          if (this.toastTimer <= 0) toast.style.display = 'none';
+        }
+
         if (this.kestrlActive) {
-          this.kestrlTimer--;
+          this.kestrlTimer -= dt;
           if (this.kestrlTimer <= 0) {
             this.kestrlActive = false;
             this.monsterBanished = false;
           }
         }
 
-        for (let i = this.investments.length - 1; i >= 0; i--) {
-          const inv = this.investments[i];
-          inv.timer--;
-          if (inv.timer <= 0) {
-            if (!this.gameOver) this.balance += INVEST_PAYOFF;
-            this.investments.splice(i, 1);
+        if (this.sadaqahState !== "off") {
+          this.sadaqahTimer -= dt;
+
+          if (this.sadaqahState === "waiting" && this.sadaqahTimer <= 0) {
+            this.sadaqahState = "aura";
+            this.sadaqahTimer = SADAQAH_DELAY_2;
+            showToast("You feel something... (aura)");
+          } else if (this.sadaqahState === "aura" && this.sadaqahTimer <= 0) {
+            this.sadaqahState = "magnet";
+            this.sadaqahTimer = SADAQAH_MAGNET_DURATION;
+            this.magnetEarned = 0;
+            showToast("Barakah magnet activated.");
+          } else if (this.sadaqahState === "magnet") {
+            if (this.sadaqahTimer <= 0 || this.magnetEarned >= SADAQAH_MAGNET_CAP) {
+              this.sadaqahState = "off";
+              this.sadaqahTimer = 0;
+              showToast("Magnet ended.");
+            }
           }
         }
 
+        const burn = this.currentBurnPerSec() * dt;
+        this.cash -= burn;
+        this.burnedToInflation += burn;
+
         if (!this.monsterBanished) {
-          this.monsterDistance -= MONSTER_GAIN;
-          if (this.loanTaken) this.monsterDistance -= MONSTER_LOAN_PULL;
-          if (this.monsterDistance <= 0) {
-            this.monsterDistance = 0;
-            this.triggerGameOver('caught');
-            return;
-          }
+          this.monsterDistance -= MONSTER_GAIN_PER_SEC * dt;
+          if (this.loanTaken) this.monsterDistance -= MONSTER_LOAN_PULL_PER_SEC * dt;
         }
+        this.monsterDistance = clamp(this.monsterDistance, 0, MONSTER_START_DIST);
+
+        if (this.cash <= 0) {
+          this.cash = 0;
+          this.triggerLiquidityCrisis();
+          return;
+        }
+
+        if (this.monsterDistance <= 0 && !this.monsterBanished) {
+          this.triggerCaught();
+          return;
+        }
+
+        const ph = inflationPhase(this.elapsedSec);
+        const coinsPerSec = COINS_PER_SEC_BASE * ph.speedMult;
+
+        this.coinSpawnAcc += coinsPerSec * dt;
+        while (this.coinSpawnAcc >= 1) {
+          this.spawnCoin();
+          this.coinSpawnAcc -= 1;
+        }
+
+        const obstaclePerSec = 0.55 * ph.speedMult;
+        this.obstacleSpawnAcc += obstaclePerSec * dt;
+        while (this.obstacleSpawnAcc >= 1) {
+          this.spawnObstacle();
+          this.obstacleSpawnAcc -= 1;
+        }
+
+        const specialPerSec = 0.12 * ph.speedMult;
+        this.specialSpawnAcc += specialPerSec * dt;
+        while (this.specialSpawnAcc >= 1) {
+          this.spawnSpecial();
+          this.specialSpawnAcc -= 1;
+        }
+
+        const speed = this.currentSpeed();
 
         for (let i = this.items.length - 1; i >= 0; i--) {
           const it = this.items[i];
-          it.x -= this.speed;
-          if (it.x < -20) {
+
+          if (this.sadaqahState === "magnet" && (it.type === "green" || it.type === "red")) {
+            const targetX = PLAYER_X;
+            const targetY = laneYs[this.playerLane];
+            const dx = (targetX - it.x);
+            const dy = (targetY - laneYs[it.lane]);
+            it.x += dx * 0.08;
+            it.laneFloat = (it.laneFloat ?? laneYs[it.lane]) + dy * 0.08;
+          } else {
+            it.x -= speed;
+            it.laneFloat = null;
+          }
+
+          if (it.x < -30) {
             this.items.splice(i, 1);
             continue;
           }
-          const px = PLAYER_X;
+
           const py = laneYs[this.playerLane];
-          if (this.hit(px, py, 10, 10, it.x, laneYs[it.lane])) {
+          const iy = (it.laneFloat !== null && it.laneFloat !== undefined) ? it.laneFloat : laneYs[it.lane];
+          if (this.hit(PLAYER_X, py, 10, 10, it.x, iy)) {
             this.resolveCollision(it);
             this.items.splice(i, 1);
           }
         }
-
-        if (this.glitchTimer > 0) this.glitchTimer--;
-        if (this.toastTimer > 0) {
-          this.toastTimer--;
-          if (this.toastTimer <= 0) toast.style.display = 'none';
-        }
-      },
-
-      spawnItem() {
-        const lane = Math.floor(Math.random() * LANES);
-        const x = LOGICAL_WIDTH + 10;
-        const roll = Math.random();
-        let type;
-
-        if (roll < 0.55) {
-          type = Math.random() < 0.65 ? 'green' : 'red';
-        } else if (roll < 0.7) {
-          type = 'obstacle';
-        } else if (roll < 0.84) {
-          type = 'invest';
-        } else {
-          type = 'kestrl';
-        }
-
-        if (this.kestrlActive && type === 'red') type = 'green';
-
-        this.items.push({ type, lane, x });
       },
 
       hit(px, py, pw, ph, ix, iy) {
@@ -821,127 +849,334 @@
         );
       },
 
-      resolveCollision(it) {
-        if (it.type === 'green') {
-          const gain = GREEN_VALUE * (this.barakahActive ? 2 : 1);
-          this.balance += gain;
-          if (!this.monsterBanished) this.monsterDistance += MONSTER_GREEN_PUSH;
-        } else if (it.type === 'red') {
-          const gain = RED_VALUE * (this.barakahActive ? 2 : 1);
-          this.balance += gain;
-          if (!this.monsterBanished) {
-            this.monsterDistance -= MONSTER_RED_PULL;
-            this.glitchTimer = 22;
-          }
-        } else if (it.type === 'obstacle') {
-          if (!this.monsterBanished) {
-            this.triggerGameOver('caught');
-            return;
-          }
-          this.speed = Math.max(BASE_SPEED, this.speed * 0.9);
-        } else if (it.type === 'invest') {
-          if (this.balance < INVEST_COST) {
-            showToast('Not enough balance to invest.');
-          } else {
-            this.balance -= INVEST_COST;
-            this.investments.push({ timer: INVEST_DELAY });
-            showToast('Investment made. Dividend will arrive soon inshaAllah.');
-          }
-        } else if (it.type === 'kestrl') {
-          this.kestrlActive = true;
-          this.kestrlTimer = KESTRL_DURATION;
-          this.monsterBanished = true;
-          for (const o of this.items) if (o.type === 'red') o.type = 'green';
-          showToast('Kestrl Mode: Riba Monster banished, haram coins purified.');
+      spawnCoin() {
+        const lane = Math.floor(Math.random() * LANES);
+        const x = LOGICAL_WIDTH + 10;
+
+        let type = (Math.random() < 0.72) ? "green" : "red";
+        if (this.kestrlActive && type === "red") type = "green";
+
+        this.items.push({ type, lane, x });
+      },
+
+      spawnObstacle() {
+        // Grid rule: obstacles only lanes 0 or 1. lane 2 is escape route.
+        const lane = Math.random() < 0.5 ? 0 : 1;
+        const x = LOGICAL_WIDTH + 10;
+
+        const r = Math.random();
+        let kind;
+        if (r < 0.25) kind = "beer";
+        else if (r < 0.5) kind = "poker";
+        else if (r < 0.75) kind = "rocket";
+        else kind = "chemicaldrum";
+
+        this.items.push({ type: "obstacle", kind, lane, x });
+      },
+
+      lane2IsClearSoon() {
+        // lane 2 = index 1
+        for (const it of this.items) {
+          if (it.lane === 1 && it.x > LOGICAL_WIDTH - 40) return false;
+        }
+        return true;
+      },
+
+      spawnSpecial() {
+        const x = LOGICAL_WIDTH + 10;
+
+        // Sadaqah condition: cash > 50 and lane 2 clear
+        if (this.cash > 50 && this.sadaqahState === "off" && this.lane2IsClearSoon() && Math.random() < 0.35) {
+          this.items.push({ type: "sadaqah", lane: 1, x });
+          return;
+        }
+
+        // Kestrl card sometimes
+        if (!this.kestrlActive && Math.random() < 0.55) {
+          const lane = Math.floor(Math.random() * LANES);
+          this.items.push({ type: "kestrl", lane, x });
         }
       },
 
-      triggerGameOver(reason) {
+      resolveCollision(it) {
+        if (it.type === "green") {
+          const gain = this.currentCoinValue();
+          this.cash += gain;
+          this.wagesEarned += gain;
+          this.greenCoinsTaken++;
+          if (!this.monsterBanished) this.monsterDistance += MONSTER_GREEN_PUSH;
+          this.monsterDistance = clamp(this.monsterDistance, 0, MONSTER_START_DIST);
+
+          if (this.sadaqahState === "magnet") {
+            this.magnetEarned += gain;
+            this.sadaqahReturn += gain;
+          }
+          return;
+        }
+
+        if (it.type === "red") {
+          const gain = this.currentCoinValue();
+          this.cash += gain;
+          this.wagesEarned += gain;
+          this.redCoinsTaken++;
+
+          if (!this.monsterBanished) this.monsterDistance -= MONSTER_RED_PULL;
+          this.monsterDistance = clamp(this.monsterDistance, 0, MONSTER_START_DIST);
+          this.glitchTimer = 0.28;
+          return;
+        }
+
+        if (it.type === "kestrl") {
+          this.kestrlActive = true;
+          this.kestrlTimer = KESTRL_DURATION;
+          this.monsterBanished = true;
+          this.kestrlPickups++;
+
+          for (const o of this.items) if (o.type === "red") o.type = "green";
+
+          // Purification: input lag reset to 0.0s immediately (back to base)
+          this.lagSec = this.baseLagSec;
+
+          showToast("Kestrl Card: coin value boosted, riba purified, obstacles ghosted.");
+          return;
+        }
+
+        if (it.type === "sadaqah") {
+          if (this.cash < SADAQAH_COST) {
+            showToast("You saw Sadaqah, but could not afford it.");
+            return;
+          }
+          this.cash -= SADAQAH_COST;
+          this.sadaqahGiven += SADAQAH_COST;
+
+          this.sadaqahState = "waiting";
+          this.sadaqahTimer = SADAQAH_DELAY_1;
+
+          showToast("Sadaqah given. Nothing happens at first...");
+          return;
+        }
+
+        if (it.type === "obstacle") {
+          if (this.kestrlActive) {
+            // shield: pass through
+            this.glitchTimer = 0.12;
+            return;
+          }
+
+          this.cash -= OBSTACLE_PENALTY;
+          this.obstacleLoss += OBSTACLE_PENALTY;
+
+          // Effects matched to your assets
+          if (it.kind === "beer") this.blurTimer = 1.4; // Alcohol = blur
+          if (it.kind === "poker") {                    // Gambling = random lane switch
+            const newLane = Math.floor(Math.random() * LANES);
+            this.playerLane = newLane;
+            this.glitchTimer = 0.25;
+          }
+          if (it.kind === "rocket") this.shakeTimer = 0.6; // Arms = shake
+          if (it.kind === "chemicaldrum") this.tintGreenTimer = 1.1; // Chemical = sick tint
+
+          showToast("Haram hit: -" + OBSTACLE_PENALTY + " and control disrupted.");
+
+          if (this.cash <= 0) {
+            this.cash = 0;
+            this.triggerLiquidityCrisis();
+          }
+          return;
+        }
+      },
+
+      triggerLiquidityCrisis() {
         this.running = false;
         this.gameOver = true;
 
-        if (reason === 'balance') {
-          gameOverTitle.textContent = 'Bankruptcy';
-          gameOverMessage.textContent = 'Your balance hit £0. The Riba Monster closed in as debts piled up.';
-        } else if (reason === 'caught') {
-          gameOverTitle.textContent = 'Caught by Riba';
-          gameOverMessage.textContent = 'Quick shortcuts looked tempting – but the Riba Monster caught you.';
+        gameOverTitle.textContent = "Liquidity Crisis";
+        gameOverMessage.textContent =
+          "Your cash hit £0. Inflation did not care how hard you ran. The Riba Banker offers a bridge loan.";
+
+        this.renderAutopsy();
+
+        if (this.savings >= REVIVE_COST) {
+          btnSavings.className = "btn btn-primary";
+          btnSavings.disabled = false;
+          btnSavings.textContent = "Use Savings (£150)";
         } else {
-          gameOverTitle.textContent = 'Game Over';
-          gameOverMessage.textContent = 'Your run has ended.';
+          btnSavings.className = "btn btn-muted";
+          btnSavings.disabled = true;
+          btnSavings.textContent = "Use Savings (Need £150)";
         }
+
         showOverlay();
+      },
+
+      triggerCaught() {
+        this.running = false;
+        this.gameOver = true;
+
+        gameOverTitle.textContent = "Caught by Riba";
+        gameOverMessage.textContent =
+          "Shortcuts looked tempting, but the trap pulled you in. You got caught.";
+
+        this.renderAutopsy();
+
+        if (this.savings >= REVIVE_COST) {
+          btnSavings.className = "btn btn-primary";
+          btnSavings.disabled = false;
+          btnSavings.textContent = "Use Savings (£150)";
+        } else {
+          btnSavings.className = "btn btn-muted";
+          btnSavings.disabled = true;
+          btnSavings.textContent = "Use Savings (Need £150)";
+        }
+
+        showOverlay();
+      },
+
+      renderAutopsy() {
+        const mm = Math.floor(this.elapsedSec / 60);
+        const ss = Math.floor(this.elapsedSec % 60).toString().padStart(2, "0");
+
+        const wages = Math.floor(this.wagesEarned);
+        const infl = Math.floor(this.burnedToInflation);
+        const obs = Math.floor(this.obstacleLoss);
+        const sav = Math.floor(this.savings);
+        const sada = Math.floor(this.sadaqahReturn);
+
+        autopsyLines.innerHTML =
+          `SURVIVED: <strong>${mm}m ${ss}s</strong><br>` +
+          `Wages earned: <strong>£${wages}</strong><br>` +
+          `Lost to inflation: <strong>-£${infl}</strong><br>` +
+          `Lost to haram shocks: <strong>-£${obs}</strong><br>` +
+          `Savings pot: <strong>£${sav}</strong><br>` +
+          `Sadaqah return collected: <strong>£${sada}</strong><br>` +
+          `<span style="color:#cbd5e1;">Lesson:</span> You cannot win on salary alone once costs accelerate.`;
       },
 
       takeLoan() {
         if (!this.gameOver) return;
-        this.balance += 1000;
-        this.debt += 1000;
-        this.drainPerFrame = DRAIN_BASE * 2;
-        this.monsterDistance = 25;
+
+        this.cash += LOAN_CASH;
         this.loanTaken = true;
-        this.hardModeLoan = true;
-        this.gameOver = false;
+        this.burnMult *= LOAN_BURN_MULT;
+
+        this.baseLagSec += LOAN_LAG_ADD;
+        this.lagSec = this.baseLagSec;
+
+        this.monsterDistance = Math.min(this.monsterDistance, 35);
+
         this.running = true;
+        this.gameOver = false;
         hideOverlay();
+        showToast("Bridge Loan taken. Burn increased. Controls heavier.");
+      },
+
+      useSavings() {
+        if (!this.gameOver) return;
+        if (this.savings < REVIVE_COST) return;
+
+        this.savings -= REVIVE_COST;
+        this.cash = REVIVE_REFILL;
+
+        this.running = true;
+        this.gameOver = false;
+        hideOverlay();
+        showToast("Savings used. You are back with full agency.");
+      },
+
+      declareBankruptcy() {
+        hideOverlay();
+        showScreen(mapScreen);
+        showToast("You walked away with dignity. Try again when ready.");
+      },
+
+      depositSavings() {
+        if (!this.running) return;
+        if (this.cash < SAVE_STEP) {
+          showToast("Not enough cash to save.");
+          return;
+        }
+        this.cash -= SAVE_STEP;
+        this.savings += SAVE_STEP;
+        this.savingsDeposited += SAVE_STEP;
+        showToast("Saved £10 under pressure.");
       },
 
       drawBackground() {
         if (bgImg.complete && bgImg.naturalWidth) {
           ctx.drawImage(bgImg, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         } else {
-          ctx.fillStyle = '#020617';
+          ctx.fillStyle = "#020617";
           ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         }
 
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
         ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
+        if (this.tintGreenTimer > 0) {
+          const a = clamp(this.tintGreenTimer / 1.1, 0, 1) * 0.22;
+          ctx.fillStyle = `rgba(34,197,94,${a})`;
+          ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        }
+
+        if (this.blurTimer > 0) {
+          const a = clamp(this.blurTimer / 1.4, 0, 1) * 0.18;
+          ctx.fillStyle = `rgba(248,250,252,${a})`;
+          for (let y = 0; y < LOGICAL_HEIGHT; y += 3) {
+            ctx.fillRect(((this.frameCount * 2) % 8), y, LOGICAL_WIDTH, 1);
+          }
+        }
+
         if (this.glitchTimer > 0) {
-          const alpha = 0.25 + 0.15 * Math.sin(this.frameCount * 0.7);
+          const a = clamp(this.glitchTimer / 0.28, 0, 1) * 0.18;
           ctx.save();
-          ctx.globalAlpha = alpha;
-          ctx.fillStyle = '#f97316';
-          for (let y = 0; y < LOGICAL_HEIGHT; y += 4) {
-            ctx.fillRect((this.frameCount * 3) % 10, y, LOGICAL_WIDTH, 2);
+          ctx.globalAlpha = a;
+          ctx.fillStyle = "#ef4444";
+          for (let y = 0; y < LOGICAL_HEIGHT; y += 6) {
+            ctx.fillRect((this.frameCount * 3) % 12, y, LOGICAL_WIDTH, 2);
           }
           ctx.restore();
         }
       },
 
       drawMonster() {
-        const maxDist = MONSTER_START_DIST;
-        const t = Math.max(0, Math.min(1, this.monsterDistance / maxDist));
-        const monsterX = 8 - (1 - t) * 7;
-        const monsterY = laneYs[this.playerLane];
+        const t = 1 - (this.monsterDistance / MONSTER_START_DIST);
+        const x = 10 - t * 8;
+        const y = laneYs[this.playerLane];
 
-        const img = monsterImg;
-        if (img.complete && img.naturalWidth) {
-          const scale = this.monsterScale;
-          const w = img.naturalWidth * scale;
-          const h = img.naturalHeight * scale;
-          const x = monsterX - w / 2;
-          const y = monsterY - h / 2;
-          ctx.drawImage(img, x, y, w, h);
+        let scale = 0.022 + t * 0.02;
+
+        if (monsterImg.complete && monsterImg.naturalWidth) {
+          const w = monsterImg.naturalWidth * scale;
+          const h = monsterImg.naturalHeight * scale;
+          ctx.save();
+          if (!this.monsterBanished) {
+            ctx.shadowColor = "rgba(239,68,68,0.65)";
+            ctx.shadowBlur = 6;
+          }
+          ctx.drawImage(monsterImg, x - w / 2, y - h / 2, w, h);
+          ctx.restore();
         } else {
-          ctx.fillStyle = '#7f1d1d';
-          ctx.fillRect(monsterX - 6, monsterY - 6, 12, 12);
+          ctx.fillStyle = "#7f1d1d";
+          ctx.fillRect(x - 6, y - 6, 12, 12);
         }
       },
 
       drawPlayer() {
-        const img = heroImg;
         const py = laneYs[this.playerLane];
 
-        if (!img.complete || !img.naturalWidth) {
-          ctx.fillStyle = this.kestrlActive ? '#22c55e' : '#3b82f6';
+        if (!heroImg.complete || !heroImg.naturalWidth) {
+          ctx.fillStyle = this.kestrlActive ? "#22c55e" : "#3b82f6";
           ctx.fillRect(PLAYER_X - 5, py - 5, 10, 10);
           return;
         }
 
+        const HERO_FRAMES = 5;
+        const HERO_FRAME_WIDTH = 390;
+        const HERO_FRAME_HEIGHT = 382;
+        const HERO_ANIM_SPEED = 10;
+
         const frameIndex = Math.floor(this.frameCount / HERO_ANIM_SPEED) % HERO_FRAMES;
         const sx = frameIndex * HERO_FRAME_WIDTH;
-        const sy = 0;
 
         const scale = this.kestrlActive ? 0.045 : 0.04;
         const drawW = HERO_FRAME_WIDTH * scale;
@@ -951,107 +1186,169 @@
         const dy = py - drawH / 2;
 
         ctx.save();
-        if (this.kestrlActive) {
-          ctx.shadowColor = '#38bdf8';
-          ctx.shadowBlur = 5;
-        }
-
-        ctx.drawImage(
-          img,
-          sx, sy,
-          HERO_FRAME_WIDTH, HERO_FRAME_HEIGHT,
-          dx, dy,
-          drawW, drawH
-        );
-
+        if (this.kestrlActive) { ctx.shadowColor = "#38bdf8"; ctx.shadowBlur = 6; }
+        if (this.sadaqahState === "aura") { ctx.shadowColor = "#fbbf24"; ctx.shadowBlur = 5; }
+        ctx.drawImage(heroImg, sx, 0, HERO_FRAME_WIDTH, HERO_FRAME_HEIGHT, dx, dy, drawW, drawH);
         ctx.restore();
       },
 
       drawItems() {
         for (const it of this.items) {
           const x = it.x;
-          const y = laneYs[it.lane];
+          const y = (it.laneFloat !== null && it.laneFloat !== undefined) ? it.laneFloat : laneYs[it.lane];
 
-          if (it.type === 'green') {
+          if (it.type === "green") {
             if (halalCoinImg.complete && halalCoinImg.naturalWidth) {
-              const scale = 0.03;
-              const w = halalCoinImg.naturalWidth * scale;
-              const h = halalCoinImg.naturalHeight * scale;
+              const sc = 0.03;
+              const w = halalCoinImg.naturalWidth * sc;
+              const h = halalCoinImg.naturalHeight * sc;
               ctx.save();
-              ctx.shadowColor = '#bbf7d0';
+              ctx.shadowColor = "#bbf7d0";
               ctx.shadowBlur = 4;
-              ctx.drawImage(halalCoinImg, x - w / 2, y - h / 2, w, h);
+              ctx.drawImage(halalCoinImg, x - w/2, y - h/2, w, h);
               ctx.restore();
             } else {
               ctx.save();
-              ctx.fillStyle = '#22c55e';
-              ctx.shadowColor = '#bbf7d0';
+              ctx.fillStyle = "#22c55e";
+              ctx.shadowColor = "#bbf7d0";
               ctx.shadowBlur = 4;
               ctx.fillRect(x - 3, y - 3, 6, 6);
               ctx.restore();
             }
-          } else if (it.type === 'red') {
+          }
+
+          if (it.type === "red") {
             if (ribaCoinImg.complete && ribaCoinImg.naturalWidth) {
-              const scale = 0.03;
-              const w = ribaCoinImg.naturalWidth * scale;
-              const h = ribaCoinImg.naturalHeight * scale;
+              const sc = 0.03;
+              const w = ribaCoinImg.naturalWidth * sc;
+              const h = ribaCoinImg.naturalHeight * sc;
               ctx.save();
-              ctx.shadowColor = '#fecaca';
+              ctx.shadowColor = "#fecaca";
               ctx.shadowBlur = 4;
-              ctx.drawImage(ribaCoinImg, x - w / 2, y - h / 2, w, h);
+              ctx.drawImage(ribaCoinImg, x - w/2, y - h/2, w, h);
               ctx.restore();
             } else {
               ctx.save();
-              ctx.fillStyle = '#ef4444';
-              ctx.shadowColor = '#fecaca';
+              ctx.fillStyle = "#ef4444";
+              ctx.shadowColor = "#fecaca";
               ctx.shadowBlur = 4;
               ctx.fillRect(x - 3, y - 3, 6, 6);
               ctx.restore();
             }
-          } else if (it.type === 'obstacle') {
-            ctx.fillStyle = '#9ca3af';
-            ctx.fillRect(x - 3, y - 4, 6, 8);
-          } else if (it.type === 'invest') {
-            ctx.fillStyle = '#facc15';
-            ctx.fillRect(x - 4, y - 5, 2, 10);
-            ctx.fillRect(x + 2, y - 5, 2, 10);
-            ctx.fillRect(x - 4, y - 5, 8, 2);
-          } else if (it.type === 'kestrl') {
-            ctx.save();
-            ctx.fillStyle = '#38bdf8';
-            ctx.shadowColor = '#bae6fd';
-            ctx.shadowBlur = 5;
-            ctx.fillRect(x - 3, y - 3, 6, 6);
-            ctx.restore();
+          }
+
+          if (it.type === "kestrl") {
+            if (kestrlCardImg.complete && kestrlCardImg.naturalWidth) {
+              const sc = 0.03;
+              const w = kestrlCardImg.naturalWidth * sc;
+              const h = kestrlCardImg.naturalHeight * sc;
+              ctx.save();
+              ctx.shadowColor = "#bae6fd";
+              ctx.shadowBlur = 5;
+              ctx.drawImage(kestrlCardImg, x - w/2, y - h/2, w, h);
+              ctx.restore();
+            } else {
+              ctx.save();
+              ctx.fillStyle = "#38bdf8";
+              ctx.shadowColor = "#bae6fd";
+              ctx.shadowBlur = 6;
+              ctx.fillRect(x - 4, y - 4, 8, 8);
+              ctx.restore();
+            }
+          }
+
+          if (it.type === "sadaqah") {
+            if (sadaqahBoxImg.complete && sadaqahBoxImg.naturalWidth) {
+              const sc = 0.035;
+              const w = sadaqahBoxImg.naturalWidth * sc;
+              const h = sadaqahBoxImg.naturalHeight * sc;
+              ctx.save();
+              ctx.shadowColor = "#fbbf24";
+              ctx.shadowBlur = 6;
+              ctx.drawImage(sadaqahBoxImg, x - w/2, y - h/2, w, h);
+              ctx.restore();
+            } else {
+              ctx.save();
+              ctx.fillStyle = "#fbbf24";
+              ctx.shadowColor = "#fbbf24";
+              ctx.shadowBlur = 6;
+              ctx.fillRect(x - 4, y - 4, 8, 8);
+              ctx.restore();
+            }
+          }
+
+          if (it.type === "obstacle") {
+            let img = null;
+            if (it.kind === "beer") img = obsBeerImg;
+            if (it.kind === "poker") img = obsPokerImg;
+            if (it.kind === "rocket") img = obsRocketImg;
+            if (it.kind === "chemicaldrum") img = obsChemicalDrumImg;
+
+            if (img && img.complete && img.naturalWidth) {
+              const sc = 0.03;
+              const w = img.naturalWidth * sc;
+              const h = img.naturalHeight * sc;
+
+              ctx.save();
+              if (!this.kestrlActive) {
+                ctx.shadowColor = "rgba(239,68,68,0.55)";
+                ctx.shadowBlur = 4;
+              } else {
+                ctx.globalAlpha = 0.5; // ghosted
+              }
+              ctx.drawImage(img, x - w/2, y - h/2, w, h);
+              ctx.restore();
+            } else {
+              ctx.save();
+              ctx.fillStyle = "#9ca3af";
+              ctx.fillRect(x - 4, y - 6, 8, 12);
+              ctx.restore();
+            }
           }
         }
       },
 
       drawHUD() {
-        const barX = 4, barY = 4, width = 75;
-        ctx.fillStyle = '#f9fafb';
-        ctx.font = '6px monospace';
-        ctx.fillText('£' + Math.floor(this.balance), barX, barY + 6);
+        if (this.shakeTimer > 0) {
+          const mag = 1.2;
+          ctx.save();
+          ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
+        }
 
-        const maxDist = MONSTER_START_DIST;
-        const t = Math.max(0, Math.min(1, this.monsterDistance / maxDist));
-        const barWidth = width * t;
-        ctx.fillStyle = '#4b5563';
-        ctx.fillRect(barX, barY + 8, width, 4);
-        ctx.fillStyle = this.monsterBanished ? '#22c55e' : '#ef4444';
-        ctx.fillRect(barX, barY + 8, barWidth, 4);
-        ctx.fillStyle = '#e5e7eb';
-        ctx.font = '5px monospace';
-        ctx.fillText('THREAT', barX + width + 4, barY + 11);
+        ctx.fillStyle = "#f9fafb";
+        ctx.font = "6px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        const mm = Math.floor(this.elapsedSec / 60);
+        const ss = Math.floor(this.elapsedSec % 60).toString().padStart(2, "0");
+        ctx.fillText(`£${Math.floor(this.cash)}  |  SAV £${Math.floor(this.savings)}  |  ${mm}:${ss}`, 4, 8);
 
-        const status = [];
-        if (this.barakahActive) status.push('Barakah x2');
-        if (this.kestrlActive) status.push('Kestrl Mode');
-        if (this.loanTaken) status.push('Riba Loan Active');
+        const barX = 4, barY = 12, width = 70;
+        const t = clamp(this.monsterDistance / MONSTER_START_DIST, 0, 1);
+        ctx.fillStyle = "#4b5563";
+        ctx.fillRect(barX, barY, width, 4);
+        ctx.fillStyle = this.monsterBanished ? "#22c55e" : "#ef4444";
+        ctx.fillRect(barX, barY, width * t, 4);
+        ctx.fillStyle = "#e5e7eb";
+        ctx.font = "5px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        ctx.fillText("THREAT", barX + width + 4, barY + 4);
 
+        const st = [];
+        if (this.kestrlActive) st.push("KESTRL");
+        if (this.sadaqahState === "waiting") st.push("SADAQAH... (wait)");
+        if (this.sadaqahState === "aura") st.push("AURA");
+        if (this.sadaqahState === "magnet") st.push("MAGNET");
+        if (this.loanTaken) st.push("LOAN");
+        if (this.lagSec > 0) st.push(`LAG ${this.lagSec.toFixed(1)}s`);
+
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "5px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        ctx.fillText(st.join(" · "), 4, 24);
+
+        if (this.shakeTimer > 0) ctx.restore();
+
+        const burn = this.currentBurnPerSec();
+        const ph = inflationPhase(this.elapsedSec);
         statsDiv.textContent =
-          `Balance: £${Math.floor(this.balance)} | Debt: £${Math.floor(this.debt)} | Interest: £${(this.drainPerFrame - DRAIN_BASE).toFixed(2)}/sec` +
-          (status.length ? ' | ' + status.join(' · ') : '');
+          `Cash: £${Math.floor(this.cash)} | Savings: £${Math.floor(this.savings)} | Burn: -£${burn.toFixed(1)}/sec | Speed: ${ph.speedMult.toFixed(1)}x | Coin: £${this.currentCoinValue()}`;
       },
 
       draw() {
@@ -1063,30 +1360,24 @@
       }
     };
 
-    // Input
+    /* ---------- INPUT ---------- */
     window.addEventListener('keydown', e => {
+      if (!gameScreen.classList.contains('active')) return;
+
       if (e.key === 'ArrowUp') {
-        game.playerLane = Math.max(0, game.playerLane - 1);
+        game.setLaneWithLag(game.playerLane - 1);
       } else if (e.key === 'ArrowDown') {
-        game.playerLane = Math.min(LANES - 1, game.playerLane + 1);
+        game.setLaneWithLag(game.playerLane + 1);
       } else if (e.key === 's' || e.key === 'S') {
-        if (game.barakahActive) {
-          showToast('Barakah already active.');
-        } else if (game.balance < SADAQAH_COST) {
-          showToast('Not enough balance for Sadaqah.');
-        } else {
-          game.balance -= SADAQAH_COST;
-          game.barakahActive = true;
-          game.barakahTimer = SADAQAH_DURATION;
-          showToast('Sadaqah given — hidden Barakah x2 activated.');
-        }
+        game.depositSavings();
       } else if (e.key === 'r' || e.key === 'R') {
         game.reset();
       }
     });
 
-    btnRestart.addEventListener('click', () => game.reset());
     btnLoan.addEventListener('click', () => game.takeLoan());
+    btnSavings.addEventListener('click', () => game.useSavings());
+    btnBankrupt.addEventListener('click', () => game.declareBankruptcy());
   </script>
 </body>
 </html>
