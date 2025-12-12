@@ -396,7 +396,6 @@
       [cutsceneScreen, mapScreen, gameScreen].forEach(s => s.classList.remove('active'));
       screen.classList.add('active');
     }
-
     function startMap() {
       showScreen(mapScreen);
       try { cutsceneVideo.pause(); } catch (e) {}
@@ -404,7 +403,6 @@
 
     let heroProgress = 0;
     let heroExpanded = false;
-
     function updateHeroSize() {
       const minW = 340, maxW = 960;
       const minH = 210, maxH = 540;
@@ -436,7 +434,6 @@
       cutsceneVideo.muted = false;
       cutsceneVideo.play().catch(() => {});
     });
-
     heroSkipBtn.addEventListener('click', startMap);
     cutsceneVideo.addEventListener('ended', startMap);
 
@@ -513,14 +510,14 @@
     const SADAQAH_COST = 40;
     const SADAQAH_DELAY_1 = 2.0;
     const SADAQAH_DELAY_2 = 1.0;
-    const SADAQAH_MAGNET_DURATION = 12.0; // (3 → 15s total after hit)
-    const SADAQAH_MAGNET_CAP = 80;        // collect exactly £80 then stop
+    const SADAQAH_MAGNET_DURATION = 12.0;
+    const SADAQAH_MAGNET_CAP = 80;
 
     /* ---------- KESTRL CARD ---------- */
     const KESTRL_DURATION = 10.0;
 
     /* ---------- SPAWNS ---------- */
-    const COINS_PER_SEC_BASE = 4.0; // at 1.0x speed
+    const COINS_PER_SEC_BASE = 4.0;
     const BASE_SPEED = 1.35;
 
     /* ---------- MONSTER PRESSURE ---------- */
@@ -537,11 +534,11 @@
     const halalCoinImg = new Image(); halalCoinImg.src = 'halalcoin.png';
     const ribaCoinImg = new Image(); ribaCoinImg.src = 'ribacoin.png';
 
-    // Optional if you have these:
+    // Optional:
     const kestrlCardImg = new Image(); kestrlCardImg.src = 'kestrlcard.png';
     const sadaqahBoxImg = new Image(); sadaqahBoxImg.src = 'sadaqahbox.png';
 
-    // Your real obstacle assets:
+    // Your obstacle assets:
     const obsBeerImg = new Image(); obsBeerImg.src = 'beer.png';
     const obsPokerImg = new Image(); obsPokerImg.src = 'poker.png';
     const obsRocketImg = new Image(); obsRocketImg.src = 'rocket.png';
@@ -587,7 +584,7 @@
       kestrlActive: false,
       kestrlTimer: 0,
 
-      sadaqahState: "off", // off | waiting | aura | magnet
+      sadaqahState: "off",
       sadaqahTimer: 0,
       magnetEarned: 0,
 
@@ -688,15 +685,11 @@
         requestAnimationFrame(this.loop.bind(this));
       },
 
-      currentCoinValue() {
-        return this.kestrlActive ? KESTRL_COIN_VALUE : COIN_VALUE;
-      },
-
+      currentCoinValue() { return this.kestrlActive ? KESTRL_COIN_VALUE : COIN_VALUE; },
       currentSpeed() {
         const ph = inflationPhase(this.elapsedSec);
         return BASE_SPEED * ph.speedMult;
       },
-
       currentBurnPerSec() {
         const ph = inflationPhase(this.elapsedSec);
         return ph.burnPerSec * this.burnMult;
@@ -705,10 +698,7 @@
       setLaneWithLag(targetLane) {
         targetLane = clamp(targetLane, 0, LANES - 1);
         const lag = this.lagSec;
-        if (lag <= 0) {
-          this.playerLane = targetLane;
-          return;
-        }
+        if (lag <= 0) { this.playerLane = targetLane; return; }
         this.pendingLane = targetLane;
         this.laneApplyTimerSec = lag;
       },
@@ -774,39 +764,22 @@
         }
         this.monsterDistance = clamp(this.monsterDistance, 0, MONSTER_START_DIST);
 
-        if (this.cash <= 0) {
-          this.cash = 0;
-          this.triggerLiquidityCrisis();
-          return;
-        }
-
-        if (this.monsterDistance <= 0 && !this.monsterBanished) {
-          this.triggerCaught();
-          return;
-        }
+        if (this.cash <= 0) { this.cash = 0; this.triggerLiquidityCrisis(); return; }
+        if (this.monsterDistance <= 0 && !this.monsterBanished) { this.triggerCaught(); return; }
 
         const ph = inflationPhase(this.elapsedSec);
         const coinsPerSec = COINS_PER_SEC_BASE * ph.speedMult;
 
         this.coinSpawnAcc += coinsPerSec * dt;
-        while (this.coinSpawnAcc >= 1) {
-          this.spawnCoin();
-          this.coinSpawnAcc -= 1;
-        }
+        while (this.coinSpawnAcc >= 1) { this.spawnCoin(); this.coinSpawnAcc -= 1; }
 
         const obstaclePerSec = 0.55 * ph.speedMult;
         this.obstacleSpawnAcc += obstaclePerSec * dt;
-        while (this.obstacleSpawnAcc >= 1) {
-          this.spawnObstacle();
-          this.obstacleSpawnAcc -= 1;
-        }
+        while (this.obstacleSpawnAcc >= 1) { this.spawnObstacle(); this.obstacleSpawnAcc -= 1; }
 
         const specialPerSec = 0.12 * ph.speedMult;
         this.specialSpawnAcc += specialPerSec * dt;
-        while (this.specialSpawnAcc >= 1) {
-          this.spawnSpecial();
-          this.specialSpawnAcc -= 1;
-        }
+        while (this.specialSpawnAcc >= 1) { this.spawnSpecial(); this.specialSpawnAcc -= 1; }
 
         const speed = this.currentSpeed();
 
@@ -825,10 +798,7 @@
             it.laneFloat = null;
           }
 
-          if (it.x < -30) {
-            this.items.splice(i, 1);
-            continue;
-          }
+          if (it.x < -30) { this.items.splice(i, 1); continue; }
 
           const py = laneYs[this.playerLane];
           const iy = (it.laneFloat !== null && it.laneFloat !== undefined) ? it.laneFloat : laneYs[it.lane];
@@ -841,57 +811,42 @@
 
       hit(px, py, pw, ph, ix, iy) {
         const w = 6, h = 6;
-        return (
-          px < ix + w &&
-          px + pw > ix &&
-          py - ph / 2 < iy + h / 2 &&
-          py + ph / 2 > iy - h / 2
-        );
+        return (px < ix + w && px + pw > ix && py - ph / 2 < iy + h / 2 && py + ph / 2 > iy - h / 2);
       },
 
       spawnCoin() {
         const lane = Math.floor(Math.random() * LANES);
         const x = LOGICAL_WIDTH + 10;
-
         let type = (Math.random() < 0.72) ? "green" : "red";
         if (this.kestrlActive && type === "red") type = "green";
-
         this.items.push({ type, lane, x });
       },
 
       spawnObstacle() {
-        // Grid rule: obstacles only lanes 0 or 1. lane 2 is escape route.
-        const lane = Math.random() < 0.5 ? 0 : 1;
+        const lane = Math.random() < 0.5 ? 0 : 1; // lane 2 escape
         const x = LOGICAL_WIDTH + 10;
-
         const r = Math.random();
         let kind;
         if (r < 0.25) kind = "beer";
         else if (r < 0.5) kind = "poker";
         else if (r < 0.75) kind = "rocket";
         else kind = "chemicaldrum";
-
         this.items.push({ type: "obstacle", kind, lane, x });
       },
 
       lane2IsClearSoon() {
-        // lane 2 = index 1
-        for (const it of this.items) {
-          if (it.lane === 1 && it.x > LOGICAL_WIDTH - 40) return false;
-        }
+        for (const it of this.items) { if (it.lane === 1 && it.x > LOGICAL_WIDTH - 40) return false; }
         return true;
       },
 
       spawnSpecial() {
         const x = LOGICAL_WIDTH + 10;
 
-        // Sadaqah condition: cash > 50 and lane 2 clear
         if (this.cash > 50 && this.sadaqahState === "off" && this.lane2IsClearSoon() && Math.random() < 0.35) {
           this.items.push({ type: "sadaqah", lane: 1, x });
           return;
         }
 
-        // Kestrl card sometimes
         if (!this.kestrlActive && Math.random() < 0.55) {
           const lane = Math.floor(Math.random() * LANES);
           this.items.push({ type: "kestrl", lane, x });
@@ -901,25 +856,16 @@
       resolveCollision(it) {
         if (it.type === "green") {
           const gain = this.currentCoinValue();
-          this.cash += gain;
-          this.wagesEarned += gain;
-          this.greenCoinsTaken++;
+          this.cash += gain; this.wagesEarned += gain; this.greenCoinsTaken++;
           if (!this.monsterBanished) this.monsterDistance += MONSTER_GREEN_PUSH;
           this.monsterDistance = clamp(this.monsterDistance, 0, MONSTER_START_DIST);
-
-          if (this.sadaqahState === "magnet") {
-            this.magnetEarned += gain;
-            this.sadaqahReturn += gain;
-          }
+          if (this.sadaqahState === "magnet") { this.magnetEarned += gain; this.sadaqahReturn += gain; }
           return;
         }
 
         if (it.type === "red") {
           const gain = this.currentCoinValue();
-          this.cash += gain;
-          this.wagesEarned += gain;
-          this.redCoinsTaken++;
-
+          this.cash += gain; this.wagesEarned += gain; this.redCoinsTaken++;
           if (!this.monsterBanished) this.monsterDistance -= MONSTER_RED_PULL;
           this.monsterDistance = clamp(this.monsterDistance, 0, MONSTER_START_DIST);
           this.glitchTimer = 0.28;
@@ -934,101 +880,61 @@
 
           for (const o of this.items) if (o.type === "red") o.type = "green";
 
-          // Purification: input lag reset to 0.0s immediately (back to base)
-          this.lagSec = this.baseLagSec;
-
+          this.lagSec = this.baseLagSec; // purification resets lag to base
           showToast("Kestrl Card: coin value boosted, riba purified, obstacles ghosted.");
           return;
         }
 
         if (it.type === "sadaqah") {
-          if (this.cash < SADAQAH_COST) {
-            showToast("You saw Sadaqah, but could not afford it.");
-            return;
-          }
-          this.cash -= SADAQAH_COST;
-          this.sadaqahGiven += SADAQAH_COST;
-
-          this.sadaqahState = "waiting";
-          this.sadaqahTimer = SADAQAH_DELAY_1;
-
+          if (this.cash < SADAQAH_COST) { showToast("You saw Sadaqah, but could not afford it."); return; }
+          this.cash -= SADAQAH_COST; this.sadaqahGiven += SADAQAH_COST;
+          this.sadaqahState = "waiting"; this.sadaqahTimer = SADAQAH_DELAY_1;
           showToast("Sadaqah given. Nothing happens at first...");
           return;
         }
 
         if (it.type === "obstacle") {
-          if (this.kestrlActive) {
-            // shield: pass through
-            this.glitchTimer = 0.12;
-            return;
-          }
+          if (this.kestrlActive) { this.glitchTimer = 0.12; return; } // shield: ghost through
 
-          this.cash -= OBSTACLE_PENALTY;
-          this.obstacleLoss += OBSTACLE_PENALTY;
+          this.cash -= OBSTACLE_PENALTY; this.obstacleLoss += OBSTACLE_PENALTY;
 
-          // Effects matched to your assets
-          if (it.kind === "beer") this.blurTimer = 1.4; // Alcohol = blur
-          if (it.kind === "poker") {                    // Gambling = random lane switch
-            const newLane = Math.floor(Math.random() * LANES);
-            this.playerLane = newLane;
-            this.glitchTimer = 0.25;
-          }
-          if (it.kind === "rocket") this.shakeTimer = 0.6; // Arms = shake
-          if (it.kind === "chemicaldrum") this.tintGreenTimer = 1.1; // Chemical = sick tint
+          if (it.kind === "beer") this.blurTimer = 1.4;
+          if (it.kind === "poker") { this.playerLane = Math.floor(Math.random() * LANES); this.glitchTimer = 0.25; }
+          if (it.kind === "rocket") this.shakeTimer = 0.6;
+          if (it.kind === "chemicaldrum") this.tintGreenTimer = 1.1;
 
           showToast("Haram hit: -" + OBSTACLE_PENALTY + " and control disrupted.");
-
-          if (this.cash <= 0) {
-            this.cash = 0;
-            this.triggerLiquidityCrisis();
-          }
+          if (this.cash <= 0) { this.cash = 0; this.triggerLiquidityCrisis(); }
           return;
         }
       },
 
       triggerLiquidityCrisis() {
-        this.running = false;
-        this.gameOver = true;
-
+        this.running = false; this.gameOver = true;
         gameOverTitle.textContent = "Liquidity Crisis";
         gameOverMessage.textContent =
           "Your cash hit £0. Inflation did not care how hard you ran. The Riba Banker offers a bridge loan.";
-
         this.renderAutopsy();
 
         if (this.savings >= REVIVE_COST) {
-          btnSavings.className = "btn btn-primary";
-          btnSavings.disabled = false;
-          btnSavings.textContent = "Use Savings (£150)";
+          btnSavings.className = "btn btn-primary"; btnSavings.disabled = false; btnSavings.textContent = "Use Savings (£150)";
         } else {
-          btnSavings.className = "btn btn-muted";
-          btnSavings.disabled = true;
-          btnSavings.textContent = "Use Savings (Need £150)";
+          btnSavings.className = "btn btn-muted"; btnSavings.disabled = true; btnSavings.textContent = "Use Savings (Need £150)";
         }
-
         showOverlay();
       },
 
       triggerCaught() {
-        this.running = false;
-        this.gameOver = true;
-
+        this.running = false; this.gameOver = true;
         gameOverTitle.textContent = "Caught by Riba";
-        gameOverMessage.textContent =
-          "Shortcuts looked tempting, but the trap pulled you in. You got caught.";
-
+        gameOverMessage.textContent = "Shortcuts looked tempting, but the trap pulled you in. You got caught.";
         this.renderAutopsy();
 
         if (this.savings >= REVIVE_COST) {
-          btnSavings.className = "btn btn-primary";
-          btnSavings.disabled = false;
-          btnSavings.textContent = "Use Savings (£150)";
+          btnSavings.className = "btn btn-primary"; btnSavings.disabled = false; btnSavings.textContent = "Use Savings (£150)";
         } else {
-          btnSavings.className = "btn btn-muted";
-          btnSavings.disabled = true;
-          btnSavings.textContent = "Use Savings (Need £150)";
+          btnSavings.className = "btn btn-muted"; btnSavings.disabled = true; btnSavings.textContent = "Use Savings (Need £150)";
         }
-
         showOverlay();
       },
 
@@ -1036,19 +942,13 @@
         const mm = Math.floor(this.elapsedSec / 60);
         const ss = Math.floor(this.elapsedSec % 60).toString().padStart(2, "0");
 
-        const wages = Math.floor(this.wagesEarned);
-        const infl = Math.floor(this.burnedToInflation);
-        const obs = Math.floor(this.obstacleLoss);
-        const sav = Math.floor(this.savings);
-        const sada = Math.floor(this.sadaqahReturn);
-
         autopsyLines.innerHTML =
           `SURVIVED: <strong>${mm}m ${ss}s</strong><br>` +
-          `Wages earned: <strong>£${wages}</strong><br>` +
-          `Lost to inflation: <strong>-£${infl}</strong><br>` +
-          `Lost to haram shocks: <strong>-£${obs}</strong><br>` +
-          `Savings pot: <strong>£${sav}</strong><br>` +
-          `Sadaqah return collected: <strong>£${sada}</strong><br>` +
+          `Wages earned: <strong>£${Math.floor(this.wagesEarned)}</strong><br>` +
+          `Lost to inflation: <strong>-£${Math.floor(this.burnedToInflation)}</strong><br>` +
+          `Lost to haram shocks: <strong>-£${Math.floor(this.obstacleLoss)}</strong><br>` +
+          `Savings pot: <strong>£${Math.floor(this.savings)}</strong><br>` +
+          `Sadaqah return collected: <strong>£${Math.floor(this.sadaqahReturn)}</strong><br>` +
           `<span style="color:#cbd5e1;">Lesson:</span> You cannot win on salary alone once costs accelerate.`;
       },
 
@@ -1091,10 +991,7 @@
 
       depositSavings() {
         if (!this.running) return;
-        if (this.cash < SAVE_STEP) {
-          showToast("Not enough cash to save.");
-          return;
-        }
+        if (this.cash < SAVE_STEP) { showToast("Not enough cash to save."); return; }
         this.cash -= SAVE_STEP;
         this.savings += SAVE_STEP;
         this.savingsDeposited += SAVE_STEP;
@@ -1142,8 +1039,7 @@
         const t = 1 - (this.monsterDistance / MONSTER_START_DIST);
         const x = 10 - t * 8;
         const y = laneYs[this.playerLane];
-
-        let scale = 0.022 + t * 0.02;
+        const scale = 0.022 + t * 0.02;
 
         if (monsterImg.complete && monsterImg.naturalWidth) {
           const w = monsterImg.naturalWidth * scale;
@@ -1193,15 +1089,19 @@
       },
 
       drawItems() {
+        // Coin on-screen size reference (so obstacles match coin size)
+        const COIN_SCALE = 0.03;
+        const coinBox = (halalCoinImg.complete && halalCoinImg.naturalWidth)
+          ? { w: halalCoinImg.naturalWidth * COIN_SCALE, h: halalCoinImg.naturalHeight * COIN_SCALE }
+          : { w: 6, h: 6 };
+
         for (const it of this.items) {
           const x = it.x;
           const y = (it.laneFloat !== null && it.laneFloat !== undefined) ? it.laneFloat : laneYs[it.lane];
 
           if (it.type === "green") {
             if (halalCoinImg.complete && halalCoinImg.naturalWidth) {
-              const sc = 0.03;
-              const w = halalCoinImg.naturalWidth * sc;
-              const h = halalCoinImg.naturalHeight * sc;
+              const w = coinBox.w, h = coinBox.h;
               ctx.save();
               ctx.shadowColor = "#bbf7d0";
               ctx.shadowBlur = 4;
@@ -1212,16 +1112,16 @@
               ctx.fillStyle = "#22c55e";
               ctx.shadowColor = "#bbf7d0";
               ctx.shadowBlur = 4;
-              ctx.fillRect(x - 3, y - 3, 6, 6);
+              ctx.fillRect(x - coinBox.w/2, y - coinBox.h/2, coinBox.w, coinBox.h);
               ctx.restore();
             }
+            continue;
           }
 
           if (it.type === "red") {
             if (ribaCoinImg.complete && ribaCoinImg.naturalWidth) {
-              const sc = 0.03;
-              const w = ribaCoinImg.naturalWidth * sc;
-              const h = ribaCoinImg.naturalHeight * sc;
+              const w = ribaCoinImg.naturalWidth * COIN_SCALE;
+              const h = ribaCoinImg.naturalHeight * COIN_SCALE;
               ctx.save();
               ctx.shadowColor = "#fecaca";
               ctx.shadowBlur = 4;
@@ -1232,9 +1132,10 @@
               ctx.fillStyle = "#ef4444";
               ctx.shadowColor = "#fecaca";
               ctx.shadowBlur = 4;
-              ctx.fillRect(x - 3, y - 3, 6, 6);
+              ctx.fillRect(x - coinBox.w/2, y - coinBox.h/2, coinBox.w, coinBox.h);
               ctx.restore();
             }
+            continue;
           }
 
           if (it.type === "kestrl") {
@@ -1255,6 +1156,7 @@
               ctx.fillRect(x - 4, y - 4, 8, 8);
               ctx.restore();
             }
+            continue;
           }
 
           if (it.type === "sadaqah") {
@@ -1275,6 +1177,7 @@
               ctx.fillRect(x - 4, y - 4, 8, 8);
               ctx.restore();
             }
+            continue;
           }
 
           if (it.type === "obstacle") {
@@ -1285,9 +1188,12 @@
             if (it.kind === "chemicaldrum") img = obsChemicalDrumImg;
 
             if (img && img.complete && img.naturalWidth) {
-              const sc = 0.03;
-              const w = img.naturalWidth * sc;
-              const h = img.naturalHeight * sc;
+              // Fit obstacle inside coin box, preserving aspect ratio
+              const ar = img.naturalWidth / img.naturalHeight;
+              let w = coinBox.w;
+              let h = coinBox.h;
+              if (ar > 1) h = w / ar;
+              else w = h * ar;
 
               ctx.save();
               if (!this.kestrlActive) {
@@ -1301,9 +1207,10 @@
             } else {
               ctx.save();
               ctx.fillStyle = "#9ca3af";
-              ctx.fillRect(x - 4, y - 6, 8, 12);
+              ctx.fillRect(x - coinBox.w/2, y - coinBox.h/2, coinBox.w, coinBox.h);
               ctx.restore();
             }
+            continue;
           }
         }
       },
